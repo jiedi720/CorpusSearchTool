@@ -9,6 +9,7 @@ echo This will MOVE all files and folders in the parent directory to Recycle Bin
 echo EXCEPT:
 echo   - .git folder (Git repository)
 echo   - GitSync folder (This script's location)
+echo   - .trae folder (IDE configuration)
 echo.
 echo WARNING: Files will be moved to Recycle Bin, not permanently deleted!
 echo.
@@ -20,7 +21,7 @@ echo.
 echo Files and folders to be moved to Recycle Bin (excluded: .git, GitSync):
 echo.
 dir /b /a-d
-dir /b /ad | findstr /v /i "^\.git$" | findstr /v /i "^GitSync$"
+dir /b /ad | findstr /v /i "^\.git$" | findstr /v /i "^GitSync$" | findstr /v /i "^\.trae$"
 echo.
 echo Press Ctrl+C to cancel, or any key to continue...
 pause >nul
@@ -53,7 +54,7 @@ for /f "delims=" %%f in ('dir /b /a-d 2^>nul ^| findstr /v /i "^GitSync"') do (
 )
 
 REM Delete folders directly
-for /f "delims=" %%d in ('dir /b /ad 2^>nul ^| findstr /v /i "^\.git$" ^| findstr /v /i "^GitSync$"') do (
+for /f "delims=" %%d in ('dir /b /ad 2^>nul ^| findstr /v /i "^\.git$" ^| findstr /v /i "^GitSync$" ^| findstr /v /i "^\.trae$"') do (
     echo Moving folder to Recycle Bin: %%d
     echo $folderPath = Join-Path "%PARENT_DIR%" "%%d" >> "%PS_SCRIPT%"
     echo if ^(Test-Path $folderPath^) { >> "%PS_SCRIPT%"

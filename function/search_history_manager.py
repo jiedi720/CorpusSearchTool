@@ -138,6 +138,26 @@ class SearchHistoryManager:
         # 更新历史记录
         self.history = new_history
         self.save_history()
+        
+    def remove_records_by_timestamp(self, timestamps_list):
+        """
+        根据时间戳列表移除特定的历史记录
+
+        Args:
+            timestamps_list: 要移除的记录时间戳列表
+        """
+        if not timestamps_list:
+            return
+
+        # 创建新的历史记录列表，排除指定时间戳的记录
+        new_history = []
+        for record in self.history:
+            if record['timestamp'] not in timestamps_list:
+                new_history.append(record)
+
+        # 更新历史记录
+        self.history = new_history
+        self.save_history()
 
     def clear_history(self):
         """清空历史记录"""

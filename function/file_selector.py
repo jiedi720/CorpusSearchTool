@@ -58,9 +58,7 @@ class FileSelector:
             return list(filedialog.askopenfilenames(
                 title="选择文件",
                 filetypes=[
-                    ("支持的文件", "*.srt *.ass *.ssa *.vtt *.txt *.md *.docx *.pdf"),
-                    ("字幕文件", "*.srt *.ass *.ssa *.vtt"),
-                    ("文档文件", "*.txt *.md *.docx *.pdf"),
+                    ("Markdown 文件", "*.md"),
                     ("所有文件", "*.*")
                 ]
             ))
@@ -68,9 +66,7 @@ class FileSelector:
             file_path = filedialog.askopenfilename(
                 title="选择文件",
                 filetypes=[
-                    ("支持的文件", "*.srt *.ass *.ssa *.vtt *.txt *.md *.docx *.pdf"),
-                    ("字幕文件", "*.srt *.ass *.ssa *.vtt"),
-                    ("文档文件", "*.txt *.md *.docx *.pdf"),
+                    ("Markdown 文件", "*.md"),
                     ("所有文件", "*.*")
                 ]
             )
