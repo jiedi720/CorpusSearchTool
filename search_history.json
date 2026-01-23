@@ -1,0 +1,101 @@
+[
+  {
+    "timestamp": "2026-01-23T15:41:35.644154",
+    "keywords": "语料库",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T15:41:49.707591",
+    "keywords": "지었다고",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T15:49:02.038522",
+    "keywords": "아직도",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T15:55:08.174892",
+    "keywords": "아직도",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T16:22:04.004866",
+    "keywords": "멋지고",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T16:26:15.106152",
+    "keywords": "물러나",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T16:42:15.333693",
+    "keywords": "갔잖아",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T16:52:54.761253",
+    "keywords": "멋지고",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  },
+  {
+    "timestamp": "2026-01-23T17:16:38.320577",
+    "keywords": "아직도",
+    "input_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "output_path": "C:/Users/EJI1WX/OneDrive - Bosch Group/Korean/语料库",
+    "settings": {
+      "case_sensitive": false,
+      "fuzzy_match": false,
+      "regex_enabled": false
+    }
+  }
+]
