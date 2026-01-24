@@ -95,15 +95,35 @@ class KoreanSearchEngine(SearchEngineBase):
                     print(f"[DEBUG] 选择非标点token: {token.form} ({token.tag})")
                     break
                     break
-        
+
+        # 后处理：修正kiwipiepy的常见分析错误
+        # 如果原始关键词以다结尾，但被分析为副词(MAG)，则修正为动词(VV)
+        should_fix = False
+        if main_word and raw_keyword.endswith('다') and main_word.tag == 'MAG':
+            print(f"[DEBUG] 检测到다结尾的词被误判为副词，修正为动词")
+            # 检查是否由多个token组成（如 이루 + 다）
+            tokens = analyzed_words[0][0]
+            if len(tokens) >= 2:
+                # 如果最后一个token是'다'，则将整个词修正为动词
+                if tokens[-1].form == '다':
+                    # 合并所有token的form作为词典形
+                    combined_lemma = ''.join([t.form for t in tokens])
+                    # 修正词性和词典形
+                    pos = 'VV'
+                    lemma = combined_lemma
+                    should_fix = True
+                    print(f"[DEBUG] 修正后: pos='{pos}', lemma='{lemma}'")
+
         if not main_word:
             print(f"[DEBUG] 无法分析关键词: {raw_keyword}")
             # 无法分析时，默认按名词处理
             lemma = raw_keyword
             pos = 'Noun'
         else:
-            lemma = main_word.lemma
-            pos = main_word.tag
+            # 如果没有修正，则使用原始值
+            if not should_fix:
+                lemma = main_word.lemma
+                pos = main_word.tag
             
             # 词性标签映射：缩写 → 全称
             pos_map = {

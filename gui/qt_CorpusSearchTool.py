@@ -422,7 +422,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 重新设置图标路径，确保图标正确加载
         self.set_icon_paths()
-        
+
+        # 为变体列表显示控件启用文字换行
+        if hasattr(self, 'english_lemmalist_display'):
+            self.english_lemmalist_display.setWordWrap(True)
+        if hasattr(self, 'korean_lemmalist_display'):
+            self.korean_lemmalist_display.setWordWrap(True)
+
         # 标记初始化完成
         self._initialized = True
     
@@ -552,6 +558,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         for widget in display_widgets:
             if widget:
                 widget.setProperty("theme", theme_mode)
+                # 为变体列表显示控件启用文字换行
+                if widget in [self.english_lemmalist_display, self.korean_lemmalist_display]:
+                    widget.setWordWrap(True)
                 # 强制刷新显示控件样式
                 widget.style().unpolish(widget)
                 widget.style().polish(widget)
@@ -873,7 +882,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.result_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.result_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.result_table.setWordWrap(False)  # 禁止文字换行
+        self.result_table.setWordWrap(True)  # 启用文字换行
         self.result_table.setHorizontalScrollMode(QTableWidget.ScrollMode.ScrollPerPixel)  # 像素级横向滚动
         self.result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # 需要时显示横向滚动条
         
@@ -902,9 +911,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 恢复列宽和顺序
         self.restore_column_settings()
         
-        # 设置行高
-        self.result_table.verticalHeader().setDefaultSectionSize(30)
+        # 设置行高为自动调整
         self.result_table.verticalHeader().setVisible(False)
+        self.result_table.resizeRowsToContents()
         
         # 设置右键菜单
         self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -928,6 +937,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             QTableWidget::item:hover {
                 background-color: #3d3d3d;
                 color: white;
+            }
+            QTableWidget::item {
+                padding: 0px;
             }
             QHeaderView {
                 background-color: #505050;
@@ -1197,6 +1209,20 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     # 取第一个分析结果的第一个词
                     main_word = analyzed_words[0][0][0]
                     
+                    # 后处理：修正kiwipiepy的常见分析错误
+                    # 如果原始关键词以다结尾，但被分析为副词(MAG)，则修正为动词(VV)
+                    should_fix = False
+                    if keywords.endswith('다') and main_word.tag == 'MAG':
+                        # 检查是否由多个token组成
+                        tokens = analyzed_words[0][0]
+                        if len(tokens) >= 2 and tokens[-1].form == '다':
+                            # 修正词性和词典形
+                            combined_lemma = ''.join([t.form for t in tokens])
+                            # 创建修正后的词性
+                            corrected_tag = 'VV'
+                            corrected_lemma = combined_lemma
+                            should_fix = True
+                    
                     # 词性标签映射：缩写 → 全称
                     pos_map = {
                         # 用言 (动词/形容词) 及其变体后缀
@@ -1207,6 +1233,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                         'VX': '辅助用言 (Auxiliary Verb)',
                         'VCP': '肯定体词谓词 (Positive Copula)',
                         'VCN': '否定体词谓词 (Negative Copula)',
+                        'XSV': '动词性派生词 (Verb Derivative)',
+                        'XSA': '形容词性派生词 (Adjective Derivative)',
                         
                         # 体词 (名词类) 的细分
                         'NNG': '一般名词 (Common Noun)',
@@ -1216,11 +1244,15 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                         'NP': '代名词 (Pronoun)',
                         
                         # 其他词性
-                        'MAG': '一般副词 (General Adverb)'
+                        'MAG': '一般副词 (General Adverb)',
+                        'MAJ': '接续副词 (Conjunctive Adverb)'
                     }
                     
-                    pos_full = pos_map.get(main_word.tag, main_word.tag)  # 默认为原标签
-                    lemma_text = f"{main_word.form} ({pos_full}) → {main_word.lemma}"
+                    # 使用修正后的词性或原始词性
+                    tag_to_use = corrected_tag if should_fix else main_word.tag
+                    lemma_to_use = corrected_lemma if should_fix else main_word.lemma
+                    pos_full = pos_map.get(tag_to_use, tag_to_use)
+                    lemma_text = f"{keywords} ({pos_full}) → {lemma_to_use}"
                 
                 self.korean_lemma_display.setText(lemma_text)
             except Exception as e:
@@ -1351,8 +1383,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 更新变体型列表显示
         if target_variant_set:
-            # 将生成的变体列表转换为字符串，用换行符分隔
-            variant_text = "\n".join(target_variant_set)
+            # 将生成的变体列表转换为字符串，用逗号分隔（横着显示）
+            variant_text = ", ".join(target_variant_set)
             # 根据当前语料库类型更新对应的变体型列表显示
             if self.current_corpus_tab == 0:  # 英语语料库
                 if hasattr(self, 'english_lemmalist_display'):
@@ -1382,6 +1414,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         header.style().unpolish(header)
         header.style().polish(header)
         header.update()
+
+        # 自动调整行高以适应内容
+        self.result_table.resizeRowsToContents()
+
+        # 为每行添加额外的上下边距（总共6像素，上下各3像素）
+        for row in range(self.result_table.rowCount()):
+            current_height = self.result_table.rowHeight(row)
+            self.result_table.setRowHeight(row, current_height + 6)
 
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
