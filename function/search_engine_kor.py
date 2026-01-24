@@ -6,6 +6,7 @@
 import re
 from typing import List, Dict
 from function.search_engine_base import SearchEngineBase
+from kiwipiepy import Kiwi
 
 
 class KoreanSearchEngine(SearchEngineBase):
@@ -14,6 +15,7 @@ class KoreanSearchEngine(SearchEngineBase):
     def __init__(self):
         """初始化韩语搜索引擎"""
         super().__init__()
+        self.kiwi = Kiwi()
     
     def search_korean_variants(self, file_path: str, base_words: List[str],
                               case_sensitive: bool = False) -> List[Dict]:
@@ -42,6 +44,222 @@ class KoreanSearchEngine(SearchEngineBase):
         
         return self.search_in_file(file_path, all_keywords, case_sensitive, 
                                  fuzzy_match=False, regex_enabled=False)
+    
+    def search_korean_advanced(self, file_path: str, raw_keyword: str, 
+                              case_sensitive: bool = False) -> Dict:
+        """
+        高级韩语搜索方法，基于kiwipiepy形态分析
+        
+        Args:
+            file_path: 文件路径
+            raw_keyword: 用户输入的原始关键词
+            case_sensitive: 是否区分大小写
+            
+        Returns:
+            包含搜索记录和结果的字典
+        """
+        # 根据文件类型选择解析器
+        from pathlib import Path
+        from function.subtitle_parser import parse_subtitle_file
+        from function.document_parser import parse_document_file
+        
+        file_ext = Path(file_path).suffix.lower()
+        subtitle_exts = ['.srt', '.ass', '.ssa', '.vtt']
+        
+        if file_ext in subtitle_exts:
+            parsed_data = parse_subtitle_file(file_path)
+        else:
+            parsed_data = parse_document_file(file_path)
+        
+        # 1. 使用kiwipiepy分析原始关键词
+        analyzed_words = self.kiwi.analyze(raw_keyword)
+        print(f"[DEBUG] 关键词分析结果: {analyzed_words}")
+        
+        # 提取第一个分析结果的主要词（假设只有一个关键词）
+        # 取第一个结果，忽略空格和其他词
+        main_word = None
+        for token in analyzed_words[0][0]:
+            if token.form.strip() == raw_keyword.strip():
+                main_word = token
+                break
+        
+        if not main_word:
+            # 如果直接匹配失败，尝试取第一个非标点的词
+            for token in analyzed_words[0][0]:
+                if token.tag not in ['SF', 'SP', 'SS', 'SE', 'SO', 'SW']:
+                    main_word = token
+                    break
+        
+        if not main_word:
+            print(f"[DEBUG] 无法分析关键词: {raw_keyword}")
+            # 无法分析时，默认按名词处理
+            lemma = raw_keyword
+            pos = 'Noun'
+        else:
+            lemma = main_word.lemma
+            pos = main_word.tag
+            
+            # 词性标签映射：缩写 → 全称
+            pos_map = {
+                # 用言 (动词/形容词) 及其变体后缀
+                'VV': '规则动词 (Regular Verb)',
+                'VV-I': '不规则动词 (Irregular Verb)',
+                'VA': '规则形容词 (Regular Adjective)',
+                'VA-I': '不规则形容词 (Irregular Adjective)',
+                'VX': '辅助用言 (Auxiliary Verb)',
+                'VCP': '肯定体词谓词 (Positive Copula)',
+                'VCN': '否定体词谓词 (Negative Copula)',
+                
+                # 体词 (名词类) 的细分
+                'NNG': '一般名词 (Common Noun)',
+                'NNP': '专有名词 (Proper Noun)',
+                'NNB': '依存名词 (Dependent Noun)',
+                'NR': '数词 (Numeral)',
+                'NP': '代名词 (Pronoun)',
+                
+                # 其他词性
+                'MAG': '一般副词 (General Adverb)',
+                
+                # 复合标签处理
+                'VV+EF': '规则动词 (Regular Verb)',
+                'VA+EF': '规则形容词 (Regular Adjective)',
+                'VV-I+EF': '不规则动词 (Irregular Verb)',
+                'VA-I+EF': '不规则形容词 (Irregular Adjective)'
+            }
+            
+            pos_full = pos_map.get(pos, pos)  # 默认为原标签
+            print(f"[DEBUG] 关键词 '{raw_keyword}' 分析结果: 词性={pos_full}, 词典形={lemma}")
+        
+        # 2. 判定词性并构建搜索策略
+        is_verb_adj = pos in ['VV', 'VA', 'VCP', 'VCN']  # 动词或形容词
+        is_noun_adv = pos in ['NNG', 'NNP', 'NR', 'NP', 'MAG']  # 名词或副词
+        
+        # 3. 构建搜索用的目标形式集合
+        if is_noun_adv:
+            # 名词/副词：仅包含原始关键词
+            variant_set = [raw_keyword]
+        else:
+            # 动词/形容词：生成所有可能的变体
+            variant_set = self._generate_korean_variants(lemma)
+            # 确保包含词典形
+            if lemma not in variant_set:
+                variant_set.append(lemma)
+            # 确保包含原始关键词
+            if raw_keyword not in variant_set:
+                variant_set.append(raw_keyword)
+            print(f"[DEBUG] 生成的所有变体: {variant_set}")
+        
+        # 4. 在语料库中检索
+        results = []
+        actual_variants = set()  # 实际命中的变体
+        
+        for item in parsed_data:
+            content = item.get('content', '')
+            if not content.strip():
+                continue
+            
+            matched = False
+            matched_variant = None
+            
+            if is_noun_adv:
+                # 名词/副词：严格匹配
+                if raw_keyword in content:
+                    matched = True
+                    matched_variant = raw_keyword
+                    actual_variants.add(matched_variant)
+            else:
+                # 动词/形容词：结合多种检索策略
+                try:
+                    # 策略1：使用生成的变体集合进行快速匹配
+                    found = False
+                    for variant in variant_set:
+                        if variant in content:
+                            matched = True
+                            matched_variant = variant
+                            actual_variants.add(matched_variant)
+                            found = True
+                            break
+                    
+                    if not found:
+                        # 策略2：形态分析（备用，确保覆盖所有可能的变形）
+                        sentence_analyzed = self.kiwi.analyze(content)
+                        
+                        # 检查是否包含目标词典形的任意变形
+                        for analysis_result in sentence_analyzed:
+                            for token in analysis_result[0]:
+                                if token.lemma == lemma:
+                                    matched = True
+                                    matched_variant = token.form
+                                    actual_variants.add(matched_variant)
+                                    break
+                            if matched:
+                                break
+                except Exception as e:
+                    print(f"[DEBUG] 分析句子时出错: {e}")
+                    continue
+            
+            if matched:
+                # 兼容不同的行号字段名
+                line_number = item.get('lineno', '')
+                if line_number == '':
+                    line_number = item.get('line_number', '')
+                    
+                result = {
+                    'file_path': file_path,
+                    'lineno': line_number,
+                    'line_number': line_number,  # 同时保留两种字段名，方便后续处理
+                    'episode': item.get('episode', ''),
+                    'time_axis': item.get('time_axis', ''),
+                    'content': content,
+                    'matched_keyword': matched_variant
+                }
+                results.append(result)
+                print(f"[DEBUG] 匹配到: {content} (行号: {line_number})")
+        
+        # 词性标签映射：缩写 → 全称
+        pos_map = {
+            # 用言 (动词/形容词) 及其变体后缀
+            'VV': '规则动词 (Regular Verb)',
+            'VV-I': '不规则动词 (Irregular Verb)',
+            'VA': '规则形容词 (Regular Adjective)',
+            'VA-I': '不规则形容词 (Irregular Adjective)',
+            'VX': '辅助用言 (Auxiliary Verb)',
+            'VCP': '肯定体词谓词 (Positive Copula)',
+            'VCN': '否定体词谓词 (Negative Copula)',
+            
+            # 体词 (名词类) 的细分
+            'NNG': '一般名词 (Common Noun)',
+            'NNP': '专有名词 (Proper Noun)',
+            'NNB': '依存名词 (Dependent Noun)',
+            'NR': '数词 (Numeral)',
+            'NP': '代名词 (Pronoun)',
+            
+            # 其他词性
+            'MAG': '一般副词 (General Adverb)',
+            
+            # 复合标签处理
+            'VV+EF': '规则动词 (Regular Verb)',
+            'VA+EF': '规则形容词 (Regular Adjective)',
+            'VV-I+EF': '不规则动词 (Irregular Verb)',
+            'VA-I+EF': '不规则形容词 (Irregular Adjective)'
+        }
+        
+        # 5. 生成完整搜索记录
+        search_record = {
+            'raw_keyword': raw_keyword,
+            'lemma': lemma,
+            'pos': pos_map.get(pos, pos),  # 使用全称词性标签
+            'original_pos': pos,  # 保留原始缩写标签，便于后续处理
+            'is_verb_adj': is_verb_adj,
+            'is_noun_adv': is_noun_adv,
+            'target_variant_set': variant_set,
+            'actual_variant_set': list(actual_variants),
+            'search_results': results,
+            'result_count': len(results)
+        }
+        
+        print(f"[DEBUG] 搜索记录: {search_record}")
+        return search_record
     
     def search_korean_idiom(self, file_path: str, idiom: str, 
                           case_sensitive: bool = False) -> List[Dict]:

@@ -133,17 +133,43 @@ class SearchHistoryManager:
                 # 写入记录
                 mdfile.write("---\n\n")
                 mdfile.write(f"**关键词**: {record['keywords']}\n")
+                mdfile.write(f"**关键词类型**: {record.get('keyword_type', '')}\n")
+                
+                # 添加词典形和变体信息
+                lemma = record.get('lemma', '')
+                if lemma:
+                    mdfile.write(f"**词典形**: {lemma}\n")
+                
+                # 显示生成的所有变体列表
+                target_variant_set = record.get('target_variant_set', [])
+                if target_variant_set:
+                    mdfile.write(f"**生成变体列表**: {', '.join(target_variant_set)}\n")
+                
+                # 显示实际命中的变体
+                actual_variant_set = record.get('actual_variant_set', [])
+                if actual_variant_set:
+                    mdfile.write(f"**实际命中变体**: {', '.join(actual_variant_set)}\n")
+                
+                # 只有当正则表达式为True时，才显示正则表达式信息
+                settings = record.get('settings', {})
+                regex_enabled = settings.get('regex_enabled', False)
+                if regex_enabled:
+                    mdfile.write(f"**正则表达式**: {regex_enabled}\n")
+                
                 mdfile.write(f"**时间**: {timestamp}\n")
                 mdfile.write(f"**输入路径**: {record['input_path']}\n")
-                mdfile.write(f"**输出路径**: {record.get('output_path', 'N/A')}\n")
+                
+                # 只有当输出路径存在且不为空时，才显示输出路径
+                output_path = record.get('output_path', '')
+                if output_path and output_path != 'N/A':
+                    mdfile.write(f"**输出路径**: {output_path}\n")
+                
                 mdfile.write(f"**结果数量**: {record.get('result_count', 0)}\n")
-                mdfile.write(f"**关键词类型**: {record.get('keyword_type', '')}\n")
-                mdfile.write(f"**设置**:\n")
-                mdfile.write(f"- **正则表达式**: {record['settings'].get('regex_enabled', False)}\n")
     
     def add_record(self, keywords: str, input_path: str, output_path: str = "", 
                    case_sensitive: bool = False, fuzzy_match: bool = False, 
-                   regex_enabled: bool = False, result_count: int = 0, keyword_type: str = ""):
+                   regex_enabled: bool = False, result_count: int = 0, keyword_type: str = "",
+                   lemma: str = "", actual_variant_set: list = [], target_variant_set: list = []):
         """
         添加搜索记录
         
@@ -156,6 +182,9 @@ class SearchHistoryManager:
             regex_enabled: 是否启用正则表达式
             result_count: 搜索结果数量
             keyword_type: 关键词类型（如 "名词 & 副词"、"动词 & 形容词" 等）
+            lemma: 系统判定的词典形
+            actual_variant_set: 基于词典形实际命中的所有变体形式列表
+            target_variant_set: 基于词典形生成的所有可能变体形式列表
         """
         record = {
             "timestamp": datetime.now().isoformat(),
@@ -164,6 +193,9 @@ class SearchHistoryManager:
             "output_path": output_path,
             "result_count": result_count,
             "keyword_type": keyword_type,
+            "lemma": lemma,
+            "target_variant_set": target_variant_set,
+            "actual_variant_set": actual_variant_set,
             "settings": {
                 "case_sensitive": case_sensitive,
                 "fuzzy_match": fuzzy_match,

@@ -3,6 +3,7 @@
 负责处理搜索结果，包括排序、过滤等功能
 """
 
+import re
 from typing import List, Dict, Any
 from pathlib import Path
 
@@ -29,7 +30,10 @@ class ResultProcessor:
 
         for result in results:
             file_path = result.get('file_path', 'Unknown')
+            # 兼容不同的行号字段名
             line_number = result.get('line_number', 0)
+            if line_number == 0:
+                line_number = result.get('lineno', 0)
             content = result.get('content', '')
 
             # 获取文件名
@@ -58,7 +62,12 @@ class ResultProcessor:
                     cleaned_content = content.replace(time_axis, '').strip()
 
                 # 高亮关键词（如果存在）
+                # 兼容不同的关键词字段名
                 matched_keywords = result.get('matched_keywords', [])
+                if not matched_keywords:
+                    matched_keyword = result.get('matched_keyword', '')
+                    if matched_keyword:
+                        matched_keywords = [matched_keyword]
                 highlighted_content = self.highlight_content_with_keywords(cleaned_content, matched_keywords)
 
                 formatted_results.append((filename, str(line_number), episode, time_axis, highlighted_content, file_path))
@@ -82,7 +91,12 @@ class ResultProcessor:
                     cleaned_content = content.replace(time_axis, '').strip()
 
                 # 高亮关键词（如果存在）
+                # 兼容不同的关键词字段名
                 matched_keywords = result.get('matched_keywords', [])
+                if not matched_keywords:
+                    matched_keyword = result.get('matched_keyword', '')
+                    if matched_keyword:
+                        matched_keywords = [matched_keyword]
                 highlighted_content = self.highlight_content_with_keywords(cleaned_content, matched_keywords)
 
                 formatted_results.append((filename, str(line_number), episode, time_axis, highlighted_content, file_path))

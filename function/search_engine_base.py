@@ -177,16 +177,22 @@ class SearchEngineBase:
             search_exact = exact_text if case_sensitive else exact_text.lower()
             
             if search_exact in search_content:
+                # 兼容不同的行号字段名
+                line_number = item.get('lineno', '')
+                if line_number == '':
+                    line_number = item.get('line_number', '')
+                    
                 result = {
                     'file_path': file_path,
-                    'lineno': item.get('lineno', ''),
+                    'lineno': line_number,
+                    'line_number': line_number,  # 同时保留两种字段名，方便后续处理
                     'episode': item.get('episode', ''),
                     'time_axis': item.get('time_axis', ''),
                     'content': content,
                     'matched_keywords': [exact_text]
                 }
                 results.append(result)
-                print(f"[DEBUG] 完全匹配: {content}")
+                print(f"[DEBUG] 完全匹配: {content} (行号: {line_number})")
         
         return results
 

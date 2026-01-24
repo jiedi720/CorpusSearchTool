@@ -35,7 +35,7 @@ from gui.search_history_gui import SearchHistoryWindow
 class SearchThread(QThread):
     """搜索线程"""
     progress_updated = Signal(int)
-    search_completed = Signal(list)
+    search_completed = Signal(list, str, list, str, list)  # results, lemma, actual_variant_set, pos_full, target_variant_set
     search_failed = Signal(str)
     
     def __init__(self, input_path, keywords, case_sensitive, fuzzy_match, regex_enabled, 
@@ -49,6 +49,8 @@ class SearchThread(QThread):
         self.corpus_type = corpus_type  # "english" 或 "korean"
         self.keyword_type = keyword_type  # 关键词类型
         self.exact_match = exact_match  # 是否完全匹配（引号内）
+        self.lemma = ""  # 系统判定的词典形
+        self.actual_variant_set = []  # 基于词典形实际命中的所有变体形式列表
     
     def run(self):
         """执行搜索"""
@@ -75,9 +77,10 @@ class SearchThread(QThread):
                 # 韩语模式：韩语没有大小写之分，使用 case_sensitive=True
                 # 但为了兼容性，我们保留用户的选择，只是不使用模糊匹配
                 self.fuzzy_match = False
-                results = []  # 初始化 results 变量
+                all_results = []  # 初始化 results 变量
+                all_search_records = []  # 保存所有搜索记录
                 
-                # 检查是否需要韩语变形匹配
+                # 检查是否包含韩语
                 import re
                 korean_pattern = re.compile(r'[\uac00-\ud7af]')
                 contains_korean = bool(korean_pattern.search(self.keywords))
@@ -89,94 +92,76 @@ class SearchThread(QThread):
                 print(f"  正则表达式: {self.regex_enabled}")
                 print(f"  文件总数: {total_files}")
                 
-                # 判断是否使用变形匹配：关键词类型是"单词"且包含韩语且不是正则表达式
-                # 并且关键词以"다"结尾（动词/形容词）
-                use_variant_matching = (
-                    self.keyword_type == "单词" and 
-                    contains_korean and 
-                    not self.regex_enabled and
-                    self.keywords.endswith('다')
-                )
+                # 使用新的高级韩语搜索方法
+                print(f"[DEBUG] 使用高级韩语搜索")
                 
-                # 判断是否使用惯用语匹配
-                use_idiom_matching = (
-                    self.keyword_type == "惯用语" and 
-                    contains_korean and 
-                    not self.regex_enabled and
-                    not self.exact_match
-                )
+                # 保存生成的变体列表
+                self.target_variant_set = []
                 
-                # 判断是否使用完全匹配（引号内）
-                if self.exact_match:
-                    # 使用完全匹配功能
-                    print(f"[DEBUG] 使用完全匹配: '{self.keywords}'")
-                    for i, file_path in enumerate(files_to_search):
-                        file_results = search_engine_kor.search_exact_match(
+                for i, file_path in enumerate(files_to_search):
+                    try:
+                        # 使用新的 search_korean_advanced 方法
+                        search_record = search_engine_kor.search_korean_advanced(
                             file_path,
                             self.keywords,
                             case_sensitive=True
                         )
-                        print(f"[DEBUG] 文件 {file_path}: 找到 {len(file_results)} 个结果")
-                        results.extend(file_results)
+                        
+                        # 提取搜索结果
+                        file_results = search_record['search_results']
+                        if file_results:
+                            print(f"[DEBUG] 文件 {file_path}: 找到 {len(file_results)} 个结果")
+                            all_results.extend(file_results)
+                        
+                        # 保存搜索记录
+                        all_search_records.append(search_record)
+                        
+                        # 获取生成的变体列表（使用第一个搜索记录的变体列表）
+                        if not self.target_variant_set and 'target_variant_set' in search_record:
+                            self.target_variant_set = search_record['target_variant_set']
                         
                         # 更新进度
                         progress = int((i + 1) / total_files * 100)
                         self.progress_updated.emit(progress)
-                elif use_idiom_matching:
-                    # 使用惯用语匹配功能
-                    print(f"[DEBUG] 使用惯用语匹配")
-                    for i, file_path in enumerate(files_to_search):
-                        file_results = search_engine_kor.search_korean_idiom(
-                            file_path,
-                            self.keywords,
-                            case_sensitive=True
-                        )
-                        print(f"[DEBUG] 文件 {file_path}: 找到 {len(file_results)} 个结果")
-                        results.extend(file_results)
-                        
-                        # 更新进度
-                        progress = int((i + 1) / total_files * 100)
-                        self.progress_updated.emit(progress)
-                elif use_variant_matching:
-                    # 使用韩语变形匹配功能（动词/形容词）
-                    print(f"[DEBUG] 使用变形匹配（动词/形容词）")
-                    for i, file_path in enumerate(files_to_search):
-                        file_results = search_engine_kor.search_korean_variants(
-                            file_path,
-                            self.keywords.split(),
-                            case_sensitive=True  # 韩语使用区分大小写（实际不影响）
-                        )
-                        print(f"[DEBUG] 文件 {file_path}: 找到 {len(file_results)} 个结果")
-                        results.extend(file_results)
-                        
-                        # 更新进度
-                        progress = int((i + 1) / total_files * 100)
-                        self.progress_updated.emit(progress)
-                else:
-                    # 名词/副词类型或非韩语内容：严格匹配
-                    print(f"[DEBUG] 使用严格匹配（名词/副词）")
-                    keyword_list = self.keywords.split()
-                    print(f"[DEBUG] 关键词列表: {keyword_list}")
-                    for i, file_path in enumerate(files_to_search):
-                        try:
-                            file_results = search_engine_kor.search_in_file(
-                                file_path,
-                                keyword_list,
-                                case_sensitive=True,  # 韩语使用区分大小写（实际不影响）
-                                fuzzy_match=False,  # 强制不使用模糊匹配
-                                regex_enabled=self.regex_enabled
-                            )
-                            if file_results:
-                                print(f"[DEBUG] 文件 {file_path}: 找到 {len(file_results)} 个结果")
-                            results.extend(file_results)
-                        except Exception as e:
-                            print(f"[ERROR] 处理文件 {file_path} 时出错: {str(e)}")
-                        
-                        # 更新进度
-                        progress = int((i + 1) / total_files * 100)
-                        self.progress_updated.emit(progress)
+                    except Exception as e:
+                        print(f"[ERROR] 处理文件 {file_path} 时出错: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
                 
-                print(f"[DEBUG] 搜索完成，共找到 {len(results)} 个结果")
+                print(f"[DEBUG] 搜索完成，共找到 {len(all_results)} 个结果")
+                print(f"[DEBUG] 生成的变体列表: {self.target_variant_set}")
+                
+                # 提取词典形和实际变体形式列表
+                pos_full = ""
+                if all_search_records:
+                    # 使用第一个搜索记录的词典形
+                    self.lemma = all_search_records[0]['lemma']
+                    
+                    # 提取具体词典型
+                    pos_full = all_search_records[0].get('pos', '')
+                    
+                    # 合并所有搜索记录的实际变体形式，去重
+                    all_variants = set()
+                    for record in all_search_records:
+                        all_variants.update(record['actual_variant_set'])
+                    self.actual_variant_set = list(all_variants)
+                
+                # 保存完整的搜索记录
+                import json
+                import datetime
+                
+                # 创建搜索记录文件
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                record_filename = f"search_record_{timestamp}.json"
+                
+                # 保存到搜索历史
+                if hasattr(self, 'current_search_params'):
+                    # 这里可以扩展，将搜索记录保存到历史文件
+                    pass
+                
+                # 使用 all_results 作为最终结果
+                results = all_results
             else:
                 # 英语模式：使用用户设置
                 # 检查是否需要韩语/英语变形匹配
@@ -228,7 +213,8 @@ class SearchThread(QThread):
             else:
                 formatted_results = []
             
-            self.search_completed.emit(formatted_results)
+            # 发送搜索完成信号，包含lemma、actual_variant_set、pos_full和生成的变体列表
+            self.search_completed.emit(formatted_results, self.lemma, self.actual_variant_set, pos_full, self.target_variant_set if hasattr(self, 'target_variant_set') else [])
             
         except Exception as e:
             self.search_failed.emit(str(e))
@@ -521,7 +507,7 @@ class CorpusSearchToolGUI(QMainWindow):
                 border-radius: 5px;
                 padding: 8px 10px;
                 font-size: 9pt;
-                min-height: 28px;
+                min-height: 32px;
                 color: #ffffff;
             }
             QLineEdit::placeholder {
@@ -562,7 +548,7 @@ class CorpusSearchToolGUI(QMainWindow):
                 border-radius: 5px;
                 padding: 5px 10px;
                 font-size: 9pt;
-                min-height: 28px;
+                min-height: 32px;
                 color: #ffffff;
             }
             QComboBox:hover {
@@ -768,6 +754,7 @@ class CorpusSearchToolGUI(QMainWindow):
         keyword_container = QWidget()
         keyword_layout = QHBoxLayout(keyword_container)
         keyword_layout.setContentsMargins(0, 0, 0, 0)
+        keyword_layout.setSpacing(5)  # 减小控件之间的间距，让词典型标签和显示框更近
         
         keyword_label = QLabel("关键词:")
         keyword_label.setMinimumWidth(80)
@@ -788,6 +775,7 @@ class CorpusSearchToolGUI(QMainWindow):
             # 创建英语关键词输入框
             keyword_edit = QLineEdit()
             keyword_edit.setPlaceholderText("输入搜索关键词...")
+            keyword_edit.setMaximumWidth(200)  # 缩小关键词输入框宽度
             
             # 保存到实例变量
             self.english_keyword_combo = keyword_combo
@@ -807,14 +795,35 @@ class CorpusSearchToolGUI(QMainWindow):
             # 创建韩语关键词输入框
             keyword_edit = QLineEdit()
             keyword_edit.setPlaceholderText("输入搜索关键词...")
+            keyword_edit.setMaximumWidth(200)  # 缩小关键词输入框宽度
             
             # 保存到实例变量
             self.korean_keyword_combo = keyword_combo
             self.korean_keyword_edit = keyword_edit
         
+        # 添加词典型显示区域
+        lemma_label = QLabel("词典型:")
+        lemma_label.setMinimumWidth(60)
+        
+        lemma_display = QLabel("N/A")
+        # 使用与开始搜索按钮相同的高度（32px）
+        lemma_display.setStyleSheet("background-color: rgba(50, 50, 50, 0.5); border: 1px solid rgba(100, 100, 100, 0.5); border-radius: 5px; padding: 8px 10px; height: 32px; font-size: 9pt; line-height: 32px;")
+        lemma_display.setMinimumWidth(150)
+        lemma_display.setMaximumWidth(200)
+        lemma_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lemma_display.setWordWrap(False)
+        
+        # 保存到实例变量
+        if corpus_type == "english":
+            self.english_lemma_display = lemma_display
+        else:
+            self.korean_lemma_display = lemma_display
+        
         keyword_layout.addWidget(keyword_label)
         keyword_layout.addWidget(keyword_combo)
         keyword_layout.addWidget(keyword_edit)
+        keyword_layout.addWidget(lemma_label)
+        keyword_layout.addWidget(lemma_display)
         
         # 右侧：按钮
         button_container = QWidget()
@@ -894,7 +903,6 @@ class CorpusSearchToolGUI(QMainWindow):
         
         # 更新当前标签页索引
         self.current_corpus_tab = index
-        print(f"切换到标签页: {index}")
     
     def save_current_tab_config(self):
         """保存当前标签页的配置"""
@@ -1129,6 +1137,54 @@ class CorpusSearchToolGUI(QMainWindow):
         # 保存关键词类型到参数中
         self.current_search_params['keyword_type'] = keyword_type
         
+        # 分析关键词词典型并显示
+        if self.current_corpus_tab == 0:  # 英语语料库
+            # 英语词典型显示（简化版）
+            lemma_text = "N/A"  # 英语暂不实现词典型分析
+            self.english_lemma_display.setText(lemma_text)
+        else:  # 韩语语料库
+            # 使用kiwipiepy分析韩语关键词
+            from function.search_engine_kor import search_engine_kor
+            try:
+                # 分析关键词
+                analyzed_words = search_engine_kor.kiwi.analyze(keywords)
+                
+                # 提取主要词的词典型
+                lemma_text = "N/A"
+                if analyzed_words and analyzed_words[0] and analyzed_words[0][0]:
+                    # 取第一个分析结果的第一个词
+                    main_word = analyzed_words[0][0][0]
+                    
+                    # 词性标签映射：缩写 → 全称
+                    pos_map = {
+                        # 用言 (动词/形容词) 及其变体后缀
+                        'VV': '规则动词 (Regular Verb)',
+                        'VV-I': '不规则动词 (Irregular Verb)',
+                        'VA': '规则形容词 (Regular Adjective)',
+                        'VA-I': '不规则形容词 (Irregular Adjective)',
+                        'VX': '辅助用言 (Auxiliary Verb)',
+                        'VCP': '肯定体词谓词 (Positive Copula)',
+                        'VCN': '否定体词谓词 (Negative Copula)',
+                        
+                        # 体词 (名词类) 的细分
+                        'NNG': '一般名词 (Common Noun)',
+                        'NNP': '专有名词 (Proper Noun)',
+                        'NNB': '依存名词 (Dependent Noun)',
+                        'NR': '数词 (Numeral)',
+                        'NP': '代名词 (Pronoun)',
+                        
+                        # 其他词性
+                        'MAG': '一般副词 (General Adverb)'
+                    }
+                    
+                    pos_full = pos_map.get(main_word.tag, main_word.tag)  # 默认为原标签
+                    lemma_text = f"{main_word.form} ({pos_full}) → {main_word.lemma}"
+                
+                self.korean_lemma_display.setText(lemma_text)
+            except Exception as e:
+                print(f"分析韩语关键词出错: {e}")
+                self.korean_lemma_display.setText("分析错误")
+        
         # 禁用当前标签页的搜索按钮
         if self.current_corpus_tab == 0:  # 英语语料库
             self.english_search_btn.setEnabled(False)
@@ -1161,7 +1217,7 @@ class CorpusSearchToolGUI(QMainWindow):
         self.progress_bar.setValue(value)
         self.status_bar.showMessage(f"⏳ 正在搜索... {value}%")
     
-    def search_completed(self, results):
+    def search_completed(self, results, lemma="", actual_variant_set=[], pos_full="", target_variant_set=[]):
         """搜索完成"""
         # 隐藏进度条
         self.progress_bar.setVisible(False)
@@ -1238,6 +1294,10 @@ class CorpusSearchToolGUI(QMainWindow):
         if hasattr(self, 'current_search_params'):
             corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
             search_history_manager.set_corpus_type(corpus_type)
+            
+            # 使用具体词典型作为关键词类型
+            keyword_type_to_save = pos_full if pos_full else self.current_search_params.get('keyword_type', '')
+            
             search_history_manager.add_record(
                 keywords=self.current_search_params['keywords'],
                 input_path=self.current_search_params['input_path'],
@@ -1245,7 +1305,10 @@ class CorpusSearchToolGUI(QMainWindow):
                 fuzzy_match=self.current_search_params['fuzzy_match'],
                 regex_enabled=self.current_search_params['regex_enabled'],
                 result_count=len(results),
-                keyword_type=self.current_search_params.get('keyword_type', '')
+                keyword_type=keyword_type_to_save,
+                lemma=lemma,
+                actual_variant_set=actual_variant_set,
+                target_variant_set=target_variant_set
             )
         
         self.status_bar.showMessage(f"✓ 搜索完成，找到 {len(results)} 条结果")
