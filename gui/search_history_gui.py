@@ -384,50 +384,39 @@ class SearchHistoryWindow(QMainWindow):
         column_settings = config_manager.get_column_settings('history')
         widths = column_settings['widths']
         
+        # 设置固定列宽度（硬编码值）
+        table.setColumnWidth(0, 150)  # 时间列
+        table.setColumnWidth(2, 210)  # 关键词类型列
+        table.setColumnWidth(3, 50)   # 结果列
+        
+        # 如果有保存的宽度，只设置可调整列的宽度
         if widths:
-            # 确保列宽列表的长度与列数匹配
-            for i in range(min(len(widths), table.columnCount())):
-                # 固定列宽度
-                if i == 0:  # 时间列
-                    table.setColumnWidth(i, 150)
-                elif i == 2:  # 关键词类型列
-                    table.setColumnWidth(i, 210)
-                elif i == 3:  # 结果列
-                    table.setColumnWidth(i, 50)
-                else:
-                    # 确保列宽不小于80px，关键词列最大180px，路径列最大300px
-                    if i == 1:  # 关键词列
-                        table.setColumnWidth(i, min(max(120, widths[i]), 180))
-                    elif i == 4:  # 路径列
-                        table.setColumnWidth(i, min(max(80, widths[i]), 300))
-                    else:
-                        table.setColumnWidth(i, max(80, widths[i]))
+            # 可调整列：1(关键词), 4(路径)
+            if len(widths) > 0:  # 关键词列
+                keyword_width = min(max(120, widths[0]), 180)
+                table.setColumnWidth(1, keyword_width)
+            if len(widths) > 1:  # 路径列
+                path_width = min(max(80, widths[1]), 300)
+                table.setColumnWidth(4, path_width)
     
     def closeEvent(self, event):
         """窗口关闭事件，保存列宽设置"""
-        # 获取当前列宽
-        widths = [self.history_table.columnWidth(i) for i in range(self.history_table.columnCount())]
+        # 只保存可调整列的宽度，固定列不保存
+        # 可调整列：1(关键词), 4(路径)
         
-        # 确保固定列宽度保存为正确的值
-        if len(widths) > 0:
-            widths[0] = 150  # 时间列（固定）
-        if len(widths) > 2:
-            widths[2] = 210  # 关键词类型列（固定）
-        if len(widths) > 3:
-            widths[3] = 50   # 结果列（固定）
+        # 获取可调整列的宽度
+        keyword_width = self.history_table.columnWidth(1)
+        path_width = self.history_table.columnWidth(4)
         
-        # 确保其他列宽不小于80px，关键词列最大180px，路径列最大300px
-        for i in range(len(widths)):
-            if i not in [0, 2, 3]:
-                if i == 1:  # 关键词列
-                    widths[i] = min(max(120, widths[i]), 180)
-                elif i == 4:  # 路径列
-                    widths[i] = min(max(80, widths[i]), 300)
-                else:
-                    widths[i] = max(80, widths[i])
+        # 确保可调整列宽在合理范围内
+        keyword_width = min(max(120, keyword_width), 180)
+        path_width = min(max(80, path_width), 300)
+        
+        # 只保存可调整列的宽度值
+        save_widths = [keyword_width, path_width]
         
         # 保存到配置文件
-        config_manager.set_column_settings('history', widths)
+        config_manager.set_column_settings('history', save_widths)
         
         event.accept()
     

@@ -1692,26 +1692,22 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         column_settings = config_manager.get_column_settings('result')
         widths = column_settings['widths']
         
-        # 应用列宽
+        # 设置固定列宽度（硬编码值）
+        self.result_table.setColumnWidth(1, 30)  # 时间轴列
+        self.result_table.setColumnWidth(3, 50)  # 行号列
+        
+        # 如果有保存的宽度，只设置可调整列的宽度
         if widths:
-            # 确保列宽列表的长度与列数匹配
-            for i in range(min(len(widths), self.result_table.columnCount())):
-                # 设置固定列宽度
-                if i == 1:  # 时间轴列
-                    self.result_table.setColumnWidth(i, 30)
-                elif i == 3:  # 行号列
-                    self.result_table.setColumnWidth(i, 50)
-                else:
-                    # 应用最小和最大宽度限制
-                    if i == 0:  # 出处列
-                        width = min(max(120, widths[i]), 300)
-                    elif i == 2:  # 对应台词列
-                        width = min(max(500, widths[i]), 1000)
-                    elif i == 4:  # 文件名列
-                        width = min(max(120, widths[i]), 300)
-                    else:
-                        width = widths[i]
-                    self.result_table.setColumnWidth(i, width)
+            # 可调整列：0(出处), 2(对应台词), 4(文件名)
+            if len(widths) > 0:  # 出处列
+                width = min(max(120, widths[0]), 300)
+                self.result_table.setColumnWidth(0, width)
+            if len(widths) > 1:  # 对应台词列
+                width = min(max(500, widths[1]), 1000)
+                self.result_table.setColumnWidth(2, width)
+            if len(widths) > 2:  # 文件名列
+                width = min(max(120, widths[2]), 300)
+                self.result_table.setColumnWidth(4, width)
         else:
             # 如果没有保存的宽度，应用默认宽度
             self.table_manager.reset_column_widths()
@@ -1736,25 +1732,24 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def save_column_settings(self):
         """保存列宽到配置文件"""
-        # 获取当前列宽
-        widths = [self.result_table.columnWidth(i) for i in range(self.result_table.columnCount())]
+        # 只保存可调整列的宽度，固定列不保存
+        # 可调整列：0(出处), 2(对应台词), 4(文件名)
         
-        # 确保固定列宽度保存为正确的值
-        if len(widths) > 1:
-            widths[1] = 30  # 时间轴列
-        if len(widths) > 3:
-            widths[3] = 50  # 行号列
+        # 获取可调整列的宽度
+        source_width = self.result_table.columnWidth(0)
+        line_width = self.result_table.columnWidth(2)
+        filename_width = self.result_table.columnWidth(4)
         
         # 应用最小和最大宽度限制
-        if len(widths) > 0:
-            widths[0] = min(max(120, widths[0]), 300)  # 出处列
-        if len(widths) > 2:
-            widths[2] = min(max(500, widths[2]), 1000)  # 对应台词列
-        if len(widths) > 4:
-            widths[4] = min(max(120, widths[4]), 300)  # 文件名列
+        source_width = min(max(120, source_width), 300)  # 出处列
+        line_width = min(max(500, line_width), 1000)      # 对应台词列
+        filename_width = min(max(120, filename_width), 300)  # 文件名列
+        
+        # 只保存可调整列的宽度值
+        save_widths = [source_width, line_width, filename_width]
         
         # 保存到配置文件
-        config_manager.set_column_settings('result', widths) 
+        config_manager.set_column_settings('result', save_widths) 
     
     def closeEvent(self, event):
         """窗口关闭事件"""

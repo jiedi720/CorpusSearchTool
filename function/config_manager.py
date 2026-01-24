@@ -48,9 +48,9 @@ class ConfigManager:
         }
         self.config['COLUMNS'] = {
             'result_widths': '',
+            'history_widths': '',
             'result_order': '',
             'result_visibility': '',
-            'history_widths': '',
             'history_order': '',
             'history_visibility': ''
         }
