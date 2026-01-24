@@ -296,7 +296,18 @@ class CustomHeaderView(QHeaderView):
 
 
 class HTMLDelegate(QStyledItemDelegate):
-    """自定义代理类，支持 HTML 渲染"""
+    """自定义代理类，支持 HTML 渲染和关键词高亮"""
+    
+    def __init__(self, parent=None, search_params=None, variants=None):
+        """初始化代理类"""
+        super().__init__(parent)
+        self.current_search_params = search_params if search_params else {}
+        self.variants = variants if variants else []
+    
+    def set_search_params(self, search_params, variants=None):
+        """设置搜索参数，用于关键词高亮"""
+        self.current_search_params = search_params if search_params else {}
+        self.variants = variants if variants else []
     
     def paint(self, painter, option, index):
         """绘制单元格"""
@@ -326,33 +337,47 @@ class HTMLDelegate(QStyledItemDelegate):
         font.setPointSize(11)
         doc.setDefaultFont(font)
         
-        # 处理HTML标签，确保正确渲染
-        import re
+        # 获取当前搜索的关键词，用于高亮
+        current_keywords = []
+        if self.current_search_params:
+            # 从当前搜索参数获取关键词
+            keywords = self.current_search_params.get('keywords', '')
+            if keywords:
+                # 简单处理：按空格分割关键词
+                current_keywords = keywords.split()
+                # 同时添加生成的变体作为关键词
+                if self.variants:
+                    current_keywords.extend(self.variants)
+                # 去重
+                current_keywords = list(set(current_keywords))
         
-        # 移除所有HTML标签，只保留纯文本
-        # 首先保存关键词高亮信息
-        highlighted_keywords = []
-        html_text = str(text)
+        # 处理文本，添加关键词高亮
+        plain_text = str(text)
+        html_text = plain_text
         
-        # 查找所有高亮的关键词
-        import re
-        highlight_matches = re.findall(r'<b><span style="color: #ffff00;">(.*?)</span></b>', html_text)
-        
-        # 移除所有HTML标签，只保留纯文本
-        plain_text = re.sub(r'<[^>]+>', '', html_text)
-        
-        # 创建新的HTML，只包含高亮的关键词
-        new_html = plain_text
-        
-        # 重新添加关键词高亮
-        for keyword in highlight_matches:
-            if keyword in new_html:
-                # 使用正则表达式替换，确保只替换完整的单词
-                import re
-                new_html = re.sub(r'(\b' + re.escape(keyword) + r'\b)', r'<b><span style="color: #ffff00;">\1</span></b>', new_html)
+        # 如果有关键词，添加高亮
+        if current_keywords:
+            import re
+            # 确保关键词按长度降序排列，避免短关键词匹配长关键词的一部分
+            current_keywords.sort(key=lambda x: len(x), reverse=True)
+            
+            # 创建高亮后的HTML文本
+            highlighted_text = plain_text
+            for keyword in current_keywords:
+                if keyword:
+                    # 使用正则表达式替换，确保只替换完整的单词，不区分大小写
+                    regex_pattern = re.escape(keyword)
+                    highlighted_text = re.sub(
+                        rf'(\b{regex_pattern}\b)',
+                        r'<b><span style="color: #ffff00;">\1</span></b>',
+                        highlighted_text,
+                        flags=re.IGNORECASE
+                    )
+            
+            html_text = highlighted_text
         
         # 用前景色包裹文本
-        final_html = f'<span style="color: {color.name()};">{new_html}</span>'
+        final_html = f'<span style="color: {color.name()};">{html_text}</span>'
         
         doc.setHtml(final_html)
         # 不设置文本宽度，允许文本自然延伸
@@ -380,7 +405,49 @@ class HTMLDelegate(QStyledItemDelegate):
         font.setPointSize(11)
         doc.setDefaultFont(font)
         
-        doc.setHtml(text)
+        # 获取当前搜索的关键词，用于高亮
+        current_keywords = []
+        if self.current_search_params:
+            # 从当前搜索参数获取关键词
+            keywords = self.current_search_params.get('keywords', '')
+            if keywords:
+                # 简单处理：按空格分割关键词
+                current_keywords = keywords.split()
+                # 同时添加生成的变体作为关键词
+                if self.variants:
+                    current_keywords.extend(self.variants)
+                # 去重
+                current_keywords = list(set(current_keywords))
+        
+        # 处理文本，添加关键词高亮，用于计算尺寸
+        plain_text = str(text)
+        html_text = plain_text
+        
+        # 如果有关键词，添加高亮
+        if current_keywords:
+            import re
+            # 确保关键词按长度降序排列，避免短关键词匹配长关键词的一部分
+            current_keywords.sort(key=lambda x: len(x), reverse=True)
+            
+            # 创建高亮后的HTML文本
+            highlighted_text = plain_text
+            for keyword in current_keywords:
+                if keyword:
+                    # 使用正则表达式替换，确保只替换完整的单词，不区分大小写
+                    regex_pattern = re.escape(keyword)
+                    highlighted_text = re.sub(
+                        rf'(\b{regex_pattern}\b)',
+                        r'<b><span style="color: #ffff00;">\1</span></b>',
+                        highlighted_text,
+                        flags=re.IGNORECASE
+                    )
+            
+            html_text = highlighted_text
+        
+        # 用前景色包裹文本
+        final_html = f'<span style="color: #ffffff;">{html_text}</span>'
+        
+        doc.setHtml(final_html)
         # 不设置文本宽度，让文档自然计算宽度
         
         # 返回固定高度，宽度使用文档的理想宽度
@@ -442,6 +509,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 修复表格样式和布局 - 关键修复：在setupUi之后直接修改表格属性
         self.fix_table_style()
+        
+        # 初始化HTML代理
+        self.html_delegate = HTMLDelegate(self.result_table)
+        self.result_table.setItemDelegate(self.html_delegate)
+        
+        # 恢复列宽和顺序设置
+        self.restore_column_settings()
         
         # 设置样式主题
         self.setup_styles()
@@ -1445,6 +1519,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             QMessageBox.information(self, "✓ 搜索完成", "未找到匹配结果")
             return
         
+        # 将搜索参数和变体传递给HTML代理
+        if hasattr(self, 'html_delegate') and hasattr(self, 'current_search_params'):
+            self.html_delegate.set_search_params(self.current_search_params, target_variant_set)
+        
         # 填充表格
         self.result_table.setRowCount(len(results))
         for row, result in enumerate(results):
@@ -1484,21 +1562,16 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 1, time_item)
             
-            # 对应台词：处理HTML，保留关键词高亮效果
+            # 对应台词：完全处理HTML标签，只保留纯文本
             import re
             
-            # 确保文本正确处理，保留高亮标签
-            processed_text = str(text)
+            # 提取原始文本，移除所有HTML标签
+            text_str = str(text)
+            # 移除所有HTML标签
+            plain_text = re.sub(r'<[^>]+>', '', text_str)
             
-            # 处理HTML，只保留关键词高亮效果，移除其他不必要的标签
-            # 移除最外层的白色文本span
-            processed_text = re.sub(r'^<span style=["\']color: #ffffff["\']>(.*?)</span>$', r'\1', processed_text)
-            processed_text = re.sub(r'^<span style=["\']color: #ffffff["\'] >(.*?)</span>$', r'\1', processed_text)
-            processed_text = re.sub(r'^<span style=["\']color:\s*#ffffff["\']\s*>(.*?)</span>$', r'\1', processed_text)
-            # 移除其他可能的外层span标签
-            processed_text = re.sub(r'^<span[^>]*>(.*?)</span>$', r'\1', processed_text, flags=re.DOTALL)
-            
-            text_item = QTableWidgetItem(processed_text)
+            # 创建纯文本项，不包含任何HTML标签
+            text_item = QTableWidgetItem(plain_text)
             text_item.setForeground(QColor('#ffffff'))
             # 设置为不可编辑
             text_item.setFlags(text_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
