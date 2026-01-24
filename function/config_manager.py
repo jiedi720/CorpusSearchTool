@@ -191,16 +191,29 @@ class ConfigManager:
         if 'COLUMNS' not in self.config:
             return {'widths': [], 'order': [], 'visibility': []}
         
-        # 按每列分开获取宽度设置
+        # 先获取所有可能的列宽设置
+        column_widths = {}
+        for key in self.config['COLUMNS'].keys():
+            if key.startswith(f'{table_name}_column_') and key.endswith('_width'):
+                try:
+                    # 从键名中提取列索引：table_name_column_{index}_width
+                    index = int(key.split('_')[-2])
+                    width = self.config.getint('COLUMNS', key)
+                    column_widths[index] = width
+                except (ValueError, IndexError):
+                    continue
+        
+        # 确定需要返回的最大列索引
+        # 对于结果表格，我们知道有5列
+        max_columns = 5
+        
+        # 创建宽度列表，确保包含所有列
         widths = []
-        column_index = 0
-        while True:
-            width_key = f'{table_name}_column_{column_index}_width'
-            if width_key in self.config['COLUMNS']:
-                widths.append(self.config.getint('COLUMNS', width_key))
-                column_index += 1
+        for column_index in range(max_columns):
+            if column_index in column_widths:
+                widths.append(column_widths[column_index])
             else:
-                break
+                widths.append(0)
         
         # 获取顺序和可见性设置
         order_key = f'{table_name}_order'
@@ -227,20 +240,15 @@ class ConfigManager:
         if 'COLUMNS' not in self.config:
             self.config['COLUMNS'] = {}
         
-        # 按每列分开保存宽度设置
+        # 先删除所有已有的列宽设置，然后重新保存
+        for key in list(self.config['COLUMNS'].keys()):
+            if key.startswith(f'{table_name}_column_') and key.endswith('_width'):
+                del self.config['COLUMNS'][key]
+        
+        # 保存所有列的宽度，包括固定列和可调整列
         for i, width in enumerate(widths):
             width_key = f'{table_name}_column_{i}_width'
             self.config.set('COLUMNS', width_key, str(width))
-        
-        # 删除超出范围的旧列宽设置
-        column_index = len(widths)
-        while True:
-            width_key = f'{table_name}_column_{column_index}_width'
-            if width_key in self.config['COLUMNS']:
-                del self.config['COLUMNS'][width_key]
-                column_index += 1
-            else:
-                break
         
         # 获取顺序和可见性设置的键
         order_key = f'{table_name}_order'

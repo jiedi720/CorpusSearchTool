@@ -204,6 +204,41 @@ class SearchResultTableManager:
         """初始化表格管理器"""
         self.result_table = result_table
         self.html_delegate = None
+        
+        # 固定列宽度设定
+        self.FIXED_WIDTHS = {
+            1: 30,  # 时间轴列
+            3: 50   # 行号列
+        }
+        
+        # 可调整列的最小和最大宽度限制
+        self.COLUMN_WIDTH_LIMITS = {
+            0: (120, 300),    # 出处列
+            2: (500, 1000),   # 对应台词列
+            4: (120, 300)     # 文件名列
+        }
+    
+    def get_fixed_width(self, column_index):
+        """获取固定列的宽度
+        
+        Args:
+            column_index: 列索引
+            
+        Returns:
+            int: 固定列宽度，如果不是固定列则返回None
+        """
+        return self.FIXED_WIDTHS.get(column_index)
+    
+    def get_column_width_limits(self, column_index):
+        """获取可调整列的宽度限制
+        
+        Args:
+            column_index: 列索引
+            
+        Returns:
+            tuple: (min_width, max_width)，如果不是可调整列则返回None
+        """
+        return self.COLUMN_WIDTH_LIMITS.get(column_index)
     
     def initialize_table(self):
         """初始化表格设置"""
@@ -334,11 +369,19 @@ class SearchResultTableManager:
     
     def reset_column_widths(self):
         """重置列宽"""
-        self.result_table.setColumnWidth(0, 200)  # 出处列
-        self.result_table.setColumnWidth(1, 30)   # 时间轴列（固定）
-        self.result_table.setColumnWidth(2, 600)  # 对应台词列
-        self.result_table.setColumnWidth(3, 50)   # 行号列（固定）
-        self.result_table.setColumnWidth(4, 200)  # 文件名列
+        # 设置固定列宽度
+        for col, width in self.FIXED_WIDTHS.items():
+            self.result_table.setColumnWidth(col, width)
+        
+        # 设置可调整列的默认宽度（使用限制范围内的中间值）
+        default_widths = {
+            0: 200,  # 出处列
+            2: 600,  # 对应台词列
+            4: 200   # 文件名列
+        }
+        
+        for col, default_width in default_widths.items():
+            self.result_table.setColumnWidth(col, default_width)
     
     def get_html_delegate(self):
         """获取HTML代理对象"""

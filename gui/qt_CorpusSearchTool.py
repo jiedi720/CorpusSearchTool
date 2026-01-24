@@ -876,23 +876,22 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 设置列宽
         header = CustomHeaderView(Qt.Orientation.Horizontal, self.result_table)
         self.result_table.setHorizontalHeader(header)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)  # 最右边的列自动拉伸
+        # 所有列都使用可调整模式
+        for i in range(5):
+            header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
         # 设置初始列宽
         self.result_table.setColumnWidth(0, 200)
         self.result_table.setColumnWidth(1, 80)
         self.result_table.setColumnWidth(2, 150)
         self.result_table.setColumnWidth(3, 120)
+        self.result_table.setColumnWidth(4, 200)
         header.setFixedHeight(30)  # 设置表头固定高度为30px，与搜索历史表格一致
         
         # 启用列拖拽和右键菜单
         header.setSectionsMovable(True)  # 允许列拖拽调整顺序
         header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         header.customContextMenuRequested.connect(self.show_header_context_menu)
-        
+
         # 恢复列宽和顺序
         self.restore_column_settings()
         
@@ -927,21 +926,17 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 background-color: #505050;
                 margin: 0;
                 padding: 0;
-                height: 20px;
             }
-            
+
             QHeaderView::section {
                 background-color: #505050;
                 color: #ffffff;
-                padding: 0 8px;
+                padding: 5px 8px;
                 border: none;
                 border-right: 1px solid #606060;
                 border-bottom: 1px solid #606060;
                 font-weight: bold;
-                font-size: 9pt;
-                height: 20px;
-                min-height: 20px;
-                max-height: 20px;
+                font-size: 10pt;
                 margin: 0;
             }
             /* 移除section:first的border-left，避免影响边界对齐 */
@@ -949,20 +944,11 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 确保表格没有内边距，避免最右边留白
         self.result_table.setContentsMargins(0, 0, 0, 0)
-        
+
         # 确保表头高度固定且没有额外空间
         header = self.result_table.horizontalHeader()
-        header.setFixedHeight(20)
+        header.setFixedHeight(30)
         header.setContentsMargins(0, 0, 0, 0)
-        
-        # 确保最后一列正确拉伸，填满整个空间
-        # 清除所有列的拉伸模式，重新设置
-        for col in range(self.result_table.columnCount()):
-            header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
-        # 设置最后一列拉伸
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        # 确保最后一列始终拉伸
-        header.setStretchLastSection(True)
         
         # 确保表格填满父容器
         self.result_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -1380,6 +1366,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 确保表格不可编辑，在填充完成后再次设置
         self.result_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
+        # 重新设置列宽，确保固定列保持固定宽度
+        self.restore_column_settings()
+        
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
             corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
@@ -1580,13 +1569,19 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def enforce_min_column_width(self, logicalIndex, oldSize, newSize):
         """确保可调整列的宽度不小于最小值，跳过固定宽度列"""
-        # 跳过固定宽度的列（时间轴列和行号列）
-        if logicalIndex in [1, 3]:
+        # 跳过固定宽度的列
+        fixed_width = self.table_manager.get_fixed_width(logicalIndex)
+        if fixed_width is not None:
             return
         
-        min_width = 80
-        if newSize < min_width:
-            self.result_table.setColumnWidth(logicalIndex, min_width)
+        # 获取该列的宽度限制
+        limits = self.table_manager.get_column_width_limits(logicalIndex)
+        if limits:
+            min_width, max_width = limits
+            if newSize < min_width:
+                self.result_table.setColumnWidth(logicalIndex, min_width)
+            elif newSize > max_width:
+                self.result_table.setColumnWidth(logicalIndex, max_width)
     
     def toggle_column_visibility(self, col_index, checked):
         """切换列的显示/隐藏状态"""
@@ -1689,64 +1684,99 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         column_settings = config_manager.get_column_settings('result')
         widths = column_settings['widths']
         
-        # 设置固定列宽度（硬编码值）
-        self.result_table.setColumnWidth(1, 30)  # 时间轴列
-        self.result_table.setColumnWidth(3, 50)  # 行号列
-        
-        # 如果有保存的宽度，只设置可调整列的宽度
-        if widths:
-            # 可调整列：0(出处), 2(对应台词), 4(文件名)
-            if len(widths) > 0:  # 出处列
-                width = min(max(120, widths[0]), 300)
-                self.result_table.setColumnWidth(0, width)
-            if len(widths) > 1:  # 对应台词列
-                width = min(max(500, widths[1]), 1000)
-                self.result_table.setColumnWidth(2, width)
-            if len(widths) > 2:  # 文件名列
-                width = min(max(120, widths[2]), 300)
-                self.result_table.setColumnWidth(4, width)
-        else:
-            # 如果没有保存的宽度，应用默认宽度
-            self.table_manager.reset_column_widths()
-        
         # 设置列宽调整模式
         header = self.result_table.horizontalHeader()
-        for i in range(self.result_table.columnCount()):
-            if i == 1 or i == 3:  # 时间轴列和行号列
-                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)  # 固定宽度
-            else:
-                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)  # 可调整
-                # 设置列宽限制
-                if i == 0:  # 出处列
-                    header.setMinimumSectionSize(120)
-                    header.setMaximumSectionSize(300)
-                elif i == 2:  # 对应台词列
-                    header.setMinimumSectionSize(500)
-                    header.setMaximumSectionSize(1000)
-                elif i == 4:  # 文件名列
-                    header.setMinimumSectionSize(120)
-                    header.setMaximumSectionSize(300)
+        
+        # 确保宽度列表至少有5个元素
+        while len(widths) < 5:
+            widths.append(0)
+        
+        # 先设置所有列的ResizeMode
+        for col in range(self.result_table.columnCount()):
+            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
+            else:  # 可调整列
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+
+        # 禁用最后一列自动拉伸，确保固定列不受影响
+        header.setStretchLastSection(False)
+        
+        # 然后设置列宽
+        # 临时禁用sectionResized信号，防止信号处理影响列宽
+        header.sectionResized.disconnect(self.enforce_min_column_width)
+
+        for col in range(self.result_table.columnCount()):
+            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+                # 固定列使用硬编码值，不受配置文件影响
+                if col == 1:  # 时间轴列
+                    self.result_table.setColumnWidth(col, 30)
+                else:  # 行号列
+                    self.result_table.setColumnWidth(col, 50)
+            else:  # 可调整列
+                # 直接使用配置文件中的宽度，覆盖初始值
+                width = widths[col]
+                # 如果配置文件中该列有宽度设置，则使用配置文件中的值，否则使用默认值
+                if width > 0:
+                    # 应用宽度限制
+                    limits = self.table_manager.get_column_width_limits(col)
+                    if limits:
+                        min_width, max_width = limits
+                        width = min(max(min_width, width), max_width)
+                else:
+                    # 如果配置文件中该列没有宽度设置，则使用默认值
+                    default_widths = {
+                        0: 200,  # 出处列
+                        2: 600,  # 对应台词列
+                        4: 200   # 文件名列
+                    }
+                    width = default_widths.get(col, 200)
+
+                # 强制设置列宽，覆盖初始值
+                self.result_table.setColumnWidth(col, width)
+
+        # 重新启用sectionResized信号
+        header.sectionResized.connect(self.enforce_min_column_width)
+
+        # 强制刷新表头，确保列宽设置生效
+        header.doItemsLayout()
+        self.result_table.updateGeometry()
+        self.result_table.update()
+        self.result_table.updateGeometry()
+        self.result_table.update()
     
     def save_column_settings(self):
         """保存列宽到配置文件"""
-        # 只保存可调整列的宽度，固定列不保存
-        # 可调整列：0(出处), 2(对应台词), 4(文件名)
+        # 设置固定列宽度（硬编码值）
+        fixed_widths = {
+            1: 30,  # 时间轴列
+            3: 50   # 行号列
+        }
         
-        # 获取可调整列的宽度
-        source_width = self.result_table.columnWidth(0)
-        line_width = self.result_table.columnWidth(2)
-        filename_width = self.result_table.columnWidth(4)
+        # 获取可调整列的默认宽度
+        default_widths = {
+            0: 200,  # 出处列
+            2: 600,  # 对应台词列
+            4: 200   # 文件名列
+        }
         
-        # 应用最小和最大宽度限制
-        source_width = min(max(120, source_width), 300)  # 出处列
-        line_width = min(max(500, line_width), 1000)      # 对应台词列
-        filename_width = min(max(120, filename_width), 300)  # 文件名列
+        # 获取所有列的宽度
+        all_widths = [0] * self.result_table.columnCount()
         
-        # 只保存可调整列的宽度值
-        save_widths = [source_width, line_width, filename_width]
+        for col in range(self.result_table.columnCount()):
+            if col in fixed_widths:
+                # 固定列使用硬编码值
+                all_widths[col] = fixed_widths[col]
+            else:
+                # 可调整列获取当前宽度并应用限制
+                width = self.result_table.columnWidth(col)
+                limits = self.table_manager.get_column_width_limits(col)
+                if limits:
+                    min_width, max_width = limits
+                    width = min(max(min_width, width), max_width)
+                all_widths[col] = width
         
-        # 保存到配置文件
-        config_manager.set_column_settings('result', save_widths) 
+        # 保存所有列的宽度
+        config_manager.set_column_settings('result', all_widths) 
     
     def closeEvent(self, event):
         """窗口关闭事件"""

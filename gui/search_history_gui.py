@@ -401,22 +401,27 @@ class SearchHistoryWindow(QMainWindow):
     
     def closeEvent(self, event):
         """窗口关闭事件，保存列宽设置"""
-        # 只保存可调整列的宽度，固定列不保存
-        # 可调整列：1(关键词), 4(路径)
+        # 获取所有列的宽度
+        all_widths = [0] * self.history_table.columnCount()
         
-        # 获取可调整列的宽度
+        # 设置固定列宽度（硬编码值）
+        all_widths[0] = 150  # 时间列（固定）
+        all_widths[2] = 210  # 关键词类型列（固定）
+        all_widths[3] = 50   # 结果列（固定）
+        
+        # 获取可调整列的宽度并应用限制
+        # 关键词列（索引1）
         keyword_width = self.history_table.columnWidth(1)
-        path_width = self.history_table.columnWidth(4)
-        
-        # 确保可调整列宽在合理范围内
         keyword_width = min(max(120, keyword_width), 180)
+        all_widths[1] = keyword_width
+        
+        # 路径列（索引4）
+        path_width = self.history_table.columnWidth(4)
         path_width = min(max(80, path_width), 300)
+        all_widths[4] = path_width
         
-        # 只保存可调整列的宽度值
-        save_widths = [keyword_width, path_width]
-        
-        # 保存到配置文件
-        config_manager.set_column_settings('history', save_widths)
+        # 保存所有列的宽度
+        config_manager.set_column_settings('history', all_widths)
         
         event.accept()
     
