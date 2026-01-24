@@ -22,6 +22,12 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, Signal, QPoint, QSettings, QSize
 from PySide6.QtGui import QColor, QFont, QAction, QIcon, QCursor, QDragEnterEvent, QDropEvent, QTextDocument
 
+# 导入生成的UI类
+from .ui_CorpusSearchTool import Ui_CorpusSearchTool
+
+# 主题模块导入
+from .theme import apply_theme, refresh_all_widget_styles
+
 # 功能模块导入
 from function.config_manager import config_manager
 from function.search_engine_kor import search_engine_kor
@@ -356,7 +362,7 @@ class HTMLDelegate(QStyledItemDelegate):
         return QSize(int(doc.idealWidth()), 30)  # 高度为30，与行高一致
 
 
-class CorpusSearchToolGUI(QMainWindow):
+class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     """
     语料库检索工具主窗口GUI类
     仿照 qt_SubtitleToolbox.py 的结构模式
@@ -405,14 +411,66 @@ class CorpusSearchToolGUI(QMainWindow):
         # 设置样式主题
         self.setup_styles()
         
-        # 创建界面
-        self.create_widgets()
+        # 使用生成的UI类创建界面
+        self.setupUi(self)
+        
+        # 连接标签页切换信号
+        self.corpus_tab_widget.currentChanged.connect(self.on_corpus_tab_changed)
+        
+        # 连接浏览按钮点击事件
+        self.ReadPathSet.clicked.connect(self.browse_input_path)
+        self.ReadPathSelect.clicked.connect(self.browse_input_path)
+        
+        # 连接搜索按钮点击事件
+        self.search_btn.clicked.connect(self.start_search)
+        
+        # 连接搜索历史按钮点击事件
+        self.history_btn.clicked.connect(self.show_search_history)
+        
+        # 初始化变量
+        self.current_corpus_tab = self.corpus_tab_widget.currentIndex()
+        
+        # 根据当前标签页类型设置ReadPathInput初始值
+        corpus_type = "english" if self.current_corpus_tab == 0 else "korean"
+        corpus_config = config_manager.get_corpus_config(corpus_type)
+        self.ReadPathInput.setText(corpus_config['input_dir'])
         
         # 设置样式
         self.setup_styles()
         
+        # 连接主题菜单项的信号
+        self.actionlight.triggered.connect(lambda: self.change_theme("Light"))
+        self.actionDark.triggered.connect(lambda: self.change_theme("Dark"))
+        
+        # 重新设置图标路径，确保图标正确加载
+        self.set_icon_paths()
+        
         # 标记初始化完成
         self._initialized = True
+    
+    def set_icon_paths(self):
+        """
+        重新设置图标路径，确保图标正确加载
+        """
+        import os
+        # 获取图标目录的绝对路径
+        icon_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
+        
+        # 重新设置图标
+        # ReadPathSet 按钮使用 refresh 图标
+        self.ReadPathSet.setIcon(QIcon(os.path.join(icon_dir, "refresh.png")))
+        
+        # ReadPathSelect 按钮使用 search2 图标
+        self.ReadPathSelect.setIcon(QIcon(os.path.join(icon_dir, "search2.png")))
+        
+        # ReadPathOpen 按钮使用 open-folder2 图标
+        self.ReadPathOpen.setIcon(QIcon(os.path.join(icon_dir, "open-folder2.png")))
+        
+        # history_btn 按钮使用 history 图标
+        self.history_btn.setIcon(QIcon(os.path.join(icon_dir, "history.png")))
+        
+        # search_btn 按钮使用 search 图标
+        self.search_btn.setIcon(QIcon(os.path.join(icon_dir, "search.png")))
     
     def load_settings(self):
         """加载配置"""
@@ -451,232 +509,51 @@ class CorpusSearchToolGUI(QMainWindow):
     
     def setup_styles(self):
         """设置样式"""
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #353535;
-            }
-            QWidget {
-                background-color: #353535;
-            }
-            QTabWidget::pane {
-                background-color: #353535;
-                border: 1px solid #505050;
-                border-radius: 8px;
-                top: -1px;
-            }
-            QTabBar::tab {
-                background-color: #404040;
-                color: #cccccc;
-                padding: 8px 20px;
-                margin-right: 2px;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
-                font-size: 9pt;
-            }
-            QTabBar::tab:selected {
-                background-color: #353535;
-                color: #ffffff;
-                font-weight: bold;
-            }
-            QTabBar::tab:hover:!selected {
-                background-color: #4a4a4a;
-            }
-            QGroupBox {
-                background-color: #404040;
-                border: 1px solid #505050;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 15px;
-                padding-left: 10px;
-                padding-right: 10px;
-                padding-bottom: 10px;
-                font-weight: bold;
-                font-size: 10pt;
-                color: #ffffff;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 8px 0 8px;
-                background-color: #404040;
-                color: #ffffff;
-            }
-            QLineEdit {
-                background-color: #505050;
-                border: 1px solid #606060;
-                border-radius: 5px;
-                padding: 8px 10px;
-                font-size: 9pt;
-                min-height: 32px;
-                color: #ffffff;
-            }
-            QLineEdit::placeholder {
-                color: #999999;
-            }
-            QLineEdit:focus {
-                border: 2px solid #0078d4;
-            }
-            QPushButton {
-                background-color: #0078d4;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 20px;
-                font-size: 9pt;
-                font-weight: bold;
-                min-height: 32px;
-            }
-            QPushButton:hover {
-                background-color: #006cbd;
-            }
-            QPushButton:pressed {
-                background-color: #005a9e;
-            }
-            QPushButton:disabled {
-                background-color: #606060;
-                color: #999999;
-            }
-            QCheckBox {
-                font-size: 9pt;
-                color: #ffffff;
-                spacing: 8px;
-                padding: 5px;
-            }
-            QComboBox {
-                background-color: #505050;
-                border: 1px solid #606060;
-                border-radius: 5px;
-                padding: 5px 10px;
-                font-size: 9pt;
-                min-height: 32px;
-                color: #ffffff;
-            }
-            QComboBox:hover {
-                border: 1px solid #0078d4;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #cccccc;
-                margin-right: 5px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #505050;
-                border: 1px solid #606060;
-                selection-background-color: #0078d4;
-                selection-color: white;
-                color: #ffffff;
-                padding: 5px;
-            }
-            QLabel {
-                font-size: 9pt;
-                color: #ffffff;
-            }
-            QTableWidget {
-                background-color: #1f1f1f;
-                alternate-background-color: #252525;
-                color: #ffffff;
-                gridline-color: #404040;
-                border: none;
-                font-size: 9pt;
-            }
-            QTableWidget::item:selected {
-                background-color: #005a9e;
-                color: white;
-            }
-            QHeaderView::section {
-                background-color: #505050;
-                color: #ffffff;
-                padding: 5px 8px;
-                border: none;
-                border-right: 1px solid #606060;
-                border-bottom: 1px solid #606060;
-                font-weight: bold;
-                font-size: 9pt;
-                min-height: 30px;
-            }
-            QHeaderView::section:first {
-                border-left: 1px solid #606060;
-            }
-            QScrollBar:vertical {
-                background-color: #1f1f1f;
-                width: 12px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #404040;
-                border-radius: 6px;
-                min-height: 20px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-            QProgressBar {
-                border: 1px solid #606060;
-                border-radius: 5px;
-                text-align: center;
-                background-color: #505050;
-                min-height: 25px;
-                font-size: 8pt;
-                color: #ffffff;
-            }
-            QProgressBar::chunk {
-                background-color: #0078d4;
-                border-radius: 4px;
-            }
-            QStatusBar {
-                background-color: #404040;
-                color: #cccccc;
-                border-top: 1px solid #505050;
-                padding: 8px 15px;
-                font-size: 8pt;
-            }
-            QMenu {
-                background-color: #2d2d2d;
-                color: #ffffff;
-                border: 1px solid #404040;
-                border-radius: 5px;
-                padding: 5px;
-            }
-            QMenu::item {
-                padding: 8px 20px;
-                border-radius: 3px;
-                color: #ffffff;
-            }
-            QMenu::item:selected {
-                background-color: #0078d4;
-                color: white;
-            }
-            QMenu::separator {
-                height: 1px;
-                background-color: #404040;
-                margin: 5px 10px;
-            }
-        """)
+        # 初始化主题为浅色
+        self.change_theme("Light")
+        
+    def change_theme(self, mode):
+        """
+        处理主题切换事件
+        
+        Args:
+            mode: 主题模式，可选值: "Light" 或 "Dark"
+        """
+        apply_theme(mode)
+        # 刷新所有控件样式，确保主题选择器生效
+        refresh_all_widget_styles()
+        # 更新UI元素的主题属性
+        self.update_theme_properties(mode)
+    
+    def update_theme_properties(self, mode):
+        """
+        更新UI元素的主题属性，确保[theme="light"]和[theme="dark"]选择器生效
+        
+        Args:
+            mode: 主题模式，可选值: "Light" 或 "Dark"
+        """
+        # 设置主题属性到主窗口
+        self.setProperty("theme", "light" if mode == "Light" else "dark")
+        
+        # 遍历所有子控件，设置主题属性
+        for widget in self.findChildren(QWidget):
+            widget.setProperty("theme", "light" if mode == "Light" else "dark")
+        
+        # 刷新样式
+        self.style().unpolish(self)
+        self.style().polish(self)
+        
+        # 刷新所有子控件样式
+        for widget in self.findChildren(QWidget):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+        
+        # 处理事件，确保所有更新都生效
+        QApplication.processEvents()
     
     def create_widgets(self):
-        """创建界面元素"""
-        # 主控件
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        # 主布局
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
-        
-        # 创建搜索输入区域
-        self.create_search_area(main_layout)
-        
-        # 创建搜索结果区域
-        self.create_result_area(main_layout)
-        
-        # 创建状态栏
-        self.create_status_bar()
+        """创建界面元素（已被setupUi方法取代）"""
+        pass
     
     def create_search_area(self, parent_layout):
         """创建搜索输入区域"""
@@ -903,23 +780,28 @@ class CorpusSearchToolGUI(QMainWindow):
         
         # 更新当前标签页索引
         self.current_corpus_tab = index
+        
+        # 根据新标签页类型更新ReadPathInput
+        corpus_type = "english" if index == 0 else "korean"
+        corpus_config = config_manager.get_corpus_config(corpus_type)
+        self.ReadPathInput.setText(corpus_config['input_dir'])
     
     def save_current_tab_config(self):
         """保存当前标签页的配置"""
         if self.current_corpus_tab == 0:  # 英语语料库
             corpus_type = "english"
-            input_path = self.english_input_path_edit.text().strip()
+            input_path = self.ReadPathInput.text().strip()
             keyword_type = self.english_keyword_combo.currentText()  # 获取实际选项文本
             case_sensitive = self.english_case_sensitive_check.isChecked()
             fuzzy_match = self.english_fuzzy_match_check.isChecked()
             regex_enabled = self.english_regex_check.isChecked()
         else:  # 韩语语料库
             corpus_type = "korean"
-            input_path = self.korean_input_path_edit.text().strip()
+            input_path = self.ReadPathInput.text().strip()
             keyword_type = self.korean_keyword_combo.currentText()  # 获取实际选项文本
             case_sensitive = False  # 韩语不区分大小写
             fuzzy_match = False  # 韩语不使用模糊匹配
-            regex_enabled = self.korean_regex_check.isChecked()
+            regex_enabled = False  # 韩语不支持正则表达式
         
         # 保存配置
         config_manager.set_corpus_config(
@@ -1052,11 +934,8 @@ class CorpusSearchToolGUI(QMainWindow):
     
     def browse_input_path(self):
         """浏览输入路径"""
-        # 获取当前标签页的输入框路径作为默认路径
-        if self.current_corpus_tab == 0:  # 英语语料库
-            current_path = self.english_input_path_edit.text().strip()
-        else:  # 韩语语料库
-            current_path = self.korean_input_path_edit.text().strip()
+        # 获取当前输入框路径作为默认路径
+        current_path = self.ReadPathInput.text().strip()
         
         # 如果当前路径为空或不存在，使用当前工作目录
         if not current_path or not os.path.exists(current_path):
@@ -1071,27 +950,24 @@ class CorpusSearchToolGUI(QMainWindow):
         )
         
         if dir_path:
-            # 获取当前标签页的输入框
-            if self.current_corpus_tab == 0:  # 英语语料库
-                self.english_input_path_edit.setText(dir_path)
-            else:  # 韩语语料库
-                self.korean_input_path_edit.setText(dir_path)
+            # 设置统一的输入框
+            self.ReadPathInput.setText(dir_path)
     
     def start_search(self):
         """开始搜索"""
         # 获取当前标签页的控件值
+        input_path = self.ReadPathInput.text().strip()
+        
         if self.current_corpus_tab == 0:  # 英语语料库
-            input_path = self.english_input_path_edit.text().strip()
             keywords = self.english_keyword_edit.text().strip()
             case_sensitive = self.english_case_sensitive_check.isChecked()
             fuzzy_match = self.english_fuzzy_match_check.isChecked()
             regex_enabled = self.english_regex_check.isChecked()
         else:  # 韩语语料库
-            input_path = self.korean_input_path_edit.text().strip()
             keywords = self.korean_keyword_edit.text().strip()
             case_sensitive = False  # 韩语不区分大小写
             fuzzy_match = False  # 韩语不使用模糊匹配
-            regex_enabled = self.korean_regex_check.isChecked()
+            regex_enabled = False  # 韩语不支持正则表达式
         
         if not input_path:
             QMessageBox.warning(self, "❌ 错误", "请输入输入路径")
@@ -1185,11 +1061,8 @@ class CorpusSearchToolGUI(QMainWindow):
                 print(f"分析韩语关键词出错: {e}")
                 self.korean_lemma_display.setText("分析错误")
         
-        # 禁用当前标签页的搜索按钮
-        if self.current_corpus_tab == 0:  # 英语语料库
-            self.english_search_btn.setEnabled(False)
-        else:  # 韩语语料库
-            self.korean_search_btn.setEnabled(False)
+        # 禁用搜索按钮
+        self.search_btn.setEnabled(False)
         self.status_bar.showMessage("⏳ 正在搜索...")
         
         # 显示进度条
@@ -1223,10 +1096,7 @@ class CorpusSearchToolGUI(QMainWindow):
         self.progress_bar.setVisible(False)
         
         # 启用搜索按钮
-        if self.current_corpus_tab == 0:  # 英语语料库
-            self.english_search_btn.setEnabled(True)
-        else:  # 韩语语料库
-            self.korean_search_btn.setEnabled(True)
+        self.search_btn.setEnabled(True)
         
         # 清空表格
         self.result_table.setRowCount(0)
@@ -1319,10 +1189,7 @@ class CorpusSearchToolGUI(QMainWindow):
         self.progress_bar.setVisible(False)
         
         # 启用搜索按钮
-        if self.current_corpus_tab == 0:  # 英语语料库
-            self.english_search_btn.setEnabled(True)
-        else:  # 韩语语料库
-            self.korean_search_btn.setEnabled(True)
+        self.search_btn.setEnabled(True)
         
         self.status_bar.showMessage("❌ 搜索失败")
         QMessageBox.critical(self, "❌ 搜索失败", error_message)
@@ -1568,7 +1435,7 @@ class CorpusSearchToolGUI(QMainWindow):
                 text += item.text() + "\t"
         
         # 保存文件
-        output_dir = self.english_input_path_edit.text().strip() if self.current_corpus_tab == 0 else self.korean_input_path_edit.text().strip()
+        output_dir = self.ReadPathInput.text().strip()
         if not output_dir or not os.path.exists(output_dir):
             output_dir = os.getcwd()
         
@@ -1619,9 +1486,6 @@ class CorpusSearchToolGUI(QMainWindow):
         """拖拽放下事件"""
         files = [u.toLocalFile() for u in event.mimeData().urls()]
         if files:
-            # 获取当前标签页的输入框
-            if self.current_corpus_tab == 0:  # 英语语料库
-                self.english_input_path_edit.setText(files[0])
-            else:  # 韩语语料库
-                self.korean_input_path_edit.setText(files[0])
+            # 使用统一的ReadPathInput输入框
+            self.ReadPathInput.setText(files[0])
             self.status_bar.showMessage(f"✓ 已选择: {files[0]}")
