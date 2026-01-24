@@ -78,16 +78,22 @@ class KoreanSearchEngine(SearchEngineBase):
         # 提取第一个分析结果的主要词（假设只有一个关键词）
         # 取第一个结果，忽略空格和其他词
         main_word = None
+        print(f"[DEBUG] 尝试匹配原始关键词: '{raw_keyword}'")
         for token in analyzed_words[0][0]:
+            print(f"[DEBUG] Token: form='{token.form}', tag='{token.tag}', lemma='{token.lemma}'")
             if token.form.strip() == raw_keyword.strip():
                 main_word = token
+                print(f"[DEBUG] 找到匹配的token: {token.form} ({token.tag})")
                 break
-        
+
         if not main_word:
             # 如果直接匹配失败，尝试取第一个非标点的词
+            print(f"[DEBUG] 直接匹配失败，尝试取第一个非标点的词")
             for token in analyzed_words[0][0]:
                 if token.tag not in ['SF', 'SP', 'SS', 'SE', 'SO', 'SW']:
                     main_word = token
+                    print(f"[DEBUG] 选择非标点token: {token.form} ({token.tag})")
+                    break
                     break
         
         if not main_word:
@@ -109,17 +115,20 @@ class KoreanSearchEngine(SearchEngineBase):
                 'VX': '辅助用言 (Auxiliary Verb)',
                 'VCP': '肯定体词谓词 (Positive Copula)',
                 'VCN': '否定体词谓词 (Negative Copula)',
-                
+                'XSV': '动词性派生词 (Verb Derivative)',
+                'XSA': '形容词性派生词 (Adjective Derivative)',
+
                 # 体词 (名词类) 的细分
                 'NNG': '一般名词 (Common Noun)',
                 'NNP': '专有名词 (Proper Noun)',
                 'NNB': '依存名词 (Dependent Noun)',
                 'NR': '数词 (Numeral)',
                 'NP': '代名词 (Pronoun)',
-                
+
                 # 其他词性
                 'MAG': '一般副词 (General Adverb)',
-                
+                'MAJ': '接续副词 (Conjunctive Adverb)',
+
                 # 复合标签处理
                 'VV+EF': '规则动词 (Regular Verb)',
                 'VA+EF': '规则形容词 (Regular Adjective)',
@@ -131,8 +140,16 @@ class KoreanSearchEngine(SearchEngineBase):
             print(f"[DEBUG] 关键词 '{raw_keyword}' 分析结果: 词性={pos_full}, 词典形={lemma}")
         
         # 2. 判定词性并构建搜索策略
-        is_verb_adj = pos in ['VV', 'VA', 'VCP', 'VCN']  # 动词或形容词
-        is_noun_adv = pos in ['NNG', 'NNP', 'NR', 'NP', 'MAG']  # 名词或副词
+        # 检查是否为动词或形容词（包括复合标签）
+        verb_adj_tags = ['VV', 'VV-I', 'VA', 'VA-I', 'VX', 'VCP', 'VCN', 'XSV', 'XSA',
+                        'VV+EF', 'VA+EF', 'VV-I+EF', 'VA-I+EF']
+        is_verb_adj = pos in verb_adj_tags
+
+        # 检查是否为名词或副词
+        noun_adv_tags = ['NNG', 'NNP', 'NNB', 'NR', 'NP', 'MAG', 'MAJ']
+        is_noun_adv = pos in noun_adv_tags
+
+        print(f"[DEBUG] 词性判定: pos='{pos}', is_verb_adj={is_verb_adj}, is_noun_adv={is_noun_adv}")
         
         # 3. 构建搜索用的目标形式集合
         if is_noun_adv:
