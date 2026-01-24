@@ -9,14 +9,29 @@
 import os
 import sys
 
+# 禁用 PySide6 的自动类型检查（避免递归错误）
+os.environ['PYQT_DISABLE_AUTOSIP'] = '1'
+os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
+
 
 def main():
     """主函数，启动应用程序"""
-    # 导入主窗口，延迟导入以处理tkinterdnd2依赖
+    # 导入主窗口，延迟导入以处理PySide6依赖
     try:
-        from gui.main_window import MainWindow
-        app = MainWindow()
-        app.run()
+        from PySide6.QtWidgets import QApplication
+        from gui.qt_CorpusSearchTool import CorpusSearchToolGUI
+        
+        # 创建应用程序
+        app = QApplication(sys.argv)
+        app.setApplicationName("字幕语料库检索工具")
+        app.setOrganizationName("CorpusSearchTool")
+        
+        # 创建主窗口
+        window = CorpusSearchToolGUI()
+        window.show()
+        
+        # 运行应用程序
+        sys.exit(app.exec())
     except ImportError as e:
         print(f"导入错误: {e}")
         print("请确保已安装所有依赖包:")

@@ -35,7 +35,7 @@ def test_timestamp_parsing():
             print(f"  {i}. 时间轴: {result['time_axis']}, 内容: {result['content']}")
         
         # 测试搜索功能
-        from function.search_engine import search_engine
+        from function.search_engine_base import search_engine
         search_results = search_engine.search_in_file(test_file, "场景")
         
         print(f"\n搜索'场景'的结果数量: {len(search_results)}")

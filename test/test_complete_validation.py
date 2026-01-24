@@ -14,7 +14,7 @@ def test_complete_workflow():
     
     try:
         from function.search_history_manager import SearchHistoryManager
-        from function.search_engine import search_engine
+        from function.search_engine_base import search_engine
         from function.result_processor import result_processor
         
         # 1. 测试历史记录功能

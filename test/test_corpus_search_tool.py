@@ -8,7 +8,7 @@ import os
 import tempfile
 from function.subtitle_parser import SrtParser, AssParser, VttParser
 from function.document_parser import TxtParser, MdParser, WordParser, PdfParser
-from function.search_engine import SearchEngine
+from function.search_engine_base import SearchEngineBase as SearchEngine
 from function.result_processor import ResultProcessor
 from function.config_manager import ConfigManager
 from function.search_history_manager import SearchHistoryManager

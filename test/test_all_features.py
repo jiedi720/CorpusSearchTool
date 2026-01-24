@@ -127,7 +127,7 @@ def test_search_with_highlight():
     print("\n测试带高亮的搜索...")
     
     try:
-        from function.search_engine import search_engine
+        from function.search_engine_base import search_engine
         from function.result_processor import result_processor
         
         # 创建测试文件

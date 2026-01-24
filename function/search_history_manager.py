@@ -12,15 +12,37 @@ from typing import List, Dict
 class SearchHistoryManager:
     """搜索历史记录管理器"""
     
-    def __init__(self, history_file: str = "search_history.json"):
+    def __init__(self, corpus_type: str = "eng"):
         """
         初始化搜索历史记录管理器
         
         Args:
-            history_file: 历史记录文件名
+            corpus_type: 语料库类型 ('eng' 或 'kor')
         """
-        self.history_file = history_file
+        self.corpus_type = corpus_type
+        self.history_file = self._get_history_file()
         self.history = self.load_history()
+    
+    def _get_history_file(self) -> str:
+        """根据语料库类型获取历史文件名"""
+        if self.corpus_type == "eng":
+            return "search_history_eng.json"
+        elif self.corpus_type == "kor":
+            return "search_history_kor.json"
+        else:
+            return "search_history.json"
+    
+    def set_corpus_type(self, corpus_type: str):
+        """
+        设置语料库类型并重新加载历史记录
+        
+        Args:
+            corpus_type: 语料库类型 ('eng' 或 'kor')
+        """
+        if self.corpus_type != corpus_type:
+            self.corpus_type = corpus_type
+            self.history_file = self._get_history_file()
+            self.history = self.load_history()
     
     def load_history(self) -> List[Dict]:
         """加载历史记录"""
@@ -43,7 +65,7 @@ class SearchHistoryManager:
     
     def add_record(self, keywords: str, input_path: str, output_path: str = "", 
                    case_sensitive: bool = False, fuzzy_match: bool = False, 
-                   regex_enabled: bool = False):
+                   regex_enabled: bool = False, result_count: int = 0, keyword_type: str = ""):
         """
         添加搜索记录
         
@@ -54,12 +76,16 @@ class SearchHistoryManager:
             case_sensitive: 是否区分大小写
             fuzzy_match: 是否模糊匹配
             regex_enabled: 是否启用正则表达式
+            result_count: 搜索结果数量
+            keyword_type: 关键词类型（如 "名词 & 副词"、"动词 & 形容词" 等）
         """
         record = {
             "timestamp": datetime.now().isoformat(),
             "keywords": keywords,
             "input_path": input_path,
             "output_path": output_path,
+            "result_count": result_count,
+            "keyword_type": keyword_type,
             "settings": {
                 "case_sensitive": case_sensitive,
                 "fuzzy_match": fuzzy_match,
@@ -149,15 +175,42 @@ class SearchHistoryManager:
         if not timestamps_list:
             return
 
+        print(f"[DEBUG] 要删除的时间戳列表: {timestamps_list}")
+        print(f"[DEBUG] 删除前历史记录数量: {len(self.history)}")
+
         # 创建新的历史记录列表，排除指定时间戳的记录
         new_history = []
+        removed_count = 0
+        
+        # 预处理要删除的时间戳，只保留前19个字符（YYYY-MM-DDTHH:MM:SS）
+        processed_timestamps = set()
+        for ts in timestamps_list:
+            # 处理不同格式的时间戳，只保留到秒
+            if '.' in ts:
+                # 包含微秒的格式：YYYY-MM-DDTHH:MM:SS.ffffff
+                processed_timestamps.add(ts.split('.')[0])
+            elif ts.endswith(':00'):
+                # 手动添加的 :00 格式：YYYY-MM-DDTHH:MM:SS:00
+                processed_timestamps.add(ts[:-3])
+            else:
+                # 其他格式，尝试只保留前19个字符
+                processed_timestamps.add(ts[:19])
+        
+        print(f"[DEBUG] 处理后的时间戳列表: {processed_timestamps}")
+        
         for record in self.history:
-            if record['timestamp'] not in timestamps_list:
+            # 获取记录时间戳的前19个字符（YYYY-MM-DDTHH:MM:SS）
+            record_ts = record['timestamp'][:19]
+            if record_ts not in processed_timestamps:
                 new_history.append(record)
+            else:
+                removed_count += 1
+                print(f"[DEBUG] 删除记录: {record['keywords']} - {record['timestamp']}")
 
         # 更新历史记录
         self.history = new_history
         self.save_history()
+        print(f"[DEBUG] 删除后历史记录数量: {len(self.history)}, 实际删除: {removed_count}")
 
     def clear_history(self):
         """清空历史记录"""

@@ -141,7 +141,7 @@ def test_search_with_episode():
     print("\n测试带集数的搜索...")
     
     try:
-        from function.search_engine import search_engine
+        from function.search_engine_base import search_engine
         
         # 创建测试文件
         test_file = "test_search_episode.md"

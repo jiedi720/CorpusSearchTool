@@ -57,7 +57,7 @@ Episode 3: 结尾
             print(f"  {i}. 行号: {result['line_number']}, 时间轴: {result['time_axis']}, 集数: {result['episode']}, 内容: {result['content']}")
         
         # 测试搜索功能
-        from function.search_engine import search_engine
+        from function.search_engine_base import search_engine
         search_results = search_engine.search_in_file(test_file, "台词")
         
         print(f"\n搜索'台词'的结果数量: {len(search_results)}")

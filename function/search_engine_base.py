@@ -1,6 +1,6 @@
 """
-搜索引擎模块
-实现关键词匹配、模糊搜索、正则表达式等功能
+搜索引擎基础模块
+实现通用的关键词匹配、模糊搜索、正则表达式等功能
 """
 
 import re
@@ -10,8 +10,8 @@ from function.document_parser import parse_document_file
 from pathlib import Path
 
 
-class SearchEngine:
-    """搜索引擎类"""
+class SearchEngineBase:
+    """搜索引擎基础类"""
     
     def __init__(self):
         """初始化搜索引擎"""
@@ -94,10 +94,11 @@ class SearchEngine:
                         matched = True
                         matched_keywords.append(keyword)
                 else:
-                    # 精确匹配 - 确保关键词确实存在于内容中
+                    # 精确匹配
                     if keyword in search_content:
                         matched = True
                         matched_keywords.append(keyword)
+                        print(f"[DEBUG] 找到匹配: 关键词='{keyword}' 在内容中")
             
             if matched:
                 result_item = item.copy()
@@ -138,144 +139,58 @@ class SearchEngine:
             搜索结果列表
         """
         all_results = []
-        
         for file_path in file_paths:
-            try:
-                file_results = self.search_in_file(file_path, keywords, 
-                                                 case_sensitive, fuzzy_match, regex_enabled)
-                all_results.extend(file_results)
-            except Exception as e:
-                print(f"处理文件 {file_path} 时出错: {str(e)}")
-                continue
-        
+            results = self.search_in_file(file_path, keywords, case_sensitive, 
+                                         fuzzy_match, regex_enabled)
+            all_results.extend(results)
         return all_results
     
-    def search_korean_english_variants(self, file_path: str, base_words: List[str],
-                                      case_sensitive: bool = False) -> List[Dict]:
+    def search_exact_match(self, file_path: str, exact_text: str, 
+                         case_sensitive: bool = False) -> List[Dict]:
         """
-        搜索韩语/英语变形匹配
+        完全匹配搜索（引号内的内容）
         
         Args:
             file_path: 文件路径
-            base_words: 基础词列表（原型词）
+            exact_text: 要完全匹配的文本
             case_sensitive: 是否区分大小写
             
         Returns:
             搜索结果列表
         """
-        # 这里需要实现韩语/英语变形匹配算法
-        # 由于复杂性，这里提供一个框架实现
-        all_keywords = []
+        # 根据文件类型选择解析器
+        file_ext = Path(file_path).suffix.lower()
+        subtitle_exts = ['.srt', '.ass', '.ssa', '.vtt']
         
-        for word in base_words:
-            # 生成可能的变形词
-            variants = self._generate_word_variants(word)
-            all_keywords.extend(variants)
-        
-        # 去重
-        all_keywords = list(set(all_keywords))
-        
-        return self.search_in_file(file_path, all_keywords, case_sensitive, 
-                                 fuzzy_match=False, regex_enabled=False)
-    
-    def _generate_word_variants(self, word: str) -> List[str]:
-        """
-        生成单词的可能变形（支持韩语/英语变形）
-
-        Args:
-            word: 基础词
-
-        Returns:
-            变形词列表
-        """
-        variants = [word]  # 至少包含原词
-
-        # 检测是否为韩语
-        if self._is_korean(word):
-            # 韩语变形规则
-            korean_variants = self._generate_korean_variants(word)
-            variants.extend(korean_variants)
+        if file_ext in subtitle_exts:
+            parsed_data = parse_subtitle_file(file_path)
         else:
-            # 英语变形示例（简化）
-            english_variants = self._generate_english_variants(word)
-            variants.extend(english_variants)
-
-        return variants
-
-    def _is_korean(self, text: str) -> bool:
-        """
-        检测文本是否包含韩语字符
-
-        Args:
-            text: 要检测的文本
-
-        Returns:
-            是否包含韩语字符
-        """
-        # 韩文字母范围: U+AC00–U+D7AF
-        korean_pattern = re.compile(r'[\uac00-\ud7af]')
-        return bool(korean_pattern.search(text))
-
-    def _generate_korean_variants(self, word: str) -> List[str]:
-        """
-        生成韩语单词的可能变形
-
-        Args:
-            word: 韩语基础词
-
-        Returns:
-            韩语变形词列表
-        """
-        variants = []
-
-        # 简单的韩语变形规则（可以根据需要扩展）
-        # 例如: 아직 -> 아직도, 않다 -> 안, etc.
-        if word.endswith('다'):  # 动词原形
-            base = word[:-1]  # 去掉다
-            variants.extend([
-                base,  # 기본형
-                base + '요',  # 요
-                base + '서',  # 서
-                base + '고',  # 고
-                base + '는',  # 는
-                base + 'ㄴ',  # ㄴ
-                base + 'ㄹ',  # ㄹ
-            ])
-
-        # 特定词汇的变形
-        if word == '아직도':
-            variants.extend(['아직', '아직은', '아직까지'])
-        elif word == '않다':
-            variants.extend(['안', '않', '않는', '않을'])
-
-        return variants
-
-    def _generate_english_variants(self, word: str) -> List[str]:
-        """
-        生成英语单词的可能变形
-
-        Args:
-            word: 英语基础词
-
-        Returns:
-            英语变形词列表
-        """
-        variants = []
-
-        # 英语变形示例（简化）
-        if word.endswith('e'):
-            variants.append(word[:-1] + 'ing')  # like -> liking
-            variants.append(word[:-1] + 'ed')   # like -> liked
-        elif word.endswith('y'):
-            variants.append(word[:-1] + 'ies')  # beauty -> beauties
-            variants.append(word[:-1] + 'ied')  # cry -> cried
-        else:
-            variants.append(word + 's')         # cat -> cats
-            variants.append(word + 'ing')       # run -> running
-            variants.append(word + 'ed')        # walk -> walked
-
-        return variants
+            parsed_data = parse_document_file(file_path)
+        
+        results = []
+        
+        for item in parsed_data:
+            content = item.get('content', '')
+            
+            # 完全匹配检查
+            search_content = content if case_sensitive else content.lower()
+            search_exact = exact_text if case_sensitive else exact_text.lower()
+            
+            if search_exact in search_content:
+                result = {
+                    'file_path': file_path,
+                    'lineno': item.get('lineno', ''),
+                    'episode': item.get('episode', ''),
+                    'time_axis': item.get('time_axis', ''),
+                    'content': content,
+                    'matched_keywords': [exact_text]
+                }
+                results.append(result)
+                print(f"[DEBUG] 完全匹配: {content}")
+        
+        return results
 
 
 # 全局搜索引擎实例
-search_engine = SearchEngine()
+search_engine_base = SearchEngineBase()
+search_engine = search_engine_base  # 向后兼容，保持全局实例名称不变

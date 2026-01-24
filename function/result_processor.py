@@ -23,7 +23,7 @@ class ResultProcessor:
             file_type: 文件类型 ('subtitle' 或 'document')
 
         Returns:
-            格式化后的结果列表，每个元素为元组 (文件名, 时间轴/页码, 行号, 集数, 内容)
+            格式化后的结果列表，每个元素为元组 (文件名, 行号, 集数, 时间轴, 内容, 完整文件路径)
         """
         formatted_results = []
 
@@ -61,7 +61,7 @@ class ResultProcessor:
                 matched_keywords = result.get('matched_keywords', [])
                 highlighted_content = self.highlight_content_with_keywords(cleaned_content, matched_keywords)
 
-                formatted_results.append((filename, str(line_number), episode, time_axis, highlighted_content))
+                formatted_results.append((filename, str(line_number), episode, time_axis, highlighted_content, file_path))
             else:
                 # 文档文件可能有页码信息
                 page_info = result.get('page', 'N/A')
@@ -85,7 +85,7 @@ class ResultProcessor:
                 matched_keywords = result.get('matched_keywords', [])
                 highlighted_content = self.highlight_content_with_keywords(cleaned_content, matched_keywords)
 
-                formatted_results.append((filename, str(line_number), episode, time_axis, highlighted_content))
+                formatted_results.append((filename, str(line_number), episode, time_axis, highlighted_content, file_path))
 
         return formatted_results
     
@@ -223,18 +223,63 @@ class ResultProcessor:
 
     def highlight_content_with_keywords(self, content: str, matched_keywords: List[str]) -> str:
         """
-        在内容中高亮关键词（当前返回原始内容，高亮将在GUI中处理）
-
+        在内容中高亮关键词
+        
+        对于动词/形容词（以 다 结尾），会同时高亮其过去时态形式（如 닮다 → 닮은）
+        
         Args:
             content: 原始内容
             matched_keywords: 匹配的关键词列表
 
         Returns:
-            原始内容（不包含高亮标记）
+            处理后的内容，关键词将被标记以便在 GUI 中高亮显示
         """
-        # 当前返回原始内容，因为tkinter Treeview不支持富文本
-        # 高亮功能将在GUI层通过其他方式实现
-        return content
+        # 移除重复的关键词
+        unique_keywords = list(set(matched_keywords))
+        # 按照长度降序排列，确保长关键词优先匹配
+        unique_keywords.sort(key=lambda x: len(x), reverse=True)
+        
+        if not unique_keywords:
+            # 如果没有关键词，返回白色文本
+            return f'<span style="color: #ffffff;">{content}</span>'
+        
+        # 为每个动词/形容词生成过去时态形式
+        keyword_variants = {}
+        for keyword in unique_keywords:
+            variants = [keyword]
+            # 检查是否是动词/形容词（以 다 结尾）
+            if keyword.endswith('다'):
+                base = keyword[:-2]  # 去掉 다
+                # 添加过去时态形式
+                for past_suffix in ['았', '었']:
+                    variants.append(base + past_suffix)
+                    variants.append(base + past_suffix + '다')
+                    variants.append(base + past_suffix + '어')
+                    variants.append(base + past_suffix + '어요')
+                    variants.append(base + past_suffix + '고')
+                # 添加其他常见变体
+                variants.append(base + '은')  # 过去时定语
+                variants.append(base + '는')  # 现在时定语
+                variants.append(base + 'ㄴ')  # 过去时定语（开音节）
+                variants.append(base + '을')  # 将来时定语
+                variants.append(base + 'ㄹ')  # 将来时定语（开音节）
+                variants.append(base + '어')  # 基本形
+                variants.append(base + '아')  # 基本形
+                variants.append(base + '게')  # 副词化
+                variants.append(base + '해')  # 하다类型
+                variants.append(base + '했')  # 하다类型过去时
+            keyword_variants[keyword] = variants
+        
+        # 使用 HTML 标签高亮关键词及其变体
+        highlighted_content = content
+        for keyword, variants in keyword_variants.items():
+            for variant in variants:
+                if variant in highlighted_content:
+                    # 使用 <b> 和 <span style="color: #ffff00;"> 标记变体（黄色）
+                    highlighted_content = highlighted_content.replace(variant, f'<b><span style="color: #ffff00;">{variant}</span></b>')
+        
+        # 将整个文本包裹在白色 span 中
+        return f'<span style="color: #ffffff;">{highlighted_content}</span>'
 
 
 # 全局结果处理器实例
