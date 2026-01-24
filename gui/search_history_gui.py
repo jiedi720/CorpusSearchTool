@@ -373,11 +373,11 @@ class SearchHistoryWindow(QMainWindow):
             for i in range(min(len(widths), table.columnCount())):
                 # 固定列宽度
                 if i == 0:  # 时间列
-                    table.setColumnWidth(i, 140)
-                elif i == 2:  # 关键词类型列
                     table.setColumnWidth(i, 150)
+                elif i == 2:  # 关键词类型列
+                    table.setColumnWidth(i, 210)
                 elif i == 4:  # 结果数列
-                    table.setColumnWidth(i, 80)
+                    table.setColumnWidth(i, 50)
                 else:
                     # 确保列宽不小于80px，关键词列最大180px
                     if i == 1:  # 关键词列
@@ -392,11 +392,11 @@ class SearchHistoryWindow(QMainWindow):
         
         # 确保固定列宽度保存为正确的值
         if len(widths) > 0:
-            widths[0] = 140  # 时间列（固定）
+            widths[0] = 150  # 时间列（固定）
         if len(widths) > 2:
-            widths[2] = 150  # 关键词类型列（固定）
+            widths[2] = 210  # 关键词类型列（固定）
         if len(widths) > 4:
-            widths[4] = 80   # 结果数列（固定）
+            widths[4] = 50   # 结果数列（固定）
         
         # 确保其他列宽不小于80px，关键词列最大180px
         for i in range(len(widths)):
@@ -414,6 +414,6 @@ class SearchHistoryWindow(QMainWindow):
     @staticmethod
     def enforce_min_column_width(table, logicalIndex, oldSize, newSize):
         """确保搜索历史表格的列宽不小于最小值（80px）"""
-        min_width = 80
+        min_width = 50
         if newSize < min_width:
             table.setColumnWidth(logicalIndex, min_width)

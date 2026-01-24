@@ -227,6 +227,10 @@ class SearchResultTableManager:
         # 设置右键菜单
         self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         
+        # 设置表头右键菜单
+        header = self.result_table.horizontalHeader()
+        header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        
         # 应用初始样式
         self.fix_table_style()
     

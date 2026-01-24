@@ -364,6 +364,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 连接列宽变化信号，确保所有列的宽度不小于80
         self.result_table.horizontalHeader().sectionResized.connect(self.enforce_min_column_width)
         
+        # 连接表头右键菜单信号
+        header = self.result_table.horizontalHeader()
+        header.customContextMenuRequested.connect(self.show_header_context_menu)
+        
+        # 连接表格右键菜单信号
+        self.result_table.customContextMenuRequested.connect(self.show_context_menu)
+        
         # 恢复列宽和顺序设置
         self.restore_column_settings()
         
@@ -1572,7 +1579,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         action = menu.exec(self.result_table.horizontalHeader().mapToGlobal(pos))
         
         if action == reset_action:
-            self.reset_column_widths()
+            self.table_manager.reset_column_widths()
     
     def enforce_min_column_width(self, logicalIndex, oldSize, newSize):
         """确保可调整列的宽度不小于最小值，跳过固定宽度列"""
@@ -1707,7 +1714,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     self.result_table.setColumnWidth(i, width)
         else:
             # 如果没有保存的宽度，应用默认宽度
-            self.reset_column_widths()
+            self.table_manager.reset_column_widths()
         
         # 设置列宽调整模式
         header = self.result_table.horizontalHeader()
