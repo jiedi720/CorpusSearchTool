@@ -211,12 +211,8 @@ class SearchResultTableManager:
             3: 60   # 行号列
         }
 
-        # 可调整列的最小和最大宽度限制
-        self.COLUMN_WIDTH_LIMITS = {
-            0: (150, 300),    # 出处列
-            2: (500, 1000),   # 对应台词列
-            4: (150, 300)     # 文件名列
-        }
+        # 可调整列的最小和最大宽度限制（空字典表示无限制）
+        self.COLUMN_WIDTH_LIMITS = {}
     
     def get_fixed_width(self, column_index):
         """获取固定列的宽度

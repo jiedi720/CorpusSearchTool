@@ -885,7 +885,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.setColumnWidth(2, 150)
         self.result_table.setColumnWidth(3, 120)
         self.result_table.setColumnWidth(4, 200)
-        header.setFixedHeight(30)  # 设置表头固定高度为30px，与搜索历史表格一致
+        header.setFixedHeight(20)  # 设置表头固定高度为20px
         
         # 启用列拖拽和右键菜单
         header.setSectionsMovable(True)  # 允许列拖拽调整顺序
@@ -947,7 +947,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
 
         # 确保表头高度固定且没有额外空间
         header = self.result_table.horizontalHeader()
-        header.setFixedHeight(30)
+        header.setFixedHeight(20)
         header.setContentsMargins(0, 0, 0, 0)
         
         # 确保表格填满父容器
@@ -1303,7 +1303,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 时间轴
             time_item = QTableWidgetItem(str(time_axis))
-            time_item.setForeground(QColor('#569cd6'))
+            time_item.setForeground(QColor('#4ec9b0'))
             time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # 居中对齐
             # 设置为不可编辑
             time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -1334,7 +1334,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 文件名
             filename_item = QTableWidgetItem(str(filename))
-            filename_item.setForeground(QColor('#4ec9b0'))
+            filename_item.setForeground(QColor('#569cd6'))
             # 设置为不可编辑
             filename_item.setFlags(filename_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 4, filename_item)
