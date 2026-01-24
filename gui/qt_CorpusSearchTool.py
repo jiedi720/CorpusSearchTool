@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QCheckBox, QGroupBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QMenu, QMessageBox, QFileDialog,
     QProgressBar, QStatusBar, QSplitter, QFrame, QStyledItemDelegate,
-    QStyleOptionViewItem, QTabWidget, QComboBox
+    QStyleOptionViewItem, QTabWidget, QComboBox, QSizePolicy
 )
 from PySide6.QtCore import Qt, QThread, Signal, QPoint, QSettings, QSize
 from PySide6.QtGui import QColor, QFont, QAction, QIcon, QCursor, QDragEnterEvent, QDropEvent, QTextDocument
@@ -408,11 +408,18 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 设置窗口属性
         self.setup_window()
         
-        # 设置样式主题
-        self.setup_styles()
-        
         # 使用生成的UI类创建界面
         self.setupUi(self)
+        
+        # 重置进度条初始值，覆盖UI文件中的默认设置
+        self.ProgressBar.setValue(0)
+        self.ProgressBar.setVisible(False)
+        
+        # 修复表格样式和布局 - 关键修复：在setupUi之后直接修改表格属性
+        self.fix_table_style()
+        
+        # 设置样式主题
+        self.setup_styles()
         
         # 连接标签页切换信号
         self.corpus_tab_widget.currentChanged.connect(self.on_corpus_tab_changed)
@@ -509,8 +516,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def setup_styles(self):
         """设置样式"""
-        # 初始化主题为浅色
-        self.change_theme("Light")
+        # 从配置文件加载主题设置，如果没有则使用默认值"Light"
+        theme = config_manager.get_theme()
+        # 应用主题
+        self.change_theme(theme)
         
     def change_theme(self, mode):
         """
@@ -524,6 +533,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         refresh_all_widget_styles()
         # 更新UI元素的主题属性
         self.update_theme_properties(mode)
+        # 保存主题设置到配置文件
+        config_manager.set_theme(mode)
+        config_manager.save_config()
     
     def update_theme_properties(self, mode):
         """
@@ -532,21 +544,66 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         Args:
             mode: 主题模式，可选值: "Light" 或 "Dark"
         """
+        from .theme import update_widget_theme_properties
+        
+        # 获取主题模式字符串
+        theme_mode = "light" if mode == "Light" else "dark"
+        
         # 设置主题属性到主窗口
-        self.setProperty("theme", "light" if mode == "Light" else "dark")
+        self.setProperty("theme", theme_mode)
         
-        # 遍历所有子控件，设置主题属性
-        for widget in self.findChildren(QWidget):
-            widget.setProperty("theme", "light" if mode == "Light" else "dark")
+        # 特别为menuBar设置theme属性
+        if hasattr(self, 'menuBar'):
+            self.menuBar.setProperty("theme", theme_mode)
+            # 强制刷新menuBar的样式
+            self.menuBar.style().unpolish(self.menuBar)
+            self.menuBar.style().polish(self.menuBar)
+            self.menuBar.update()
         
-        # 刷新样式
-        self.style().unpolish(self)
-        self.style().polish(self)
+        # 特别为corpus_tab_widget设置theme属性
+        self.corpus_tab_widget.setProperty("theme", theme_mode)
         
-        # 刷新所有子控件样式
-        for widget in self.findChildren(QWidget):
-            widget.style().unpolish(widget)
-            widget.style().polish(widget)
+        # 特别处理corpus_tab_widget的tabBar
+        tab_bar = self.corpus_tab_widget.tabBar()
+        if tab_bar:
+            tab_bar.setProperty("theme", theme_mode)
+        
+        # 特别为result_table的表头设置theme属性
+        header = self.result_table.horizontalHeader()
+        if header:
+            header.setProperty("theme", theme_mode)
+            # 强制刷新表头样式
+            header.style().unpolish(header)
+            header.style().polish(header)
+            header.update()
+        
+        # 特别处理四个显示控件
+        display_widgets = [
+            self.korean_lemma_display,
+            self.english_lemma_display,
+            self.english_lemmalist_display,
+            self.korean_lemmalist_display
+        ]
+        for widget in display_widgets:
+            if widget:
+                widget.setProperty("theme", theme_mode)
+                # 强制刷新显示控件样式
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
+                widget.update()
+        
+        # 使用theme.py中定义的update_widget_theme_properties函数更新主题属性
+        update_widget_theme_properties(self, theme_mode)
+        
+        # 强制刷新corpus_tab_widget的样式
+        self.corpus_tab_widget.style().unpolish(self.corpus_tab_widget)
+        self.corpus_tab_widget.style().polish(self.corpus_tab_widget)
+        self.corpus_tab_widget.update()
+        
+        # 强制刷新result_table的样式
+        self.result_table.style().unpolish(self.result_table)
+        self.result_table.style().polish(self.result_table)
+        self.result_table.update()
         
         # 处理事件，确保所有更新都生效
         QApplication.processEvents()
@@ -844,7 +901,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 表格
         self.result_table = QTableWidget()
         self.result_table.setColumnCount(5)
-        self.result_table.setHorizontalHeaderLabels(['文件名', '行号', '集数', '时间轴', '对应台词'])
+        self.result_table.setHorizontalHeaderLabels(['集数', '时间轴', '对应台词', '行号', '文件名'])
         
         # 设置表格属性
         self.result_table.setAlternatingRowColors(True)
@@ -871,7 +928,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.setColumnWidth(1, 80)
         self.result_table.setColumnWidth(2, 150)
         self.result_table.setColumnWidth(3, 120)
-        header.setFixedHeight(30)  # 设置表头高度与表格行高一致
+        header.setFixedHeight(30)  # 设置表头固定高度为30px，与搜索历史表格一致
         
         # 启用列拖拽和右键菜单
         header.setSectionsMovable(True)  # 允许列拖拽调整顺序
@@ -889,11 +946,12 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.result_table.customContextMenuRequested.connect(self.show_context_menu)
         
-        # 设置表格样式
+        # 设置表格样式，参考搜索历史表格
         self.result_table.setStyleSheet("""
             QTableWidget {
                 background-color: #1f1f1f;
                 alternate-background-color: #252525;
+                color: #ffffff;
                 gridline-color: #404040;
                 border: 1px solid #404040;
                 border-radius: 5px;
@@ -904,23 +962,64 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 color: white;
             }
             QTableWidget::item:hover {
-                background-color: #2d2d2d;
+                background-color: #3d3d3d;
+                color: white;
             }
+            QHeaderView {
+                background-color: #505050;
+                margin: 0;
+                padding: 0;
+                height: 20px;
+            }
+            
             QHeaderView::section {
                 background-color: #505050;
                 color: #ffffff;
-                padding: 5px 8px;
+                padding: 0 8px;
                 border: none;
                 border-right: 1px solid #606060;
                 border-bottom: 1px solid #606060;
                 font-weight: bold;
-                font-size: 10pt;
-                min-height: 30px;
+                font-size: 9pt;
+                height: 20px;
+                min-height: 20px;
+                max-height: 20px;
+                margin: 0;
             }
-            QHeaderView::section:first {
-                border-left: 1px solid #606060;
-            }
+            /* 移除section:first的border-left，避免影响边界对齐 */
         """)
+        
+        # 确保表格没有内边距，避免最右边留白
+        self.result_table.setContentsMargins(0, 0, 0, 0)
+        
+        # 确保表头高度固定且没有额外空间
+        header = self.result_table.horizontalHeader()
+        header.setFixedHeight(20)
+        header.setContentsMargins(0, 0, 0, 0)
+        
+        # 确保最后一列正确拉伸，填满整个空间
+        # 清除所有列的拉伸模式，重新设置
+        for col in range(self.result_table.columnCount()):
+            header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+        # 设置最后一列拉伸
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        # 确保最后一列始终拉伸
+        header.setStretchLastSection(True)
+        
+        # 确保表格填满父容器
+        self.result_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # 强制更新样式和布局
+        self.result_table.updateGeometry()
+        self.result_table.resize(self.result_table.parent().size())
+        self.result_table.style().unpolish(self.result_table)
+        self.result_table.style().polish(self.result_table)
+        self.result_table.update()
+        
+        # 确保父容器布局正确
+        if self.result_table.parent() and hasattr(self.result_table.parent(), 'updateGeometry'):
+            self.result_table.parent().updateGeometry()
+            self.result_table.parent().update()
         
         result_layout.addWidget(self.result_table)
         
@@ -931,6 +1030,101 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.status_bar = QStatusBar()
         self.status_bar.showMessage("✓ 准备就绪")
         self.setStatusBar(self.status_bar)
+    
+    def fix_table_style(self):
+        """修复表格样式和布局"""
+        # 清除UI设计器生成的错误样式
+        self.result_table.setStyleSheet("")
+        
+        # 设置表格样式
+        self.result_table.setStyleSheet("""
+            /* 表格主体样式 */
+            QTableWidget {
+                background-color: #1f1f1f;
+                alternate-background-color: #252525;
+                color: #ffffff;
+                gridline-color: #404040;
+                border: 1px solid #404040;
+                border-radius: 5px;
+                font-size: 11pt;
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* 表格项样式 */
+            QTableWidget::item:selected {
+                background-color: #005a9e;
+                color: white;
+            }
+            
+            QTableWidget::item:hover {
+                background-color: #3d3d3d;
+                color: white;
+            }
+            
+            /* 表头样式 - 高度固定为30px */
+            QHeaderView {
+                background-color: #505050;
+                margin: 0;
+                padding: 0;
+                height: 30px;
+            }
+            
+            QHeaderView::section {
+                background-color: #505050;
+                color: #ffffff;
+                padding: 0 8px;
+                border: none;
+                border-right: 1px solid #606060;
+                border-bottom: 1px solid #606060;
+                font-weight: bold;
+                font-size: 10pt;
+                height: 30px;
+                min-height: 30px;
+                max-height: 30px;
+                margin: 0;
+            }
+        """)
+        
+        # 设置表头高度和布局
+        header = self.result_table.horizontalHeader()
+        header.setFixedHeight(30)
+        header.setContentsMargins(0, 0, 0, 0)
+        
+        # 设置最后一列拉伸
+        for col in range(self.result_table.columnCount()):
+            header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        header.setStretchLastSection(True)
+        
+        # 设置右键菜单
+        self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        # 断开之前的连接，避免重复连接
+        try:
+            self.result_table.customContextMenuRequested.disconnect(self.show_context_menu)
+        except:
+            pass
+        # 重新连接右键菜单信号
+        self.result_table.customContextMenuRequested.connect(self.show_context_menu)
+        
+        # 设置表头右键菜单
+        header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        # 断开之前的连接，避免重复连接
+        try:
+            header.customContextMenuRequested.disconnect(self.show_header_context_menu)
+        except:
+            pass
+        # 重新连接表头右键菜单信号
+        header.customContextMenuRequested.connect(self.show_header_context_menu)
+        
+        # 设置表格大小策略
+        self.result_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # 强制更新
+        self.result_table.updateGeometry()
+        self.result_table.style().unpolish(self.result_table)
+        self.result_table.style().polish(self.result_table)
+        self.result_table.update()
     
     def browse_input_path(self):
         """浏览输入路径"""
@@ -1066,8 +1260,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.status_bar.showMessage("⏳ 正在搜索...")
         
         # 显示进度条
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(0)
+        self.ProgressBar.setVisible(True)
+        self.ProgressBar.setValue(0)
         
         # 创建并启动搜索线程
         self.search_thread = SearchThread(
@@ -1087,13 +1281,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def update_progress(self, value):
         """更新进度条"""
-        self.progress_bar.setValue(value)
+        self.ProgressBar.setValue(value)
         self.status_bar.showMessage(f"⏳ 正在搜索... {value}%")
     
     def search_completed(self, results, lemma="", actual_variant_set=[], pos_full="", target_variant_set=[]):
         """搜索完成"""
         # 隐藏进度条
-        self.progress_bar.setVisible(False)
+        self.ProgressBar.setVisible(False)
         
         # 启用搜索按钮
         self.search_btn.setEnabled(True)
@@ -1131,31 +1325,31 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 # 未知类型，跳过
                 continue
             
-            # 文件名
-            filename_item = QTableWidgetItem(str(filename))
-            filename_item.setForeground(QColor('#4ec9b0'))
-            self.result_table.setItem(row, 0, filename_item)
-            
-            # 行号
-            lineno_item = QTableWidgetItem(str(lineno))
-            lineno_item.setForeground(QColor('#ce9178'))
-            self.result_table.setItem(row, 1, lineno_item)
-            
             # 集数
             episode_item = QTableWidgetItem(str(episode))
             episode_item.setForeground(QColor('#dcdcaa'))
-            self.result_table.setItem(row, 2, episode_item)
+            self.result_table.setItem(row, 0, episode_item)
             
             # 时间轴
             time_item = QTableWidgetItem(str(time_axis))
             time_item.setForeground(QColor('#569cd6'))
             time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # 居中对齐
-            self.result_table.setItem(row, 3, time_item)
+            self.result_table.setItem(row, 1, time_item)
             
             # 对应台词
             text_item = QTableWidgetItem(str(text))
             text_item.setForeground(QColor('#ffffff'))
-            self.result_table.setItem(row, 4, text_item)
+            self.result_table.setItem(row, 2, text_item)
+            
+            # 行号
+            lineno_item = QTableWidgetItem(str(lineno))
+            lineno_item.setForeground(QColor('#ce9178'))
+            self.result_table.setItem(row, 3, lineno_item)
+            
+            # 文件名
+            filename_item = QTableWidgetItem(str(filename))
+            filename_item.setForeground(QColor('#4ec9b0'))
+            self.result_table.setItem(row, 4, filename_item)
             
             # 保存文件路径
             self.result_file_paths.append(filepath)
@@ -1186,7 +1380,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def search_failed(self, error_message):
         """搜索失败"""
         # 隐藏进度条
-        self.progress_bar.setVisible(False)
+        self.ProgressBar.setVisible(False)
         
         # 启用搜索按钮
         self.search_btn.setEnabled(True)

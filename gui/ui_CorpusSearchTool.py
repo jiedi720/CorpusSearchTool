@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchTooliXdPVr.ui'
+## Form generated from reading UI file 'CorpusSearchToolHRZRss.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -63,9 +63,9 @@ class Ui_CorpusSearchTool(object):
 
         self.horizontalLayout_2.addWidget(self.ReadPathInput)
 
-        self.korean_lemmalist_display = QHBoxLayout()
-        self.korean_lemmalist_display.setSpacing(5)
-        self.korean_lemmalist_display.setObjectName(u"korean_lemmalist_display")
+        self.ReadPath = QHBoxLayout()
+        self.ReadPath.setSpacing(5)
+        self.ReadPath.setObjectName(u"ReadPath")
         self.ReadPathSet = QPushButton(self.centralwidget)
         self.ReadPathSet.setObjectName(u"ReadPathSet")
         self.ReadPathSet.setEnabled(True)
@@ -105,7 +105,7 @@ class Ui_CorpusSearchTool(object):
         self.ReadPathSet.setIcon(icon)
         self.ReadPathSet.setIconSize(QSize(20, 20))
 
-        self.korean_lemmalist_display.addWidget(self.ReadPathSet)
+        self.ReadPath.addWidget(self.ReadPathSet)
 
         self.ReadPathSelect = QPushButton(self.centralwidget)
         self.ReadPathSelect.setObjectName(u"ReadPathSelect")
@@ -140,7 +140,7 @@ class Ui_CorpusSearchTool(object):
         self.ReadPathSelect.setIcon(icon1)
         self.ReadPathSelect.setIconSize(QSize(20, 20))
 
-        self.korean_lemmalist_display.addWidget(self.ReadPathSelect)
+        self.ReadPath.addWidget(self.ReadPathSelect)
 
         self.ReadPathOpen = QPushButton(self.centralwidget)
         self.ReadPathOpen.setObjectName(u"ReadPathOpen")
@@ -177,18 +177,21 @@ class Ui_CorpusSearchTool(object):
         self.ReadPathOpen.setIcon(icon2)
         self.ReadPathOpen.setIconSize(QSize(20, 20))
 
-        self.korean_lemmalist_display.addWidget(self.ReadPathOpen)
+        self.ReadPath.addWidget(self.ReadPathOpen)
 
 
-        self.horizontalLayout_2.addLayout(self.korean_lemmalist_display)
+        self.horizontalLayout_2.addLayout(self.ReadPath)
 
 
         self.verticalLayout_7.addLayout(self.horizontalLayout_2)
 
         self.horizontalLayout_9 = QHBoxLayout()
+        self.horizontalLayout_9.setSpacing(10)
         self.horizontalLayout_9.setObjectName(u"horizontalLayout_9")
         self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setSpacing(7)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(-1, -1, 3, 13)
         self.corpus_tab_widget = QTabWidget(self.centralwidget)
         self.corpus_tab_widget.setObjectName(u"corpus_tab_widget")
         self.corpus_tab_widget.setMinimumSize(QSize(300, 200))
@@ -197,7 +200,7 @@ class Ui_CorpusSearchTool(object):
         self.corpus_tab_widget.setStyleSheet(u"/* \u6574\u4f53\u5bb9\u5668\u7f8e\u5316 */\n"
 "QTabWidget[theme=\"light\"]::pane {\n"
 "    background-color: #DEDEDE;   \n"
-"    border-radius: 9px;            \n"
+"    border-radius: 10px;            \n"
 "    border-top-left-radius: 0px;   \n"
 "    border-top-right-radius: 0px;  \n"
 "    top: 0px;                     \n"
@@ -205,7 +208,7 @@ class Ui_CorpusSearchTool(object):
 "\n"
 "QTabWidget[theme=\"dark\"]::pane {\n"
 "    background-color: #9e9e9e;    \n"
-"    border-radius: 9px;            \n"
+"    border-radius: 10px;            \n"
 "    border-top-left-radius: 0px;   \n"
 "    border-top-right-radius: 0px;  \n"
 "    top: 0px;                     \n"
@@ -217,12 +220,12 @@ class Ui_CorpusSearchTool(object):
 "    color: rgb(0, 0, 0);\n"
 "    background-color: #FFC209;\n"
 "    padding: 2px 1px;/*\u8bbe\u7f6e\u6807\u7b7e\u6587\u5b57\u4e0e\u6807\u7b7e\u8fb9\u6846\u4e4b\u95f4\u7684\u7559\u767d\u533a\u57df */\n"
-"    min-width: 150px; /*\u8bbe\u7f6e\u6807\u7b7e\u7684\u6700"
-                        "\u5c0f\u5bbd\u5ea6 */\n"
+"    min-width: 150px; /*\u8bbe\u7f6e\u6807\u7b7e\u7684"
+                        "\u6700\u5c0f\u5bbd\u5ea6 */\n"
 "    margin-right: 1px; /* \u9ed8\u8ba4\u4fdd\u7559\u8fb9\u8ddd\u7528\u4e8e\u91cd\u53e0 */\n"
 "    /* \u6838\u5fc3\u4fee\u6539\uff1a\u5206\u522b\u8bbe\u7f6e\u56db\u4e2a\u89d2\u7684\u5f27\u5ea6 \u987a\u5e8f\u4e3a\uff1a\u5de6\u4e0a, \u53f3\u4e0a, \u53f3\u4e0b, \u5de6\u4e0b */\n"
-"    border-top-left-radius: 9px;  \n"
-"    border-top-right-radius: 9px; \n"
+"    border-top-left-radius: 10px;  \n"
+"    border-top-right-radius: 10px; \n"
 "    border-bottom-left-radius: 1px;\n"
 "    border-bottom-right-radius: 1px;\n"
 "}\n"
@@ -547,12 +550,12 @@ class Ui_CorpusSearchTool(object):
 
         self.horizontalLayout_5.addWidget(self.korean_lemmalist_label, 0, Qt.AlignmentFlag.AlignTop)
 
-        self.korean_lemmalist_display_2 = QLabel(self.korean_tab)
-        self.korean_lemmalist_display_2.setObjectName(u"korean_lemmalist_display_2")
-        self.korean_lemmalist_display_2.setMinimumSize(QSize(300, 70))
-        self.korean_lemmalist_display_2.setMaximumSize(QSize(16777215, 70))
-        self.korean_lemmalist_display_2.setFont(font)
-        self.korean_lemmalist_display_2.setStyleSheet(u"/* \u9ed8\u8ba4\u6837\u5f0f (\u4f60\u7684\u57fa\u7840\u6837\u5f0f) */\n"
+        self.korean_lemmalist_display = QLabel(self.korean_tab)
+        self.korean_lemmalist_display.setObjectName(u"korean_lemmalist_display")
+        self.korean_lemmalist_display.setMinimumSize(QSize(300, 70))
+        self.korean_lemmalist_display.setMaximumSize(QSize(16777215, 70))
+        self.korean_lemmalist_display.setFont(font)
+        self.korean_lemmalist_display.setStyleSheet(u"/* \u9ed8\u8ba4\u6837\u5f0f (\u4f60\u7684\u57fa\u7840\u6837\u5f0f) */\n"
 "QFrame {\n"
 "    color: rgb(0, 0, 0);\n"
 "    background-color: #f0f0f0;\n"
@@ -566,9 +569,9 @@ class Ui_CorpusSearchTool(object):
 "    background-color: #e0d4f7;  /* \u80cc\u666f\u53d8\u6210\u6d45\u7d2b\u8272\uff0c\u6697\u793a\u53ef\u653e\u5165 */\n"
 "    border: 3px solid #9b72cf;  /* \u8fb9\u6846\u52a0\u7c97\u5e76\u4eae\u5316 */\n"
 "}")
-        self.korean_lemmalist_display_2.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+        self.korean_lemmalist_display.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
-        self.horizontalLayout_5.addWidget(self.korean_lemmalist_display_2)
+        self.horizontalLayout_5.addWidget(self.korean_lemmalist_display)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_5)
@@ -584,6 +587,7 @@ class Ui_CorpusSearchTool(object):
         self.horizontalLayout_9.addLayout(self.horizontalLayout)
 
         self.verticalLayout_6 = QVBoxLayout()
+        self.verticalLayout_6.setSpacing(1)
         self.verticalLayout_6.setObjectName(u"verticalLayout_6")
         self.verticalLayout_2 = QVBoxLayout()
         self.verticalLayout_2.setSpacing(0)
@@ -612,6 +616,7 @@ class Ui_CorpusSearchTool(object):
         self.gridLayout = QGridLayout()
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setHorizontalSpacing(10)
+        self.gridLayout.setVerticalSpacing(11)
         self.history_btn = QPushButton(self.centralwidget)
         self.history_btn.setObjectName(u"history_btn")
         self.history_btn.setMinimumSize(QSize(81, 30))
@@ -712,7 +717,7 @@ class Ui_CorpusSearchTool(object):
         self.result_table.setStyleSheet(u"QPlainTextEdit {\n"
 "    /* 1. \u5fc5\u987b\u6709\u8fb9\u6846\uff0c\u900f\u660e\u5373\u53ef */\n"
 "    border: 1px solid transparent;\n"
-"    border-radius: 9px;\n"
+"    border-radius: 10px;\n"
 "    /* 1. \u663e\u5f0f\u58f0\u660e background\uff0c\u4e0d\u8981\u53ea\u7528 background-color */\n"
 "    background: palette(base);\n"
 "    /* 3. \u6838\u5fc3\uff1a\u5fc5\u987b\u5b9a\u4e49\u80cc\u666f\u8272\uff0c\u5706\u89d2\u624d\u80fd\u88ab\u201c\u586b\u5145\u201d\u51fa\u6765 */\n"
@@ -787,14 +792,14 @@ class Ui_CorpusSearchTool(object):
 "    color: white;                /* \u767e\u5206\u6bd4\u6587\u5b57\u989c\u8272 */\n"
 "    text-align: center;          /* \u6587\u5b57\u5c45\u4e2d */\n"
 "    background: #e0e0e0;         /* \u69fd\u7684\u80cc\u666f\u8272 */\n"
-"    border-radius: 7px;          /* \u5706\u89d2\u9ad8\u5ea6\u7684\u4e00\u534a\u901a\u5e38\u770b\u8d77\u6765\u5f88\u8212\u670d */\n"
+"    border-radius: 5px;          /* \u5706\u89d2\u9ad8\u5ea6\u7684\u4e00\u534a\u901a\u5e38\u770b\u8d77\u6765\u5f88\u8212\u670d */\n"
 "    height: 10px;                /* \u8fd9\u91cc\u7684 height \u4f1a\u5f71\u54cd\u69fd\u7684\u7c97\u7ec6 */\n"
 "}\n"
 "\n"
 "/* \u5df2\u586b\u5145\u7684\u8fdb\u5ea6\u90e8\u5206 */\n"
 "QProgressBar::chunk {\n"
 "    background-color: #05B8CC;   /* \u8fdb\u5ea6\u6761\u989c\u8272\uff1a\u9752\u84dd\u8272 */\n"
-"    border-radius: 7px;          /* \u8fdb\u5ea6\u6761\u7684\u5706\u89d2 */\n"
+"    border-radius: 5px;          /* \u8fdb\u5ea6\u6761\u7684\u5706\u89d2 */\n"
 "}")
         self.ProgressBar.setValue(24)
         self.ProgressBar.setTextVisible(False)
@@ -828,7 +833,7 @@ class Ui_CorpusSearchTool(object):
 
         self.retranslateUi(CorpusSearchTool)
 
-        self.corpus_tab_widget.setCurrentIndex(1)
+        self.corpus_tab_widget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(CorpusSearchTool)
@@ -872,7 +877,7 @@ class Ui_CorpusSearchTool(object):
         self.korean_lemma_label.setText(QCoreApplication.translate("CorpusSearchTool", u"\u8bcd\u5178\u578b:", None))
         self.korean_lemma_display.setText(QCoreApplication.translate("CorpusSearchTool", u"N/A", None))
         self.korean_lemmalist_label.setText(QCoreApplication.translate("CorpusSearchTool", u"\u53d8\u4f53\u8868:", None))
-        self.korean_lemmalist_display_2.setText(QCoreApplication.translate("CorpusSearchTool", u"\u53d8\u4f53\u578b\u5217\u8868", None))
+        self.korean_lemmalist_display.setText(QCoreApplication.translate("CorpusSearchTool", u"\u53d8\u4f53\u578b\u5217\u8868", None))
         self.corpus_tab_widget.setTabText(self.corpus_tab_widget.indexOf(self.korean_tab), QCoreApplication.translate("CorpusSearchTool", u"\u97e9\u8bed\u8bed\u6599\u5e93", None))
         self.english_regex_check.setText(QCoreApplication.translate("CorpusSearchTool", u"\u6b63\u5219\u8868\u8fbe\u5f0f", None))
         self.english_fuzzy_match_check.setText(QCoreApplication.translate("CorpusSearchTool", u"\u6a21\u7cca\u5339\u914d", None))
@@ -886,15 +891,15 @@ class Ui_CorpusSearchTool(object):
 #endif // QT_CONFIG(tooltip)
         self.search_btn.setText("")
         ___qtablewidgetitem = self.result_table.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("CorpusSearchTool", u"\u6587\u4ef6\u540d", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("CorpusSearchTool", u"\u96c6\u6570", None));
         ___qtablewidgetitem1 = self.result_table.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("CorpusSearchTool", u"\u884c\u53f7", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("CorpusSearchTool", u"\u65f6\u95f4\u8f74", None));
         ___qtablewidgetitem2 = self.result_table.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("CorpusSearchTool", u"\u96c6\u6570", None));
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("CorpusSearchTool", u"\u5bf9\u5e94\u53f0\u8bcd", None));
         ___qtablewidgetitem3 = self.result_table.horizontalHeaderItem(3)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("CorpusSearchTool", u"\u65f6\u95f4\u8f74", None));
+        ___qtablewidgetitem3.setText(QCoreApplication.translate("CorpusSearchTool", u"\u884c\u53f7", None));
         ___qtablewidgetitem4 = self.result_table.horizontalHeaderItem(4)
-        ___qtablewidgetitem4.setText(QCoreApplication.translate("CorpusSearchTool", u"\u5bf9\u5e94\u53f0\u8bcd", None));
+        ___qtablewidgetitem4.setText(QCoreApplication.translate("CorpusSearchTool", u"\u6587\u4ef6\u540d", None));
         self.menuTheme.setTitle(QCoreApplication.translate("CorpusSearchTool", u"\u4e3b\u9898", None))
     # retranslateUi
 

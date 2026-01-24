@@ -81,7 +81,7 @@ padding-left: 5px;</string>
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="korean_lemmalist_display">
+           <layout class="QHBoxLayout" name="ReadPath">
             <property name="spacing">
              <number>5</number>
             </property>
@@ -280,8 +280,20 @@ QPushButton:pressed {
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_9">
+          <property name="spacing">
+           <number>10</number>
+          </property>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout">
+            <property name="spacing">
+             <number>7</number>
+            </property>
+            <property name="rightMargin">
+             <number>3</number>
+            </property>
+            <property name="bottomMargin">
+             <number>13</number>
+            </property>
             <item>
              <widget class="QTabWidget" name="corpus_tab_widget">
               <property name="minimumSize">
@@ -305,7 +317,7 @@ QPushButton:pressed {
                <string notr="true">/* 整体容器美化 */
 QTabWidget[theme=&quot;light&quot;]::pane {
     background-color: #DEDEDE;   
-    border-radius: 9px;            
+    border-radius: 10px;            
     border-top-left-radius: 0px;   
     border-top-right-radius: 0px;  
     top: 0px;                     
@@ -313,7 +325,7 @@ QTabWidget[theme=&quot;light&quot;]::pane {
 
 QTabWidget[theme=&quot;dark&quot;]::pane {
     background-color: #9e9e9e;    
-    border-radius: 9px;            
+    border-radius: 10px;            
     border-top-left-radius: 0px;   
     border-top-right-radius: 0px;  
     top: 0px;                     
@@ -328,8 +340,8 @@ QTabBar::tab {
     min-width: 150px; /*设置标签的最小宽度 */
     margin-right: 1px; /* 默认保留边距用于重叠 */
     /* 核心修改：分别设置四个角的弧度 顺序为：左上, 右上, 右下, 左下 */
-    border-top-left-radius: 9px;  
-    border-top-right-radius: 9px; 
+    border-top-left-radius: 10px;  
+    border-top-right-radius: 10px; 
     border-bottom-left-radius: 1px;
     border-bottom-right-radius: 1px;
 }
@@ -347,7 +359,7 @@ QTabBar::tab:selected {
 }</string>
               </property>
               <property name="currentIndex">
-               <number>1</number>
+               <number>0</number>
               </property>
               <widget class="QWidget" name="english_tab">
                <attribute name="title">
@@ -917,7 +929,7 @@ QFrame[active=&quot;true&quot;] {
                      </widget>
                     </item>
                     <item>
-                     <widget class="QLabel" name="korean_lemmalist_display_2">
+                     <widget class="QLabel" name="korean_lemmalist_display">
                       <property name="minimumSize">
                        <size>
                         <width>300</width>
@@ -971,6 +983,9 @@ QFrame[active=&quot;true&quot;] {
           </item>
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_6">
+            <property name="spacing">
+             <number>1</number>
+            </property>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_2">
               <property name="spacing">
@@ -1018,6 +1033,9 @@ QFrame[active=&quot;true&quot;] {
              <layout class="QGridLayout" name="gridLayout">
               <property name="horizontalSpacing">
                <number>10</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>11</number>
               </property>
               <item row="0" column="0">
                <widget class="QPushButton" name="history_btn">
@@ -1165,7 +1183,7 @@ QPushButton:pressed {
            <string notr="true">QPlainTextEdit {
     /* 1. 必须有边框，透明即可 */
     border: 1px solid transparent;
-    border-radius: 9px;
+    border-radius: 10px;
     /* 1. 显式声明 background，不要只用 background-color */
     background: palette(base);
     /* 3. 核心：必须定义背景色，圆角才能被“填充”出来 */
@@ -1229,16 +1247,6 @@ QMenu::item:disabled {
           </attribute>
           <column>
            <property name="text">
-            <string>文件名</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>行号</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
             <string>集数</string>
            </property>
           </column>
@@ -1250,6 +1258,16 @@ QMenu::item:disabled {
           <column>
            <property name="text">
             <string>对应台词</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>行号</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>文件名</string>
            </property>
           </column>
          </widget>
@@ -1281,14 +1299,14 @@ QProgressBar {
     color: white;                /* 百分比文字颜色 */
     text-align: center;          /* 文字居中 */
     background: #e0e0e0;         /* 槽的背景色 */
-    border-radius: 7px;          /* 圆角高度的一半通常看起来很舒服 */
+    border-radius: 5px;          /* 圆角高度的一半通常看起来很舒服 */
     height: 10px;                /* 这里的 height 会影响槽的粗细 */
 }
 
 /* 已填充的进度部分 */
 QProgressBar::chunk {
     background-color: #05B8CC;   /* 进度条颜色：青蓝色 */
-    border-radius: 7px;          /* 进度条的圆角 */
+    border-radius: 5px;          /* 进度条的圆角 */
 }</string>
           </property>
           <property name="value">

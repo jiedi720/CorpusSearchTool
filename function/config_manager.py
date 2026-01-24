@@ -33,10 +33,6 @@ class ConfigManager:
     def create_default_config(self):
         """创建默认配置"""
         self.config['DEFAULT'] = {}
-        self.config['PATH'] = {
-            'input_dir': '',
-            'output_dir': '',
-        }
         self.config['SEARCH'] = {
             'case_sensitive': 'False',
             'fuzzy_match': 'False',
@@ -47,7 +43,8 @@ class ConfigManager:
             'window_height': '600',
             'window_x': '-1',  # -1表示居中
             'window_y': '-1',
-            'current_tab': '0'  # 当前选择的标签页（0=英语，1=韩语）
+            'current_tab': '0',  # 当前选择的标签页（0=英语，1=韩语）
+            'theme': 'Light'  # 主题设置（Light/Dark/System）
         }
         self.config['COLUMNS'] = {
             'result_widths': '',
@@ -60,6 +57,7 @@ class ConfigManager:
         # 英语语料库配置
         self.config['ENGLISH'] = {
             'input_dir': '',
+            'output_dir': '',
             'keyword_type': '0',  # 关键词类型索引
             'case_sensitive': 'False',
             'fuzzy_match': 'False',
@@ -68,6 +66,7 @@ class ConfigManager:
         # 韩语语料库配置
         self.config['KOREAN'] = {
             'input_dir': '',
+            'output_dir': '',
             'keyword_type': '0',  # 关键词类型索引
             'case_sensitive': 'False',
             'fuzzy_match': 'False',
@@ -82,28 +81,47 @@ class ConfigManager:
             self.config.write(f)
     
     def get_input_dir(self) -> str:
-        """获取输入目录"""
-        return self.config.get('PATH', 'input_dir', fallback='')
+        """获取当前语料库的输入目录"""
+        # 根据当前选择的标签页确定语料库类型
+        current_tab = self.get_current_tab()
+        section = 'ENGLISH' if current_tab == 0 else 'KOREAN'
+        return self.config.get(section, 'input_dir', fallback='')
     
     def set_input_dir(self, input_dir: str):
-        """设置输入目录"""
-        if 'PATH' not in self.config:
-            self.config['PATH'] = {}
-        self.config.set('PATH', 'input_dir', input_dir)
+        """设置当前语料库的输入目录"""
+        # 根据当前选择的标签页确定语料库类型
+        current_tab = self.get_current_tab()
+        section = 'ENGLISH' if current_tab == 0 else 'KOREAN'
+        
+        if section not in self.config:
+            self.config[section] = {}
+        self.config.set(section, 'input_dir', input_dir)
     
     def get_output_dir(self) -> str:
-        """获取输出目录"""
-        return self.config.get('PATH', 'output_dir', fallback='')
+        """获取当前语料库的输出目录"""
+        # 根据当前选择的标签页确定语料库类型
+        current_tab = self.get_current_tab()
+        section = 'ENGLISH' if current_tab == 0 else 'KOREAN'
+        output_dir = self.config.get(section, 'output_dir', fallback='')
+        # 如果输出目录为空，则返回输入目录作为默认值
+        if output_dir == '':
+            return self.get_input_dir()
+        return output_dir
     
     def set_output_dir(self, output_dir: str):
-        """设置输出目录"""
-        if 'PATH' not in self.config:
-            self.config['PATH'] = {}
+        """设置当前语料库的输出目录"""
+        # 根据当前选择的标签页确定语料库类型
+        current_tab = self.get_current_tab()
+        section = 'ENGLISH' if current_tab == 0 else 'KOREAN'
+        
+        if section not in self.config:
+            self.config[section] = {}
+        
         if output_dir == '' or output_dir is None:
             # 如果未指定输出目录，则默认同源
-            self.config.set('PATH', 'output_dir', self.get_input_dir())
+            self.config.set(section, 'output_dir', self.get_input_dir())
         else:
-            self.config.set('PATH', 'output_dir', output_dir)
+            self.config.set(section, 'output_dir', output_dir)
     
     def get_ui_settings(self) -> dict:
         """获取UI设置"""
@@ -111,7 +129,8 @@ class ConfigManager:
             'width': self.config.getint('UI', 'window_width', fallback=800),
             'height': self.config.getint('UI', 'window_height', fallback=600),
             'x': self.config.getint('UI', 'window_x', fallback=-1),
-            'y': self.config.getint('UI', 'window_y', fallback=-1)
+            'y': self.config.getint('UI', 'window_y', fallback=-1),
+            'theme': self.config.get('UI', 'theme', fallback='Light')
         }
         return ui_settings
     
@@ -123,6 +142,20 @@ class ConfigManager:
         self.config.set('UI', 'window_height', str(height))
         self.config.set('UI', 'window_x', str(x))
         self.config.set('UI', 'window_y', str(y))
+    
+    def get_theme(self) -> str:
+        """获取主题设置"""
+        return self.config.get('UI', 'theme', fallback='Light')
+    
+    def set_theme(self, theme: str):
+        """设置主题设置
+        
+        Args:
+            theme: 主题模式，可选值: "Light", "Dark" 或 "System"
+        """
+        if 'UI' not in self.config:
+            self.config['UI'] = {}
+        self.config.set('UI', 'theme', theme)
     
     def get_search_settings(self) -> dict:
         """获取搜索设置"""
@@ -216,15 +249,23 @@ class ConfigManager:
         """
         section = 'ENGLISH' if corpus_type.lower() == 'english' else 'KOREAN'
         
+        input_dir = self.config.get(section, 'input_dir', fallback='')
+        output_dir = self.config.get(section, 'output_dir', fallback='')
+        
+        # 如果输出目录为空，则使用输入目录作为默认值
+        if output_dir == '':
+            output_dir = input_dir
+        
         return {
-            'input_dir': self.config.get(section, 'input_dir', fallback=''),
+            'input_dir': input_dir,
+            'output_dir': output_dir,
             'keyword_type': self.config.get(section, 'keyword_type', fallback=''),
             'case_sensitive': self.config.getboolean(section, 'case_sensitive', fallback=False),
             'fuzzy_match': self.config.getboolean(section, 'fuzzy_match', fallback=False),
             'regex_enabled': self.config.getboolean(section, 'regex_enabled', fallback=False)
         }
     
-    def set_corpus_config(self, corpus_type: str, input_dir: str = None, keyword_type: str = None,
+    def set_corpus_config(self, corpus_type: str, input_dir: str = None, output_dir: str = None, keyword_type: str = None,
                          case_sensitive: bool = None, fuzzy_match: bool = None, regex_enabled: bool = None):
         """
         设置语料库配置
@@ -232,6 +273,7 @@ class ConfigManager:
         Args:
             corpus_type: 语料库类型 ('english' 或 'korean')
             input_dir: 输入目录
+            output_dir: 输出目录
             keyword_type: 关键词类型（实际选项文本）
             case_sensitive: 是否区分大小写
             fuzzy_match: 是否模糊匹配
@@ -242,8 +284,29 @@ class ConfigManager:
         if section not in self.config:
             self.config[section] = {}
         
+        # 先设置输入目录（如果提供）
         if input_dir is not None:
             self.config.set(section, 'input_dir', input_dir)
+        
+        # 处理输出目录，如果为空或None，则使用输入目录作为默认值
+        if output_dir is not None:
+            if output_dir == '' or output_dir is None:
+                # 使用输入目录作为默认值
+                current_input_dir = self.config.get(section, 'input_dir', fallback='')
+                self.config.set(section, 'output_dir', current_input_dir)
+            else:
+                self.config.set(section, 'output_dir', output_dir)
+        else:
+            # 如果output_dir参数为None，检查配置中是否已存在output_dir
+            # 如果不存在或为空，则使用输入目录作为默认值
+            current_output_dir = self.config.get(section, 'output_dir', fallback='')
+            current_input_dir = self.config.get(section, 'input_dir', fallback='')
+            if current_output_dir == '' or current_output_dir is None:
+                self.config.set(section, 'output_dir', current_input_dir)
+            else:
+                # 如果已存在output_dir且不为空，则保持不变
+                pass
+        
         if keyword_type is not None:
             self.config.set(section, 'keyword_type', keyword_type)
         if case_sensitive is not None:
@@ -252,6 +315,35 @@ class ConfigManager:
             self.config.set(section, 'fuzzy_match', str(fuzzy_match))
         if regex_enabled is not None:
             self.config.set(section, 'regex_enabled', str(regex_enabled))
+        
+        # 确保input_dir和output_dir在配置中的顺序：input_dir在前，output_dir在后
+        # 1. 获取当前section的所有选项
+        section_items = dict(self.config[section])
+        
+        # 2. 移除input_dir和output_dir，稍后重新添加以保证顺序
+        if 'input_dir' in section_items:
+            del section_items['input_dir']
+        if 'output_dir' in section_items:
+            del section_items['output_dir']
+        
+        # 3. 创建新的有序字典，先添加input_dir和output_dir，再添加其他选项
+        new_section_items = {}
+        
+        # 添加input_dir（如果存在）
+        if 'input_dir' in self.config[section]:
+            new_section_items['input_dir'] = self.config[section]['input_dir']
+        
+        # 添加output_dir（如果存在）
+        if 'output_dir' in self.config[section]:
+            new_section_items['output_dir'] = self.config[section]['output_dir']
+        
+        # 添加其他选项
+        new_section_items.update(section_items)
+        
+        # 4. 清空并重新填充section
+        self.config[section].clear()
+        for key, value in new_section_items.items():
+            self.config[section][key] = value
 
 
 # 全局配置管理器实例

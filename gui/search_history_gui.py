@@ -311,14 +311,41 @@ class SearchHistoryWindow(QMainWindow):
     def clear_all_history(self):
         """清除全部历史记录"""
         try:
-            # 确认对话框
-            reply = QMessageBox.question(
-                self,
-                "确认清除",
-                "确定要清除全部搜索历史吗？此操作不可撤销。",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
+            # 创建消息框并设置样式
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("确认清除")
+            msg_box.setText("确定要清除全部搜索历史吗？此操作不可撤销。")
+            msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+            
+            # 设置样式表，确保在深色主题下文字清晰可见
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                }
+                QMessageBox QLabel {
+                    color: #ffffff;
+                }
+                QMessageBox QPushButton {
+                    background-color: #353535;
+                    color: #ffffff;
+                    border: 1px solid #404040;
+                    padding: 5px 15px;
+                    border-radius: 3px;
+                }
+                QMessageBox QPushButton:hover {
+                    background-color: #0078d4;
+                    color: white;
+                }
+                QMessageBox QPushButton:disabled {
+                    background-color: #2d2d2d;
+                    color: #888888;
+                    border: 1px solid #404040;
+                }
+            """)
+            
+            reply = msg_box.exec()
             
             if reply == QMessageBox.StandardButton.Yes:
                 search_history_manager.set_corpus_type(self.corpus_type)
