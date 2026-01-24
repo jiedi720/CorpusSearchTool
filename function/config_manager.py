@@ -205,15 +205,15 @@ class ConfigManager:
         
         return {'widths': widths, 'order': order, 'visibility': visibility}
     
-    def set_column_settings(self, table_name: str, widths: list, order: list, visibility: list = None):
+    def set_column_settings(self, table_name: str, widths: list, order: list = None, visibility: list = None):
         """
         设置列设置
 
         Args:
             table_name: 表格名称（'result' 或 'history'）
             widths: 列宽列表
-            order: 列顺序列表
-            visibility: 列显示状态列表（True表示可见，False表示隐藏）
+            order: 列顺序列表（可选，默认使用当前顺序）
+            visibility: 列显示状态列表（True表示可见，False表示隐藏，可选）
         """
         if 'COLUMNS' not in self.config:
             self.config['COLUMNS'] = {}
@@ -223,7 +223,11 @@ class ConfigManager:
         visibility_key = f'{table_name}_visibility'
         
         self.config.set('COLUMNS', widths_key, ','.join(str(w) for w in widths))
-        self.config.set('COLUMNS', order_key, ','.join(str(o) for o in order))
+        
+        # 如果提供了order参数，则保存，否则使用默认顺序
+        if order is not None:
+            self.config.set('COLUMNS', order_key, ','.join(str(o) for o in order))
+        
         if visibility is not None:
             self.config.set('COLUMNS', visibility_key, ','.join(str(int(v)) for v in visibility))
     

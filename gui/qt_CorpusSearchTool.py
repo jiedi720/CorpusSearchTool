@@ -326,6 +326,11 @@ class HTMLDelegate(QStyledItemDelegate):
             # foreground 是 QBrush 对象，需要获取其颜色
             color = foreground.color()
         
+        # 获取文本对齐方式
+        alignment = model.data(index, Qt.ItemDataRole.TextAlignmentRole)
+        if alignment is None:
+            alignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        
         # 设置文本选项，支持 HTML
         option.features |= QStyleOptionViewItem.ViewItemFeature.HasDisplay
         
@@ -380,10 +385,24 @@ class HTMLDelegate(QStyledItemDelegate):
         final_html = f'<span style="color: {color.name()};">{html_text}</span>'
         
         doc.setHtml(final_html)
-        # 不设置文本宽度，允许文本自然延伸
+        doc.setTextWidth(option.rect.width())
         
         painter.save()
-        painter.translate(option.rect.topLeft())
+        
+        # 根据对齐方式计算绘制位置
+        text_width = doc.idealWidth()
+        text_height = doc.size().height()
+        
+        x = option.rect.left()
+        y = option.rect.top() + (option.rect.height() - text_height) / 2
+        
+        if alignment & Qt.AlignmentFlag.AlignHCenter:
+            x += (option.rect.width() - text_width) / 2
+        elif alignment & Qt.AlignmentFlag.AlignRight:
+            x += option.rect.width() - text_width
+        
+        painter.translate(x, y)
+        
         # 不裁剪绘制区域，允许文本超出单元格
         doc.drawContents(painter)
         painter.restore()
@@ -1915,35 +1934,32 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 从配置文件获取列设置
         column_settings = config_manager.get_column_settings('result')
         widths = column_settings['widths']
-        order = column_settings['order']
         
         # 应用列宽
         if widths:
             # 确保列宽列表的长度与列数匹配
             for i in range(min(len(widths), self.result_table.columnCount())):
-                self.result_table.setColumnWidth(i, widths[i])
+                # 时间轴列（索引1）宽度固定为80
+                if i == 1:
+                    self.result_table.setColumnWidth(i, 80)
+                else:
+                    self.result_table.setColumnWidth(i, widths[i])
         
-        # 应用列顺序
-        if order and len(order) == self.result_table.columnCount():
-            # 保存当前的列宽
-            current_widths = [self.result_table.columnWidth(i) for i in range(self.result_table.columnCount())]
-            # 设置列顺序
-            for logical_idx, visual_idx in enumerate(order):
-                self.result_table.moveColumn(visual_idx, logical_idx)
-            # 恢复列宽
-            for i in range(self.result_table.columnCount()):
-                self.result_table.setColumnWidth(i, current_widths[i])
+        # 设置列宽调整模式
+        header = self.result_table.horizontalHeader()
+        for i in range(self.result_table.columnCount()):
+            if i == 1:  # 时间轴列（索引1）
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)  # 固定宽度
+            else:
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)  # 可调整
     
     def save_column_settings(self):
-        """保存列宽和顺序到配置文件"""
+        """保存列宽到配置文件"""
         # 获取当前列宽
         widths = [self.result_table.columnWidth(i) for i in range(self.result_table.columnCount())]
         
-        # 获取当前列顺序
-        order = list(range(self.result_table.columnCount()))
-        
         # 保存到配置文件
-        config_manager.set_column_settings('result', widths, order) 
+        config_manager.set_column_settings('result', widths) 
     
     def closeEvent(self, event):
         """窗口关闭事件"""
