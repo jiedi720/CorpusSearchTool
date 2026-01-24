@@ -3,7 +3,6 @@
 管理用户的搜索历史记录
 """
 
-import json
 import os
 from datetime import datetime
 from typing import List, Dict
@@ -26,11 +25,11 @@ class SearchHistoryManager:
     def _get_history_file(self) -> str:
         """根据语料库类型获取历史文件名"""
         if self.corpus_type == "eng":
-            return "search_history_eng.json"
+            return "search_history_eng.md"
         elif self.corpus_type == "kor":
-            return "search_history_kor.json"
+            return "search_history_kor.md"
         else:
-            return "search_history.json"
+            return "search_history.md"
     
     def set_corpus_type(self, corpus_type: str):
         """
@@ -49,19 +48,98 @@ class SearchHistoryManager:
         if os.path.exists(self.history_file):
             try:
                 with open(self.history_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError):
+                    content = f.read()
+                
+                if not content:
+                    return []
+                
+                # 解析Markdown格式的历史记录
+                history = []
+                # 跳过标题部分，从第一条记录开始
+                records = content.split('\n---\n')
+                
+                for record in records[1:]:  # 跳过标题部分
+                    if not record.strip():
+                        continue
+                    
+                    record_dict = {}
+                    lines = record.strip().split('\n')
+                    
+                    for line in lines:
+                        line = line.strip()
+                        if line.startswith('**关键词**:'):
+                            record_dict['keywords'] = line.split('**关键词**:', 1)[1].strip()
+                        elif line.startswith('**时间**:'):
+                            time_str = line.split('**时间**:', 1)[1].strip()
+                            # 将时间字符串转换为ISO格式
+                            try:
+                                dt = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+                                record_dict['timestamp'] = dt.isoformat()
+                            except ValueError:
+                                record_dict['timestamp'] = datetime.now().isoformat()
+                        elif line.startswith('**输入路径**:'):
+                            record_dict['input_path'] = line.split('**输入路径**:', 1)[1].strip()
+                        elif line.startswith('**输出路径**:'):
+                            record_dict['output_path'] = line.split('**输出路径**:', 1)[1].strip()
+                        elif line.startswith('**结果数量**:'):
+                            record_dict['result_count'] = int(line.split('**结果数量**:', 1)[1].strip())
+                        elif line.startswith('**关键词类型**:'):
+                            record_dict['keyword_type'] = line.split('**关键词类型**:', 1)[1].strip()
+                        elif line.startswith('**设置**:'):
+                            # 解析设置部分
+                            settings = {
+                                'case_sensitive': False,  # 默认值
+                                'fuzzy_match': False,      # 默认值
+                                'regex_enabled': False     # 默认值
+                            }
+                            # 设置部分在后续行，缩进显示
+                            settings_lines = [l.strip() for l in lines[lines.index(line)+1:] if l.strip().startswith('-')]
+                            for setting_line in settings_lines:
+                                if setting_line.startswith('- **正则表达式**:'):
+                                    settings['regex_enabled'] = setting_line.split('- **正则表达式**:', 1)[1].strip() == 'True'
+                            record_dict['settings'] = settings
+                    
+                    # 确保所有必填字段存在
+                    if 'keywords' in record_dict and 'timestamp' in record_dict:
+                        history.append(record_dict)
+                
+                return history
+            except Exception as e:
+                print(f"加载历史记录失败: {e}")
                 return []
         return []
     
     def save_history(self):
-        """保存历史记录"""
+        """保存历史记录为Markdown格式"""
         # 限制历史记录数量，最多保存100条
         if len(self.history) > 100:
             self.history = self.history[-100:]
         
-        with open(self.history_file, 'w', encoding='utf-8') as f:
-            json.dump(self.history, f, ensure_ascii=False, indent=2)
+        with open(self.history_file, 'w', encoding='utf-8') as mdfile:
+            mdfile.write("# 搜索历史记录\n\n")
+            mdfile.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            if not self.history:
+                mdfile.write("暂无搜索历史记录。\n")
+                return
+            
+            # 按时间倒序排列
+            sorted_history = sorted(self.history, key=lambda x: x['timestamp'], reverse=True)
+            
+            for record in sorted_history:
+                # 转换时间格式
+                timestamp = datetime.fromisoformat(record['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+                
+                # 写入记录
+                mdfile.write("---\n\n")
+                mdfile.write(f"**关键词**: {record['keywords']}\n")
+                mdfile.write(f"**时间**: {timestamp}\n")
+                mdfile.write(f"**输入路径**: {record['input_path']}\n")
+                mdfile.write(f"**输出路径**: {record.get('output_path', 'N/A')}\n")
+                mdfile.write(f"**结果数量**: {record.get('result_count', 0)}\n")
+                mdfile.write(f"**关键词类型**: {record.get('keyword_type', '')}\n")
+                mdfile.write(f"**设置**:\n")
+                mdfile.write(f"- **正则表达式**: {record['settings'].get('regex_enabled', False)}\n")
     
     def add_record(self, keywords: str, input_path: str, output_path: str = "", 
                    case_sensitive: bool = False, fuzzy_match: bool = False, 
