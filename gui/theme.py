@@ -63,7 +63,40 @@ def apply_theme(mode):
         palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(128, 128, 128))  # 占位符文本色
         
         app.setPalette(palette)  # 应用浅色调色板
-        app.setStyleSheet("")  # 清除应用程序级别的样式表
+        
+        # 设置应用程序级别的样式表，确保浅色模式下所有控件都显示正确
+        app.setStyleSheet("""
+            /* 修复tooltip样式 */
+            QToolTip {
+                background-color: #ffffde;
+                color: black;
+                border: 1px solid #7953B1;
+                border-radius: 4px;
+                padding: 5px 10px;
+            }
+            
+            QMessageBox {
+                background-color: #ffffff;
+                color: #000000;
+            }
+            QMessageBox QLabel {
+                color: #000000;
+            }
+            QMessageBox QPushButton {
+                background-color: #f0f0f0;
+                color: #000000;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                padding: 5px 15px;
+                min-width: 80px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QMessageBox QPushButton:pressed {
+                background-color: #d0d0d0;
+            }
+        """)
     elif mode == "Dark":
         # 应用深色主题
         app.setStyle(None)  # 使用系统默认样式
@@ -301,81 +334,87 @@ def apply_theme(mode):
                 """)
             widget.update()
         
-        # 修复深色模式下QComboBox的样式
+        # 修复深色模式下QComboBox的样式，但english_keyword_combo和korean_keyword_combo使用ui_CorpusSearchTool.py里的设定
         if isinstance(widget, QComboBox):
-            if mode == "Dark":
-                # 修复QComboBox下拉列表和选项样式，保留UI设计中的圆角和边框样式
-                for child in widget.findChildren(QWidget):
-                    if child.metaObject().className() == 'QComboBoxListView' or 'QAbstractItemView' in child.metaObject().className():
-                        # 修复下拉列表背景和文字颜色，保持UI设计的圆角和边框
-                        child.setStyleSheet("""
-                            QAbstractItemView {
-                                background-color: #353535;
-                                border: 1px solid #7953B1;
-                                border-radius: 9px;
-                                outline: 0px;
-                            }
-                            QAbstractItemView::item {
-                                color: white;
-                                background-color: #353535;
-                                height: 30px;
-                                padding-left: 10px;
-                            }
-                            QAbstractItemView::item:hover {
-                                background-color: #454545;
-                                color: white;
-                            }
-                            QAbstractItemView::item:selected {
-                                background-color: #7953B1;
-                                color: white;
-                                border-radius: 5px;
-                            }
-                        """)
-                        child.update()
-                    
-                # 修复QComboBox本身的hover样式，保持与UI设计一致
-                widget.setStyleSheet("""
-                    QComboBox:hover {
-                        border: 2px solid #7953B1;
-                    }
-                    QComboBox QAbstractItemView {
-                        background-color: #353535;
-                        border: 1px solid #7953B1;
-                        border-radius: 9px;
-                        outline: 0px;
-                    }
-                    QComboBox QAbstractItemView::item {
-                        color: white;
-                        background-color: #353535;
-                        height: 30px;
-                        padding-left: 10px;
-                    }
-                    QComboBox QAbstractItemView::item:hover {
-                        background-color: #454545;
-                        color: white;
-                    }
-                    QComboBox QAbstractItemView::item:selected {
-                        background-color: #7953B1;
-                        color: white;
-                        border-radius: 5px;
-                    }
-                    /* 移除下拉箭头，保持UI设计一致 */
-                    QComboBox::drop-down {
-                        width: 0px;
-                        border: none;
-                    }
-                    QComboBox::down-arrow {
-                        image: none;
-                    }
-                """)
+            # 检查控件名称，如果是关键词下拉框，则跳过自定义样式处理
+            widget_name = widget.objectName() if hasattr(widget, 'objectName') else ''
+            if widget_name in ['english_keyword_combo', 'korean_keyword_combo']:
+                # 使用ui_CorpusSearchTool.py里的设定，不应用自定义样式
+                pass
             else:
-                # 浅色模式下，移除我们添加的样式，恢复UI设计中的原始样式
-                widget.setStyleSheet("")
-                for child in widget.findChildren(QWidget):
-                    if child.metaObject().className() == 'QComboBoxListView' or 'QAbstractItemView' in child.metaObject().className():
-                        child.setStyleSheet("")
-                        child.update()
-            widget.update()
+                if mode == "Dark":
+                    # 修复QComboBox下拉列表和选项样式，保留UI设计中的圆角和边框样式
+                    for child in widget.findChildren(QWidget):
+                        if child.metaObject().className() == 'QComboBoxListView' or 'QAbstractItemView' in child.metaObject().className():
+                            # 修复下拉列表背景和文字颜色，保持UI设计的圆角和边框
+                            child.setStyleSheet("""
+                                QAbstractItemView {
+                                    background-color: #353535;
+                                    border: 1px solid #7953B1;
+                                    border-radius: 9px;
+                                    outline: 0px;
+                                }
+                                QAbstractItemView::item {
+                                    color: white;
+                                    background-color: #353535;
+                                    height: 30px;
+                                    padding-left: 10px;
+                                }
+                                QAbstractItemView::item:hover {
+                                    background-color: #454545;
+                                    color: white;
+                                }
+                                QAbstractItemView::item:selected {
+                                    background-color: #7953B1;
+                                    color: white;
+                                    border-radius: 5px;
+                                }
+                            """)
+                            child.update()
+                        
+                    # 修复QComboBox本身的hover样式，保持与UI设计一致
+                    widget.setStyleSheet("""
+                        QComboBox:hover {
+                            border: 2px solid #7953B1;
+                        }
+                        QComboBox QAbstractItemView {
+                            background-color: #353535;
+                            border: 1px solid #7953B1;
+                            border-radius: 9px;
+                            outline: 0px;
+                        }
+                        QComboBox QAbstractItemView::item {
+                            color: white;
+                            background-color: #353535;
+                            height: 30px;
+                            padding-left: 10px;
+                        }
+                        QComboBox QAbstractItemView::item:hover {
+                            background-color: #454545;
+                            color: white;
+                        }
+                        QComboBox QAbstractItemView::item:selected {
+                            background-color: #7953B1;
+                            color: white;
+                            border-radius: 5px;
+                        }
+                        /* 移除下拉箭头，保持UI设计一致 */
+                        QComboBox::drop-down {
+                            width: 0px;
+                            border: none;
+                        }
+                        QComboBox::down-arrow {
+                            image: none;
+                        }
+                    """)
+                else:
+                    # 浅色模式下，移除我们添加的样式，恢复UI设计中的原始样式
+                    widget.setStyleSheet("")
+                    for child in widget.findChildren(QWidget):
+                        if child.metaObject().className() == 'QComboBoxListView' or 'QAbstractItemView' in child.metaObject().className():
+                            child.setStyleSheet("")
+                            child.update()
+                widget.update()
         # 保存当前的样式表
         current_stylesheet = widget.styleSheet()
         # 移除旧样式
@@ -391,16 +430,69 @@ def apply_theme(mode):
     # 再次处理事件，确保所有更新都完成
     app.processEvents()
     
-    # 保留QToolTip样式，确保深色模式下显示正确，移除边框
-    app.setStyleSheet("""
-        QToolTip {
-            background-color: #353535;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 5px;
-        }
-    """)
+    # 根据当前主题模式设置完整的样式表，包括QToolTip和QMessageBox
+    if mode == "Dark":
+        app.setStyleSheet("""
+            QToolTip {
+                background-color: #353535;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 5px 5px;
+            }
+            QMessageBox {
+                background-color: #353535;
+                color: #ffffff;
+            }
+            QMessageBox QLabel {
+                color: #ffffff;
+            }
+            QMessageBox QPushButton {
+                background-color: #353535;
+                color: #ffffff;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                padding: 5px 15px;
+                min-width: 80px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #454545;
+            }
+            QMessageBox QPushButton:pressed {
+                background-color: #555555;
+            }
+        """)
+    else:  # Light or System mode
+        app.setStyleSheet("""
+            QToolTip {
+                background-color: #ffffde;
+                color: black;
+                border: none;
+                border-radius: 4px;
+                padding: 5px 5px;
+            }
+            QMessageBox {
+                background-color: #ffffff;
+                color: #000000;
+            }
+            QMessageBox QLabel {
+                color: #000000;
+            }
+            QMessageBox QPushButton {
+                background-color: #f0f0f0;
+                color: #000000;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                padding: 5px 15px;
+                min-width: 80px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QMessageBox QPushButton:pressed {
+                background-color: #d0d0d0;
+            }
+        """)
     
     # 更新所有主窗口的主题属性
     for main_window in QApplication.topLevelWidgets():
@@ -450,6 +542,13 @@ def refresh_all_widget_styles():
         
         # 设置主题属性
         widget.setProperty("theme", theme_mode)
+        
+        # 特殊处理QComboBox：跳过english_keyword_combo和korean_keyword_combo
+        if isinstance(widget, QComboBox):
+            widget_name = widget.objectName() if hasattr(widget, 'objectName') else ''
+            if widget_name in ['english_keyword_combo', 'korean_keyword_combo']:
+                # 使用ui_CorpusSearchTool.py里的设定，不应用自定义样式
+                continue
         
         # 特殊处理QTabWidget
         if isinstance(widget, QTabWidget):

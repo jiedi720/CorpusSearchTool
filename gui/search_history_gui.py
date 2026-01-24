@@ -318,32 +318,8 @@ class SearchHistoryWindow(QMainWindow):
             msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             msg_box.setDefaultButton(QMessageBox.StandardButton.No)
             
-            # 设置样式表，确保在深色主题下文字清晰可见
-            msg_box.setStyleSheet("""
-                QMessageBox {
-                    background-color: #2d2d2d;
-                    color: #ffffff;
-                }
-                QMessageBox QLabel {
-                    color: #ffffff;
-                }
-                QMessageBox QPushButton {
-                    background-color: #353535;
-                    color: #ffffff;
-                    border: 1px solid #404040;
-                    padding: 5px 15px;
-                    border-radius: 3px;
-                }
-                QMessageBox QPushButton:hover {
-                    background-color: #0078d4;
-                    color: white;
-                }
-                QMessageBox QPushButton:disabled {
-                    background-color: #2d2d2d;
-                    color: #888888;
-                    border: 1px solid #404040;
-                }
-            """)
+            # 使用应用程序级别的样式表，根据当前主题自动调整
+            # 不再硬编码样式，确保主题一致性
             
             reply = msg_box.exec()
             

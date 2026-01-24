@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QProgressBar, QStatusBar, QSplitter, QFrame, QStyledItemDelegate,
     QStyleOptionViewItem, QTabWidget, QComboBox, QSizePolicy
 )
-from PySide6.QtCore import Qt, QThread, Signal, QPoint, QSettings, QSize
+from PySide6.QtCore import Qt, QThread, Signal, QPoint, QSettings, QSize, QTimer
 from PySide6.QtGui import QColor, QFont, QAction, QIcon, QCursor, QDragEnterEvent, QDropEvent, QTextDocument
 
 # 导入生成的UI类
@@ -326,15 +326,35 @@ class HTMLDelegate(QStyledItemDelegate):
         font.setPointSize(11)
         doc.setDefaultFont(font)
         
-        # 检查文本是否已经是HTML格式（包含HTML标签）
+        # 处理HTML标签，确保正确渲染
         import re
-        is_html = bool(re.search(r'<[^>]+>', text))
         
-        if not is_html:
-            # 如果不是HTML，使用前景色包裹文本
-            text = f'<span style="color: {color.name()};">{text}</span>'
+        # 移除所有HTML标签，只保留纯文本
+        # 首先保存关键词高亮信息
+        highlighted_keywords = []
+        html_text = str(text)
         
-        doc.setHtml(text)
+        # 查找所有高亮的关键词
+        import re
+        highlight_matches = re.findall(r'<b><span style="color: #ffff00;">(.*?)</span></b>', html_text)
+        
+        # 移除所有HTML标签，只保留纯文本
+        plain_text = re.sub(r'<[^>]+>', '', html_text)
+        
+        # 创建新的HTML，只包含高亮的关键词
+        new_html = plain_text
+        
+        # 重新添加关键词高亮
+        for keyword in highlight_matches:
+            if keyword in new_html:
+                # 使用正则表达式替换，确保只替换完整的单词
+                import re
+                new_html = re.sub(r'(\b' + re.escape(keyword) + r'\b)', r'<b><span style="color: #ffff00;">\1</span></b>', new_html)
+        
+        # 用前景色包裹文本
+        final_html = f'<span style="color: {color.name()};">{new_html}</span>'
+        
+        doc.setHtml(final_html)
         # 不设置文本宽度，允许文本自然延伸
         
         painter.save()
@@ -348,6 +368,11 @@ class HTMLDelegate(QStyledItemDelegate):
         model = index.model()
         text = model.data(index, Qt.ItemDataRole.DisplayRole)
         
+        # 处理 None 值
+        if text is None:
+            text = ''
+        
+        # 保留HTML标签，正确计算带有HTML的文本大小
         doc = QTextDocument()
         
         # 设置默认字体大小为 11pt
@@ -424,9 +449,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 连接标签页切换信号
         self.corpus_tab_widget.currentChanged.connect(self.on_corpus_tab_changed)
         
+        # 连接更新目录按钮点击事件
+        self.ReadPathSet.clicked.connect(self.update_input_directory)
         # 连接浏览按钮点击事件
-        self.ReadPathSet.clicked.connect(self.browse_input_path)
         self.ReadPathSelect.clicked.connect(self.browse_input_path)
+        # 连接打开目录按钮点击事件
+        self.ReadPathOpen.clicked.connect(self.open_input_directory)
+        # 连接路径输入框的回车事件
+        self.ReadPathInput.returnPressed.connect(self.update_input_directory)
         
         # 连接搜索按钮点击事件
         self.search_btn.clicked.connect(self.start_search)
@@ -1126,6 +1156,40 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.style().polish(self.result_table)
         self.result_table.update()
     
+    def update_input_directory(self):
+        """
+        更新目录：将当前路径输入框里的目录更新为输入路径，等同于回车操作
+        即将当前路径输入框的路径保存到当前标签页的配置中
+        """
+        # 获取当前路径输入框里的目录
+        input_path = self.ReadPathInput.text().strip()
+        
+        if input_path and os.path.exists(input_path):
+            # 保存当前标签页的配置，包括输入路径
+            self.save_current_tab_config()
+            # 同时更新标签页内独立的输入路径编辑框
+            if self.current_corpus_tab == 0 and hasattr(self, 'english_input_path_edit'):
+                self.english_input_path_edit.setText(input_path)
+            elif self.current_corpus_tab == 1 and hasattr(self, 'korean_input_path_edit'):
+                self.korean_input_path_edit.setText(input_path)
+            
+            # 更新配置管理器中的输入路径
+            config_manager.set_input_dir(input_path)
+            
+            # 成功：绿色边框闪烁1次
+            self.flash_border(success=True, flash_count=1)
+        else:
+            # 失败：红色边框闪烁2次
+            self.flash_border(success=False, flash_count=2)
+            
+            # 如果输入路径无效，显示提示信息
+            QMessageBox.information(
+                self,
+                "提示",
+                "请先输入有效的目录路径",
+                QMessageBox.StandardButton.Ok
+            )
+    
     def browse_input_path(self):
         """浏览输入路径"""
         # 获取当前输入框路径作为默认路径
@@ -1146,6 +1210,86 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         if dir_path:
             # 设置统一的输入框
             self.ReadPathInput.setText(dir_path)
+    
+    def flash_border(self, success=True, flash_count=1):
+        """
+        为路径输入框添加边框闪烁效果
+        
+        Args:
+            success: 是否成功，True为绿色，False为红色
+            flash_count: 闪烁次数
+        """
+        # 获取原始样式
+        original_style = self.ReadPathInput.styleSheet()
+        
+        # 设置闪烁颜色和次数
+        color = "#2ecc71" if success else "#e74c3c"  # 绿色或红色
+        current_flash = 0
+        
+        # 创建闪烁定时器
+        flash_timer = QTimer(self)
+        flash_timer.setInterval(200)  # 闪烁间隔200毫秒
+        
+        def toggle_border():
+            nonlocal current_flash
+            
+            if current_flash < flash_count * 2:
+                # 切换边框样式
+                if current_flash % 2 == 0:
+                    # 显示彩色边框
+                    new_style = f"{original_style}" if original_style else ""
+                    if "border:" in new_style:
+                        # 如果已有边框样式，替换颜色
+                        import re
+                        new_style = re.sub(r"border:\s*(\d+px\s+)?solid\s+#[0-9a-fA-F]+;", f"border: 2px solid {color};", new_style)
+                    else:
+                        # 否则添加边框样式
+                        new_style += f"border: 2px solid {color};"
+                else:
+                    # 恢复原始样式
+                    new_style = original_style
+                
+                self.ReadPathInput.setStyleSheet(new_style)
+                current_flash += 1
+            else:
+                # 闪烁结束，恢复原始样式
+                self.ReadPathInput.setStyleSheet(original_style)
+                flash_timer.stop()
+                flash_timer.deleteLater()
+        
+        # 连接定时器信号
+        flash_timer.timeout.connect(toggle_border)
+        # 启动定时器
+        flash_timer.start()
+    
+    def open_input_directory(self):
+        """
+        打开路径输入框中指定的目录
+        """
+        # 获取路径输入框中的目录路径
+        dir_path = self.ReadPathInput.text().strip()
+        
+        # 检查目录是否存在
+        if not dir_path or not os.path.exists(dir_path):
+            # 如果目录不存在，显示错误信息
+            QMessageBox.warning(
+                self,
+                "错误",
+                f"目录不存在：{dir_path}",
+                QMessageBox.StandardButton.Ok
+            )
+            return
+        
+        # 使用系统命令打开目录
+        if sys.platform == "win32":
+            # Windows 系统
+            os.startfile(dir_path)
+        elif sys.platform == "darwin":
+            # macOS 系统
+            os.system(f"open '{dir_path}'")
+        else:
+            # Linux 系统
+            os.system(f"xdg-open '{dir_path}'")
     
     def start_search(self):
         """开始搜索"""
@@ -1328,31 +1472,78 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             # 集数
             episode_item = QTableWidgetItem(str(episode))
             episode_item.setForeground(QColor('#dcdcaa'))
+            # 设置为不可编辑
+            episode_item.setFlags(episode_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 0, episode_item)
             
             # 时间轴
             time_item = QTableWidgetItem(str(time_axis))
             time_item.setForeground(QColor('#569cd6'))
             time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # 居中对齐
+            # 设置为不可编辑
+            time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 1, time_item)
             
-            # 对应台词
-            text_item = QTableWidgetItem(str(text))
+            # 对应台词：处理HTML，保留关键词高亮效果
+            import re
+            
+            # 确保文本正确处理，保留高亮标签
+            processed_text = str(text)
+            
+            # 处理HTML，只保留关键词高亮效果，移除其他不必要的标签
+            # 移除最外层的白色文本span
+            processed_text = re.sub(r'^<span style=["\']color: #ffffff["\']>(.*?)</span>$', r'\1', processed_text)
+            processed_text = re.sub(r'^<span style=["\']color: #ffffff["\'] >(.*?)</span>$', r'\1', processed_text)
+            processed_text = re.sub(r'^<span style=["\']color:\s*#ffffff["\']\s*>(.*?)</span>$', r'\1', processed_text)
+            # 移除其他可能的外层span标签
+            processed_text = re.sub(r'^<span[^>]*>(.*?)</span>$', r'\1', processed_text, flags=re.DOTALL)
+            
+            text_item = QTableWidgetItem(processed_text)
             text_item.setForeground(QColor('#ffffff'))
+            # 设置为不可编辑
+            text_item.setFlags(text_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 2, text_item)
             
             # 行号
             lineno_item = QTableWidgetItem(str(lineno))
             lineno_item.setForeground(QColor('#ce9178'))
+            # 设置为不可编辑
+            lineno_item.setFlags(lineno_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 3, lineno_item)
             
             # 文件名
             filename_item = QTableWidgetItem(str(filename))
             filename_item.setForeground(QColor('#4ec9b0'))
+            # 设置为不可编辑
+            filename_item.setFlags(filename_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 4, filename_item)
             
             # 保存文件路径
             self.result_file_paths.append(filepath)
+        
+        # 更新变体型列表显示
+        if target_variant_set:
+            # 将生成的变体列表转换为字符串，用换行符分隔
+            variant_text = "\n".join(target_variant_set)
+            # 根据当前语料库类型更新对应的变体型列表显示
+            if self.current_corpus_tab == 0:  # 英语语料库
+                if hasattr(self, 'english_lemmalist_display'):
+                    self.english_lemmalist_display.setText(variant_text)
+            else:  # 韩语语料库
+                if hasattr(self, 'korean_lemmalist_display'):
+                    self.korean_lemmalist_display.setText(variant_text)
+        else:
+            # 如果没有生成变体列表，显示默认文本
+            default_text = "无变体"
+            if self.current_corpus_tab == 0:  # 英语语料库
+                if hasattr(self, 'english_lemmalist_display'):
+                    self.english_lemmalist_display.setText(default_text)
+            else:  # 韩语语料库
+                if hasattr(self, 'korean_lemmalist_display'):
+                    self.korean_lemmalist_display.setText(default_text)
+        
+        # 确保表格不可编辑，在填充完成后再次设置
+        self.result_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
@@ -1648,11 +1839,44 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def restore_column_settings(self):
         """恢复列宽和顺序"""
-        # TODO: 从配置文件恢复列宽和顺序
-        pass
+        # 从配置文件获取列设置
+        column_settings = config_manager.get_column_settings('result')
+        widths = column_settings['widths']
+        order = column_settings['order']
+        
+        # 应用列宽
+        if widths:
+            # 确保列宽列表的长度与列数匹配
+            for i in range(min(len(widths), self.result_table.columnCount())):
+                self.result_table.setColumnWidth(i, widths[i])
+        
+        # 应用列顺序
+        if order and len(order) == self.result_table.columnCount():
+            # 保存当前的列宽
+            current_widths = [self.result_table.columnWidth(i) for i in range(self.result_table.columnCount())]
+            # 设置列顺序
+            for logical_idx, visual_idx in enumerate(order):
+                self.result_table.moveColumn(visual_idx, logical_idx)
+            # 恢复列宽
+            for i in range(self.result_table.columnCount()):
+                self.result_table.setColumnWidth(i, current_widths[i])
+    
+    def save_column_settings(self):
+        """保存列宽和顺序到配置文件"""
+        # 获取当前列宽
+        widths = [self.result_table.columnWidth(i) for i in range(self.result_table.columnCount())]
+        
+        # 获取当前列顺序
+        order = list(range(self.result_table.columnCount()))
+        
+        # 保存到配置文件
+        config_manager.set_column_settings('result', widths, order) 
     
     def closeEvent(self, event):
         """窗口关闭事件"""
+        # 保存列宽和顺序
+        self.save_column_settings()
+        
         # 保存当前标签页的配置
         self.save_current_tab_config()
         

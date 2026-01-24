@@ -30,10 +30,13 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_9" stretch="1,5">
       <property name="spacing">
-       <number>15</number>
+       <number>10</number>
       </property>
       <property name="leftMargin">
        <number>10</number>
+      </property>
+      <property name="topMargin">
+       <number>5</number>
       </property>
       <property name="rightMargin">
        <number>10</number>
@@ -41,7 +44,7 @@
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_7">
         <property name="spacing">
-         <number>10</number>
+         <number>15</number>
         </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -359,7 +362,7 @@ QTabBar::tab:selected {
 }</string>
               </property>
               <property name="currentIndex">
-               <number>0</number>
+               <number>1</number>
               </property>
               <widget class="QWidget" name="english_tab">
                <attribute name="title">
@@ -573,12 +576,6 @@ QFrame {
     border: 2px solid #7953B1;
     border-radius: 9px;
     padding: 5px 15px;
-}
-
-/* 拖拽悬浮时的特效样式 */
-QFrame[active=&quot;true&quot;] {
-    background-color: #e0d4f7;  /* 背景变成浅紫色，暗示可放入 */
-    border: 3px solid #9b72cf;  /* 边框加粗并亮化 */
 }</string>
                       </property>
                       <property name="text">
@@ -651,13 +648,7 @@ QFrame {
     background-color: #f0f0f0;
     border: 1px solid #7953B1;
     border-radius: 9px;
-    padding: 1px 5px;
-}
-
-/* 拖拽悬浮时的特效样式 */
-QFrame[active=&quot;true&quot;] {
-    background-color: #e0d4f7;  /* 背景变成浅紫色，暗示可放入 */
-    border: 3px solid #9b72cf;  /* 边框加粗并亮化 */
+    padding: 1px 1px;
 }</string>
                       </property>
                       <property name="text">
@@ -876,12 +867,6 @@ QFrame {
     border: 2px solid #7953B1;
     border-radius: 9px;
     padding: 5px 15px;
-}
-
-/* 拖拽悬浮时的特效样式 */
-QFrame[active=&quot;true&quot;] {
-    background-color: #e0d4f7;  /* 背景变成浅紫色，暗示可放入 */
-    border: 3px solid #9b72cf;  /* 边框加粗并亮化 */
 }</string>
                       </property>
                       <property name="text">
@@ -954,13 +939,7 @@ QFrame {
     background-color: #f0f0f0;
     border: 1px solid #7953B1;
     border-radius: 9px;
-    padding: 1px 5px;
-}
-
-/* 拖拽悬浮时的特效样式 */
-QFrame[active=&quot;true&quot;] {
-    background-color: #e0d4f7;  /* 背景变成浅紫色，暗示可放入 */
-    border: 3px solid #9b72cf;  /* 边框加粗并亮化 */
+    padding: 1px 1px;
 }</string>
                       </property>
                       <property name="text">

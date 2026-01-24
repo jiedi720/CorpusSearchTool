@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolHRZRss.ui'
+## Form generated from reading UI file 'CorpusSearchToolMkvXHV.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -38,11 +38,11 @@ class Ui_CorpusSearchTool(object):
         self.verticalLayout_10 = QVBoxLayout(self.centralwidget)
         self.verticalLayout_10.setObjectName(u"verticalLayout_10")
         self.verticalLayout_9 = QVBoxLayout()
-        self.verticalLayout_9.setSpacing(15)
+        self.verticalLayout_9.setSpacing(10)
         self.verticalLayout_9.setObjectName(u"verticalLayout_9")
-        self.verticalLayout_9.setContentsMargins(10, -1, 10, -1)
+        self.verticalLayout_9.setContentsMargins(10, 5, 10, -1)
         self.verticalLayout_7 = QVBoxLayout()
-        self.verticalLayout_7.setSpacing(10)
+        self.verticalLayout_7.setSpacing(15)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -359,12 +359,6 @@ class Ui_CorpusSearchTool(object):
 "    border: 2px solid #7953B1;\n"
 "    border-radius: 9px;\n"
 "    padding: 5px 15px;\n"
-"}\n"
-"\n"
-"/* \u62d6\u62fd\u60ac\u6d6e\u65f6\u7684\u7279\u6548\u6837\u5f0f */\n"
-"QFrame[active=\"true\"] {\n"
-"    background-color: #e0d4f7;  /* \u80cc\u666f\u53d8\u6210\u6d45\u7d2b\u8272\uff0c\u6697\u793a\u53ef\u653e\u5165 */\n"
-"    border: 3px solid #9b72cf;  /* \u8fb9\u6846\u52a0\u7c97\u5e76\u4eae\u5316 */\n"
 "}")
         self.english_lemma_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -396,13 +390,7 @@ class Ui_CorpusSearchTool(object):
 "    background-color: #f0f0f0;\n"
 "    border: 1px solid #7953B1;\n"
 "    border-radius: 9px;\n"
-"    padding: 1px 5px;\n"
-"}\n"
-"\n"
-"/* \u62d6\u62fd\u60ac\u6d6e\u65f6\u7684\u7279\u6548\u6837\u5f0f */\n"
-"QFrame[active=\"true\"] {\n"
-"    background-color: #e0d4f7;  /* \u80cc\u666f\u53d8\u6210\u6d45\u7d2b\u8272\uff0c\u6697\u793a\u53ef\u653e\u5165 */\n"
-"    border: 3px solid #9b72cf;  /* \u8fb9\u6846\u52a0\u7c97\u5e76\u4eae\u5316 */\n"
+"    padding: 1px 1px;\n"
 "}")
         self.english_lemmalist_display.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
@@ -524,12 +512,6 @@ class Ui_CorpusSearchTool(object):
 "    border: 2px solid #7953B1;\n"
 "    border-radius: 9px;\n"
 "    padding: 5px 15px;\n"
-"}\n"
-"\n"
-"/* \u62d6\u62fd\u60ac\u6d6e\u65f6\u7684\u7279\u6548\u6837\u5f0f */\n"
-"QFrame[active=\"true\"] {\n"
-"    background-color: #e0d4f7;  /* \u80cc\u666f\u53d8\u6210\u6d45\u7d2b\u8272\uff0c\u6697\u793a\u53ef\u653e\u5165 */\n"
-"    border: 3px solid #9b72cf;  /* \u8fb9\u6846\u52a0\u7c97\u5e76\u4eae\u5316 */\n"
 "}")
         self.korean_lemma_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -561,13 +543,7 @@ class Ui_CorpusSearchTool(object):
 "    background-color: #f0f0f0;\n"
 "    border: 1px solid #7953B1;\n"
 "    border-radius: 9px;\n"
-"    padding: 1px 5px;\n"
-"}\n"
-"\n"
-"/* \u62d6\u62fd\u60ac\u6d6e\u65f6\u7684\u7279\u6548\u6837\u5f0f */\n"
-"QFrame[active=\"true\"] {\n"
-"    background-color: #e0d4f7;  /* \u80cc\u666f\u53d8\u6210\u6d45\u7d2b\u8272\uff0c\u6697\u793a\u53ef\u653e\u5165 */\n"
-"    border: 3px solid #9b72cf;  /* \u8fb9\u6846\u52a0\u7c97\u5e76\u4eae\u5316 */\n"
+"    padding: 1px 1px;\n"
 "}")
         self.korean_lemmalist_display.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
@@ -833,7 +809,7 @@ class Ui_CorpusSearchTool(object):
 
         self.retranslateUi(CorpusSearchTool)
 
-        self.corpus_tab_widget.setCurrentIndex(0)
+        self.corpus_tab_widget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(CorpusSearchTool)
