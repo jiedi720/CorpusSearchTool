@@ -1709,9 +1709,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
                 # 固定列使用硬编码值，不受配置文件影响
                 if col == 1:  # 时间轴列
-                    self.result_table.setColumnWidth(col, 30)
+                    self.result_table.setColumnWidth(col, 80)
                 else:  # 行号列
-                    self.result_table.setColumnWidth(col, 50)
+                    self.result_table.setColumnWidth(col, 60)
             else:  # 可调整列
                 # 直接使用配置文件中的宽度，覆盖初始值
                 width = widths[col]
@@ -1748,8 +1748,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         """保存列宽到配置文件"""
         # 设置固定列宽度（硬编码值）
         fixed_widths = {
-            1: 30,  # 时间轴列
-            3: 50   # 行号列
+            1: 80,  # 时间轴列
+            3: 60   # 行号列
         }
         
         # 获取可调整列的默认宽度

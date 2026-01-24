@@ -207,15 +207,15 @@ class SearchResultTableManager:
         
         # 固定列宽度设定
         self.FIXED_WIDTHS = {
-            1: 30,  # 时间轴列
-            3: 50   # 行号列
+            1: 80,  # 时间轴列
+            3: 60   # 行号列
         }
-        
+
         # 可调整列的最小和最大宽度限制
         self.COLUMN_WIDTH_LIMITS = {
-            0: (120, 300),    # 出处列
+            0: (150, 300),    # 出处列
             2: (500, 1000),   # 对应台词列
-            4: (120, 300)     # 文件名列
+            4: (150, 300)     # 文件名列
         }
     
     def get_fixed_width(self, column_index):
