@@ -550,10 +550,11 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 设置样式主题
         self.setup_styles()
         
-        # 初始设置所有列的最小宽度为80
+        # 初始设置可调整列的最小宽度为80，跳过固定宽度的列
         for i in range(self.result_table.columnCount()):
-            if self.result_table.columnWidth(i) < 80:
-                self.result_table.setColumnWidth(i, 80)
+            if i not in [1, 3]:  # 跳过时间轴列和行号列（固定宽度）
+                if self.result_table.columnWidth(i) < 80:
+                    self.result_table.setColumnWidth(i, 80)
         
         # 连接标签页切换信号
         self.corpus_tab_widget.currentChanged.connect(self.on_corpus_tab_changed)
@@ -1230,12 +1231,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         header.setFixedHeight(30)
         header.setContentsMargins(0, 0, 0, 0)
         
-        # 设置最后一列拉伸
-        for col in range(self.result_table.columnCount()):
-            header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        header.setStretchLastSection(True)
-        
         # 设置右键菜单
         self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         # 断开之前的连接，避免重复连接
@@ -1853,7 +1848,11 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             self.reset_column_widths()
     
     def enforce_min_column_width(self, logicalIndex, oldSize, newSize):
-        """确保列宽不小于最小值（80px）"""
+        """确保可调整列的宽度不小于最小值，跳过固定宽度列"""
+        # 跳过固定宽度的列（时间轴列和行号列）
+        if logicalIndex in [1, 3]:
+            return
+        
         min_width = 80
         if newSize < min_width:
             self.result_table.setColumnWidth(logicalIndex, min_width)
@@ -1948,7 +1947,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def reset_column_widths(self):
         """重置列宽"""
         self.result_table.setColumnWidth(0, 200)  # 出处列
-        self.result_table.setColumnWidth(1, 60)   # 时间轴列（固定）
+        self.result_table.setColumnWidth(1, 30)   # 时间轴列（固定）
         self.result_table.setColumnWidth(2, 600)  # 对应台词列
         self.result_table.setColumnWidth(3, 50)   # 行号列（固定）
         self.result_table.setColumnWidth(4, 200)  # 文件名列
@@ -1965,7 +1964,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             for i in range(min(len(widths), self.result_table.columnCount())):
                 # 设置固定列宽度
                 if i == 1:  # 时间轴列
-                    self.result_table.setColumnWidth(i, 60)
+                    self.result_table.setColumnWidth(i, 30)
                 elif i == 3:  # 行号列
                     self.result_table.setColumnWidth(i, 50)
                 else:
@@ -1979,6 +1978,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     else:
                         width = widths[i]
                     self.result_table.setColumnWidth(i, width)
+        else:
+            # 如果没有保存的宽度，应用默认宽度
+            self.reset_column_widths()
         
         # 设置列宽调整模式
         header = self.result_table.horizontalHeader()
@@ -2005,7 +2007,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 确保固定列宽度保存为正确的值
         if len(widths) > 1:
-            widths[1] = 60  # 时间轴列
+            widths[1] = 30  # 时间轴列
         if len(widths) > 3:
             widths[3] = 50  # 行号列
         
