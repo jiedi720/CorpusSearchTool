@@ -1685,9 +1685,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def restore_column_settings(self):
         """恢复列宽和顺序"""
-        # 从配置文件获取列设置，包含语料库类型
-        corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
-        column_settings = config_manager.get_column_settings('result', corpus_type)
+        # 从配置文件获取列设置
+        column_settings = config_manager.get_column_settings('result')
         widths = column_settings['widths']
         
         # 设置固定列宽度（硬编码值）
@@ -1746,9 +1745,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 只保存可调整列的宽度值
         save_widths = [source_width, line_width, filename_width]
         
-        # 保存到配置文件，包含语料库类型
-        corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
-        config_manager.set_column_settings('result', save_widths, corpus_type=corpus_type) 
+        # 保存到配置文件
+        config_manager.set_column_settings('result', save_widths) 
     
     def closeEvent(self, event):
         """窗口关闭事件"""
