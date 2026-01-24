@@ -402,7 +402,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 设置样式主题
         self.setup_styles()
-        
+
+        # 重新设置表头高度为30px，确保样式设置后仍然保持
+        header = self.result_table.horizontalHeader()
+        header.setFixedHeight(30)
+        header.style().unpolish(header)
+        header.style().polish(header)
+        header.update()
+
         # 初始设置可调整列的最小宽度为80，跳过固定宽度的列
         for i in range(self.result_table.columnCount()):
             if i not in [1, 3]:  # 跳过时间轴列和行号列（固定宽度）
@@ -885,7 +892,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.setColumnWidth(2, 150)
         self.result_table.setColumnWidth(3, 120)
         self.result_table.setColumnWidth(4, 200)
-        header.setFixedHeight(20)  # 设置表头固定高度为20px
+        header.setFixedHeight(30)  # 设置表头固定高度为30px
         
         # 启用列拖拽和右键菜单
         header.setSectionsMovable(True)  # 允许列拖拽调整顺序
@@ -947,7 +954,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
 
         # 确保表头高度固定且没有额外空间
         header = self.result_table.horizontalHeader()
-        header.setFixedHeight(20)
+        header.setFixedHeight(30)
         header.setContentsMargins(0, 0, 0, 0)
         
         # 确保表格填满父容器
@@ -1368,7 +1375,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 重新设置列宽，确保固定列保持固定宽度
         self.restore_column_settings()
-        
+
+        # 确保表头高度为30px
+        header = self.result_table.horizontalHeader()
+        header.setFixedHeight(30)
+        header.style().unpolish(header)
+        header.style().polish(header)
+        header.update()
+
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
             corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
@@ -1743,6 +1757,11 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.update()
         self.result_table.updateGeometry()
         self.result_table.update()
+
+        # 强制刷新表头样式，确保高度设置生效
+        header.style().unpolish(header)
+        header.style().polish(header)
+        header.update()
     
     def save_column_settings(self):
         """保存列宽到配置文件"""

@@ -257,8 +257,7 @@ class KoreanSearchEngine(SearchEngineBase):
             'search_results': results,
             'result_count': len(results)
         }
-        
-        print(f"[DEBUG] 搜索记录: {search_record}")
+
         return search_record
     
     def search_korean_idiom(self, file_path: str, idiom: str, 
