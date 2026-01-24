@@ -381,7 +381,7 @@ class SearchHistoryWindow(QMainWindow):
     
     def _load_column_settings(self, table):
         """从配置文件加载列宽设置"""
-        column_settings = config_manager.get_column_settings('history')
+        column_settings = config_manager.get_column_settings('history', self.corpus_type)
         widths = column_settings['widths']
         
         # 设置固定列宽度（硬编码值）
@@ -415,8 +415,8 @@ class SearchHistoryWindow(QMainWindow):
         # 只保存可调整列的宽度值
         save_widths = [keyword_width, path_width]
         
-        # 保存到配置文件
-        config_manager.set_column_settings('history', save_widths)
+        # 保存到配置文件，包含语料库类型
+        config_manager.set_column_settings('history', save_widths, corpus_type=self.corpus_type)
         
         event.accept()
     

@@ -178,12 +178,13 @@ class ConfigManager:
         if regex_enabled is not None:
             self.config.set('SEARCH', 'regex_enabled', str(regex_enabled))
     
-    def get_column_settings(self, table_name: str) -> dict:
+    def get_column_settings(self, table_name: str, corpus_type: str = None) -> dict:
         """
         获取列设置
 
         Args:
             table_name: 表格名称（'result' 或 'history'）
+            corpus_type: 语料库类型（'eng' 或 'kor'，可选）
 
         Returns:
             列设置字典，包含 'widths'、'order' 和 'visibility'
@@ -191,9 +192,22 @@ class ConfigManager:
         if 'COLUMNS' not in self.config:
             return {'widths': [], 'order': [], 'visibility': []}
         
-        widths_key = f'{table_name}_widths'
-        order_key = f'{table_name}_order'
-        visibility_key = f'{table_name}_visibility'
+        # 如果提供了语料库类型，则使用带语料库类型的键
+        if corpus_type:
+            widths_key = f'{table_name}_{corpus_type}_widths'
+            order_key = f'{table_name}_{corpus_type}_order'
+            visibility_key = f'{table_name}_{corpus_type}_visibility'
+            
+            # 检查带语料库类型的键是否存在，如果不存在则使用默认键
+            if widths_key not in self.config['COLUMNS']:
+                widths_key = f'{table_name}_widths'
+                order_key = f'{table_name}_order'
+                visibility_key = f'{table_name}_visibility'
+        else:
+            # 没有提供语料库类型，使用默认键
+            widths_key = f'{table_name}_widths'
+            order_key = f'{table_name}_order'
+            visibility_key = f'{table_name}_visibility'
         
         widths_str = self.config.get('COLUMNS', widths_key, fallback='')
         order_str = self.config.get('COLUMNS', order_key, fallback='')
@@ -205,7 +219,7 @@ class ConfigManager:
         
         return {'widths': widths, 'order': order, 'visibility': visibility}
     
-    def set_column_settings(self, table_name: str, widths: list, order: list = None, visibility: list = None):
+    def set_column_settings(self, table_name: str, widths: list, order: list = None, visibility: list = None, corpus_type: str = None):
         """
         设置列设置
 
@@ -214,13 +228,21 @@ class ConfigManager:
             widths: 列宽列表
             order: 列顺序列表（可选，默认使用当前顺序）
             visibility: 列显示状态列表（True表示可见，False表示隐藏，可选）
+            corpus_type: 语料库类型（'eng' 或 'kor'，可选）
         """
         if 'COLUMNS' not in self.config:
             self.config['COLUMNS'] = {}
         
-        widths_key = f'{table_name}_widths'
-        order_key = f'{table_name}_order'
-        visibility_key = f'{table_name}_visibility'
+        # 如果提供了语料库类型，则使用带语料库类型的键
+        if corpus_type:
+            widths_key = f'{table_name}_{corpus_type}_widths'
+            order_key = f'{table_name}_{corpus_type}_order'
+            visibility_key = f'{table_name}_{corpus_type}_visibility'
+        else:
+            # 没有提供语料库类型，使用默认键
+            widths_key = f'{table_name}_widths'
+            order_key = f'{table_name}_order'
+            visibility_key = f'{table_name}_visibility'
         
         self.config.set('COLUMNS', widths_key, ','.join(str(w) for w in widths))
         

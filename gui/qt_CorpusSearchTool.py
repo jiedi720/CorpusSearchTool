@@ -371,18 +371,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 连接表格右键菜单信号
         self.result_table.customContextMenuRequested.connect(self.show_context_menu)
         
-        # 恢复列宽和顺序设置
-        self.restore_column_settings()
-        
-        # 设置样式主题
-        self.setup_styles()
-        
-        # 初始设置可调整列的最小宽度为80，跳过固定宽度的列
-        for i in range(self.result_table.columnCount()):
-            if i not in [1, 3]:  # 跳过时间轴列和行号列（固定宽度）
-                if self.result_table.columnWidth(i) < 80:
-                    self.result_table.setColumnWidth(i, 80)
-        
         # 连接标签页切换信号
         self.corpus_tab_widget.currentChanged.connect(self.on_corpus_tab_changed)
         
@@ -409,8 +397,17 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         corpus_config = config_manager.get_corpus_config(corpus_type)
         self.ReadPathInput.setText(corpus_config['input_dir'])
         
-        # 设置样式
+        # 恢复列宽和顺序设置
+        self.restore_column_settings()
+        
+        # 设置样式主题
         self.setup_styles()
+        
+        # 初始设置可调整列的最小宽度为80，跳过固定宽度的列
+        for i in range(self.result_table.columnCount()):
+            if i not in [1, 3]:  # 跳过时间轴列和行号列（固定宽度）
+                if self.result_table.columnWidth(i) < 80:
+                    self.result_table.setColumnWidth(i, 80)
         
         # 连接主题菜单项的信号
         self.actionlight.triggered.connect(lambda: self.change_theme("Light"))
@@ -1688,8 +1685,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def restore_column_settings(self):
         """恢复列宽和顺序"""
-        # 从配置文件获取列设置
-        column_settings = config_manager.get_column_settings('result')
+        # 从配置文件获取列设置，包含语料库类型
+        corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
+        column_settings = config_manager.get_column_settings('result', corpus_type)
         widths = column_settings['widths']
         
         # 设置固定列宽度（硬编码值）
@@ -1748,8 +1746,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 只保存可调整列的宽度值
         save_widths = [source_width, line_width, filename_width]
         
-        # 保存到配置文件
-        config_manager.set_column_settings('result', save_widths) 
+        # 保存到配置文件，包含语料库类型
+        corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
+        config_manager.set_column_settings('result', save_widths, corpus_type=corpus_type) 
     
     def closeEvent(self, event):
         """窗口关闭事件"""
