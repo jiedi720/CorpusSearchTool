@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolMkvXHV.ui'
+## Form generated from reading UI file 'CorpusSearchTooleuGxeR.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -867,7 +867,7 @@ class Ui_CorpusSearchTool(object):
 #endif // QT_CONFIG(tooltip)
         self.search_btn.setText("")
         ___qtablewidgetitem = self.result_table.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("CorpusSearchTool", u"\u96c6\u6570", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("CorpusSearchTool", u"\u51fa\u5904", None));
         ___qtablewidgetitem1 = self.result_table.horizontalHeaderItem(1)
         ___qtablewidgetitem1.setText(QCoreApplication.translate("CorpusSearchTool", u"\u65f6\u95f4\u8f74", None));
         ___qtablewidgetitem2 = self.result_table.horizontalHeaderItem(2)

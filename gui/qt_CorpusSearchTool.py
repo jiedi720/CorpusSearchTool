@@ -337,9 +337,13 @@ class HTMLDelegate(QStyledItemDelegate):
         # 使用 HTML 渲染
         doc = QTextDocument()
         
-        # 设置默认字体大小为 11pt
+        # 设置字体大小
         font = QFont()
-        font.setPointSize(11)
+        # 除了对应台词列（索引2）之外，其他列都使用10pt字体
+        if index.column() == 2:  # 对应台词列
+            font.setPointSize(11)
+        else:  # 其他列（集数、时间轴、行号、文件名）
+            font.setPointSize(10)
         doc.setDefaultFont(font)
         
         # 获取当前搜索的关键词，用于高亮
@@ -419,9 +423,13 @@ class HTMLDelegate(QStyledItemDelegate):
         # 保留HTML标签，正确计算带有HTML的文本大小
         doc = QTextDocument()
         
-        # 设置默认字体大小为 11pt
+        # 设置字体大小
         font = QFont()
-        font.setPointSize(11)
+        # 除了对应台词列（索引2）之外，其他列都使用10pt字体
+        if index.column() == 2:  # 对应台词列
+            font.setPointSize(11)
+        else:  # 其他列（集数、时间轴、行号、文件名）
+            font.setPointSize(10)
         doc.setDefaultFont(font)
         
         # 获取当前搜索的关键词，用于高亮
@@ -533,11 +541,19 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.html_delegate = HTMLDelegate(self.result_table)
         self.result_table.setItemDelegate(self.html_delegate)
         
+        # 连接列宽变化信号，确保所有列的宽度不小于80
+        self.result_table.horizontalHeader().sectionResized.connect(self.enforce_min_column_width)
+        
         # 恢复列宽和顺序设置
         self.restore_column_settings()
         
         # 设置样式主题
         self.setup_styles()
+        
+        # 初始设置所有列的最小宽度为80
+        for i in range(self.result_table.columnCount()):
+            if self.result_table.columnWidth(i) < 80:
+                self.result_table.setColumnWidth(i, 80)
         
         # 连接标签页切换信号
         self.corpus_tab_widget.currentChanged.connect(self.on_corpus_tab_changed)
@@ -1024,7 +1040,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 表格
         self.result_table = QTableWidget()
         self.result_table.setColumnCount(5)
-        self.result_table.setHorizontalHeaderLabels(['集数', '时间轴', '对应台词', '行号', '文件名'])
+        self.result_table.setHorizontalHeaderLabels(['出处', '时间轴', '对应台词', '行号', '文件名'])
         
         # 设置表格属性
         self.result_table.setAlternatingRowColors(True)
@@ -1598,7 +1614,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 行号
             lineno_item = QTableWidgetItem(str(lineno))
-            lineno_item.setForeground(QColor('#ce9178'))
+            lineno_item.setForeground(QColor('#979a98'))
+            lineno_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # 居中对齐
             # 设置为不可编辑
             lineno_item.setFlags(lineno_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 3, lineno_item)
@@ -1818,7 +1835,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         """)
         
         # 列名称列表
-        column_names = ['文件名', '行号', '集数', '时间轴', '对应台词']
+        column_names = ['出处', '时间轴', '对应台词', '行号', '文件名']
         
         # 为每列创建复选框动作
         for col in range(self.result_table.columnCount()):
@@ -1835,12 +1852,18 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         if action == reset_action:
             self.reset_column_widths()
     
+    def enforce_min_column_width(self, logicalIndex, oldSize, newSize):
+        """确保列宽不小于最小值（80px）"""
+        min_width = 80
+        if newSize < min_width:
+            self.result_table.setColumnWidth(logicalIndex, min_width)
+    
     def toggle_column_visibility(self, col_index, checked):
         """切换列的显示/隐藏状态"""
         self.result_table.setColumnHidden(col_index, not checked)
         
         # 更新状态栏提示
-        column_names = ['文件名', '行号', '集数', '时间轴', '对应台词']
+        column_names = ['出处', '时间轴', '对应台词', '行号', '文件名']
         status = "显示" if checked else "隐藏"
         self.status_bar.showMessage(f"📊 已{status}列: {column_names[col_index]}")
     
@@ -1924,10 +1947,11 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def reset_column_widths(self):
         """重置列宽"""
-        self.result_table.setColumnWidth(0, 200)
-        self.result_table.setColumnWidth(1, 80)
-        self.result_table.setColumnWidth(2, 150)
-        self.result_table.setColumnWidth(3, 120)
+        self.result_table.setColumnWidth(0, 200)  # 出处列
+        self.result_table.setColumnWidth(1, 60)   # 时间轴列（固定）
+        self.result_table.setColumnWidth(2, 600)  # 对应台词列
+        self.result_table.setColumnWidth(3, 50)   # 行号列（固定）
+        self.result_table.setColumnWidth(4, 200)  # 文件名列
     
     def restore_column_settings(self):
         """恢复列宽和顺序"""
@@ -1939,24 +1963,59 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         if widths:
             # 确保列宽列表的长度与列数匹配
             for i in range(min(len(widths), self.result_table.columnCount())):
-                # 时间轴列（索引1）宽度固定为80
-                if i == 1:
-                    self.result_table.setColumnWidth(i, 80)
+                # 设置固定列宽度
+                if i == 1:  # 时间轴列
+                    self.result_table.setColumnWidth(i, 60)
+                elif i == 3:  # 行号列
+                    self.result_table.setColumnWidth(i, 50)
                 else:
-                    self.result_table.setColumnWidth(i, widths[i])
+                    # 应用最小和最大宽度限制
+                    if i == 0:  # 出处列
+                        width = min(max(120, widths[i]), 300)
+                    elif i == 2:  # 对应台词列
+                        width = min(max(500, widths[i]), 1000)
+                    elif i == 4:  # 文件名列
+                        width = min(max(120, widths[i]), 300)
+                    else:
+                        width = widths[i]
+                    self.result_table.setColumnWidth(i, width)
         
         # 设置列宽调整模式
         header = self.result_table.horizontalHeader()
         for i in range(self.result_table.columnCount()):
-            if i == 1:  # 时间轴列（索引1）
+            if i == 1 or i == 3:  # 时间轴列和行号列
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)  # 固定宽度
             else:
                 header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)  # 可调整
+                # 设置列宽限制
+                if i == 0:  # 出处列
+                    header.setMinimumSectionSize(120)
+                    header.setMaximumSectionSize(300)
+                elif i == 2:  # 对应台词列
+                    header.setMinimumSectionSize(500)
+                    header.setMaximumSectionSize(1000)
+                elif i == 4:  # 文件名列
+                    header.setMinimumSectionSize(120)
+                    header.setMaximumSectionSize(300)
     
     def save_column_settings(self):
         """保存列宽到配置文件"""
         # 获取当前列宽
         widths = [self.result_table.columnWidth(i) for i in range(self.result_table.columnCount())]
+        
+        # 确保固定列宽度保存为正确的值
+        if len(widths) > 1:
+            widths[1] = 60  # 时间轴列
+        if len(widths) > 3:
+            widths[3] = 50  # 行号列
+        
+        # 应用最小和最大宽度限制
+        if len(widths) > 0:
+            widths[0] = min(max(120, widths[0]), 300)  # 出处列
+        if len(widths) > 2:
+            widths[2] = min(max(500, widths[2]), 1000)  # 对应台词列
+        if len(widths) > 4:
+            widths[4] = min(max(120, widths[4]), 300)  # 文件名列
         
         # 保存到配置文件
         config_manager.set_column_settings('result', widths) 

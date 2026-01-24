@@ -10,7 +10,9 @@ from PySide6.QtWidgets import (
     QHeaderView, QMenu, QMessageBox, QApplication
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from function.search_history_manager import search_history_manager
+from function.config_manager import config_manager
 
 
 class CustomHeaderView(QHeaderView):
@@ -108,19 +110,29 @@ class SearchHistoryWindow(QMainWindow):
         header = CustomHeaderView(Qt.Orientation.Horizontal, table)
         table.setHorizontalHeader(header)
         header.setSectionsMovable(True)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        
+        # 设置列宽调整模式
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)        # 时间列（固定）
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)  # 关键词列（可调整）
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)        # 关键词类型列（固定）
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)       # 路径列（拉伸）
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)        # 结果数列（固定）
         
         # 设置初始列宽
-        table.setColumnWidth(0, 150)
-        table.setColumnWidth(1, 150)
-        table.setColumnWidth(2, 120)
-        table.setColumnWidth(3, 250)
-        table.setColumnWidth(4, 80)
+        table.setColumnWidth(0, 140)  # 时间列（固定）
+        table.setColumnWidth(1, 150)  # 关键词列
+        table.setColumnWidth(2, 150)  # 关键词类型列（固定）
+        table.setColumnWidth(4, 80)   # 结果数列（固定）
+        
+        # 设置关键词列的最大宽度
+        header.setMaximumSectionSize(180)  # 关键词列最大宽度180px
         header.setFixedHeight(30)
+        
+        # 从配置文件加载列宽
+        self._load_column_settings(table)
+        
+        # 连接列宽变化信号，确保所有列宽不小于80px
+        table.horizontalHeader().sectionResized.connect(lambda logicalIndex, oldSize, newSize: self.enforce_min_column_width(table, logicalIndex, oldSize, newSize))
         
         # 设置行高
         table.verticalHeader().setDefaultSectionSize(30)
@@ -177,11 +189,28 @@ class SearchHistoryWindow(QMainWindow):
                 except:
                     pass
             
-            self.history_table.setItem(row, 0, QTableWidgetItem(timestamp))
-            self.history_table.setItem(row, 1, QTableWidgetItem(record.get('keywords', '')))
+            # 时间列（居中对齐，字体颜色与行号一样）
+            time_item = QTableWidgetItem(timestamp)
+            time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            time_item.setForeground(QColor('#979a98'))
+            self.history_table.setItem(row, 0, time_item)
+            
+            # 关键词列
+            keyword_item = QTableWidgetItem(record.get('keywords', ''))
+            self.history_table.setItem(row, 1, keyword_item)
+            
+            # 关键词类型列
             self.history_table.setItem(row, 2, QTableWidgetItem(record.get('keyword_type', '')))
-            self.history_table.setItem(row, 3, QTableWidgetItem(record.get('input_path', '')))
-            self.history_table.setItem(row, 4, QTableWidgetItem(str(record.get('result_count', 0))))
+            
+            # 路径列（字体颜色与行号一样）
+            path_item = QTableWidgetItem(record.get('input_path', ''))
+            path_item.setForeground(QColor('#979a98'))
+            self.history_table.setItem(row, 3, path_item)
+            
+            # 结果数列（居中对齐）
+            result_item = QTableWidgetItem(str(record.get('result_count', 0)))
+            result_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.history_table.setItem(row, 4, result_item)
     
     def _show_context_menu(self, pos):
         """显示右键菜单"""
@@ -333,3 +362,58 @@ class SearchHistoryWindow(QMainWindow):
     def refresh(self):
         """刷新历史记录"""
         self._load_history_data()
+    
+    def _load_column_settings(self, table):
+        """从配置文件加载列宽设置"""
+        column_settings = config_manager.get_column_settings('history')
+        widths = column_settings['widths']
+        
+        if widths:
+            # 确保列宽列表的长度与列数匹配
+            for i in range(min(len(widths), table.columnCount())):
+                # 固定列宽度
+                if i == 0:  # 时间列
+                    table.setColumnWidth(i, 140)
+                elif i == 2:  # 关键词类型列
+                    table.setColumnWidth(i, 150)
+                elif i == 4:  # 结果数列
+                    table.setColumnWidth(i, 80)
+                else:
+                    # 确保列宽不小于80px，关键词列最大180px
+                    if i == 1:  # 关键词列
+                        table.setColumnWidth(i, min(max(80, widths[i]), 180))
+                    else:
+                        table.setColumnWidth(i, max(80, widths[i]))
+    
+    def closeEvent(self, event):
+        """窗口关闭事件，保存列宽设置"""
+        # 获取当前列宽
+        widths = [self.history_table.columnWidth(i) for i in range(self.history_table.columnCount())]
+        
+        # 确保固定列宽度保存为正确的值
+        if len(widths) > 0:
+            widths[0] = 140  # 时间列（固定）
+        if len(widths) > 2:
+            widths[2] = 150  # 关键词类型列（固定）
+        if len(widths) > 4:
+            widths[4] = 80   # 结果数列（固定）
+        
+        # 确保其他列宽不小于80px，关键词列最大180px
+        for i in range(len(widths)):
+            if i not in [0, 2, 4]:
+                if i == 1:  # 关键词列
+                    widths[i] = min(max(80, widths[i]), 180)
+                else:
+                    widths[i] = max(80, widths[i])
+        
+        # 保存到配置文件
+        config_manager.set_column_settings('history', widths)
+        
+        event.accept()
+    
+    @staticmethod
+    def enforce_min_column_width(table, logicalIndex, oldSize, newSize):
+        """确保搜索历史表格的列宽不小于最小值（80px）"""
+        min_width = 80
+        if newSize < min_width:
+            table.setColumnWidth(logicalIndex, min_width)

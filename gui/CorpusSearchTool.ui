@@ -1226,7 +1226,7 @@ QMenu::item:disabled {
           </attribute>
           <column>
            <property name="text">
-            <string>集数</string>
+            <string>出处</string>
            </property>
           </column>
           <column>
