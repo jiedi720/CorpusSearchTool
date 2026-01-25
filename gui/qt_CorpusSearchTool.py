@@ -1873,10 +1873,18 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def update_row_heights(self):
         """更新所有行的行高"""
+        from PySide6.QtWidgets import QStyleOptionViewItem
+        
         for row in range(self.result_table.rowCount()):
             # 触发 sizeHint 重新计算
             index = self.result_table.model().index(row, 2)  # 对应台词列
-            size_hint = self.result_table.itemDelegate(index).sizeHint(self.result_table.viewOptions(), index)
+            
+            # 创建正确的 option 参数
+            option = QStyleOptionViewItem()
+            option.initFrom(self.result_table)
+            option.rect = self.result_table.visualRect(index)
+            
+            size_hint = self.result_table.itemDelegate(index).sizeHint(option, index)
             self.result_table.setRowHeight(row, size_hint.height())
     
     def toggle_column_visibility(self, col_index, checked):

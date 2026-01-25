@@ -252,3 +252,27 @@
   - 上下边距：通过 `sizeHint` 方法中的 `row_height = text_height + 16` 实现
   - 行高自适应：通过 `sizeHint` 方法根据文本内容动态计算行高
   - 列宽变化时自动调整行高：通过 `on_column_resized` 和 `update_row_heights` 方法实现
+
+### 列宽变化时自动调整行高修复
+- **问题**：拖拽列宽时，文字换行了但行高没有自动调整
+- **根本原因**：`update_row_heights` 方法使用了 `viewOptions()` 作为 `sizeHint` 的参数，但这个方法返回的选项不包含正确的单元格矩形信息（宽度），导致 `sizeHint` 无法正确计算文本是否换行
+- **解决方案**：创建正确的 `QStyleOptionViewItem` 对象，包含准确的单元格矩形信息
+  ```python
+  option = QStyleOptionViewItem()
+  option.initFrom(self.result_table)
+  option.rect = self.result_table.visualRect(index)
+  size_hint = self.result_table.itemDelegate(index).sizeHint(option, index)
+  ```
+- **关键点**：
+  1. 创建 `QStyleOptionViewItem` 对象
+  2. 使用 `initFrom()` 初始化选项，继承表格的样式设置
+  3. 使用 `visualRect(index)` 获取单元格的实际矩形（包含正确的宽度）
+  4. 将正确的 `option` 传递给 `sizeHint` 方法
+- **为什么这样可以工作**：
+  - `visualRect(index)` 返回单元格在视口中的实际矩形，包含当前列宽
+  - `sizeHint` 方法使用 `option.rect.width()` 来设置文本宽度，判断是否需要换行
+  - 当列宽变化时，`visualRect(index)` 返回的矩形宽度也会变化，从而触发正确的行高计算
+- **其他相关设置**：
+  - 使用定时器延迟执行（100ms），避免频繁更新影响性能
+  - 遍历所有行，重新计算每行的高度并设置
+  - 只更新对应台词列（索引2）的高度，因为这是唯一可能换行的列
