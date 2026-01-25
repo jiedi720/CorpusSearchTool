@@ -118,7 +118,6 @@ class HTMLDelegate(QStyledItemDelegate):
             final_html = f'<span style="color: {color.name()}; margin: 0px; padding: 0px; line-height: 1;">{html_text}</span>'
             
             doc.setHtml(final_html)
-            doc.setTextWidth(option.rect.width())
             
             painter.save()
             
@@ -126,13 +125,21 @@ class HTMLDelegate(QStyledItemDelegate):
             text_width = doc.idealWidth()
             text_height = doc.size().height()
             
-            x = option.rect.left()
+            # 添加左右边距
+            padding_left = 8
+            padding_right = 8
+            available_width = option.rect.width() - padding_left - padding_right
+            
+            x = option.rect.left() + padding_left
             y = option.rect.top() + (option.rect.height() - text_height) / 2  # 垂直居中
             
             if alignment & Qt.AlignmentFlag.AlignHCenter:
-                x += (option.rect.width() - text_width) / 2
+                x += (available_width - text_width) / 2
             elif alignment & Qt.AlignmentFlag.AlignRight:
-                x += option.rect.width() - text_width
+                x += available_width - text_width
+            
+            # 设置文本宽度，确保文本在可用宽度内换行
+            doc.setTextWidth(available_width)
             
             painter.translate(x, y)
             
@@ -222,7 +229,7 @@ class HTMLDelegate(QStyledItemDelegate):
         # 不设置文本宽度，让文档自然计算宽度
         
         # 返回固定高度，宽度使用文档的理想宽度
-        return QSize(int(doc.idealWidth()), 18)  # 高度为18，与默认行高一致
+        return QSize(int(doc.idealWidth()), 30)  # 高度为30，与默认行高一致
 
 
 class SearchResultTableManager:
@@ -278,9 +285,9 @@ class SearchResultTableManager:
         self.result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # 需要时显示横向滚动条
         
         # 设置行高
-        self.result_table.verticalHeader().setDefaultSectionSize(18)
-        self.result_table.verticalHeader().setMinimumSectionSize(18)
-        self.result_table.verticalHeader().setMaximumSectionSize(18)
+        self.result_table.verticalHeader().setDefaultSectionSize(30)
+        self.result_table.verticalHeader().setMinimumSectionSize(30)
+        self.result_table.verticalHeader().setMaximumSectionSize(30)
         self.result_table.verticalHeader().setVisible(False)
         
         # 初始化HTML代理
@@ -313,7 +320,7 @@ class SearchResultTableManager:
                 gridline-color: #404040;
                 border: none;
                 border-radius: 0px;
-                font-size: 9pt;
+                font-size: 11pt;
                 padding: 0px;
                 margin: 0px;
             }
