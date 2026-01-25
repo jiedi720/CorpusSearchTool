@@ -4,7 +4,7 @@
 """
 
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QColor, QFont, QTextDocument, QPainter, QBrush
+from PySide6.QtGui import QColor, QFont, QTextDocument, QPainter, QBrush, QLinearGradient, QPen
 from PySide6.QtWidgets import QStyledItemDelegate, QTableWidget, QHeaderView, QStyleOptionViewItem, QSizePolicy, QMenu
 from gui.font import FontConfig
 from function.config_manager import ConfigManager
@@ -572,6 +572,13 @@ class CustomHeaderView(QHeaderView):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         # 不在这里连接信号，而是在主窗口类中连接
         
+        # 拖拽相关属性
+        self.dragging_section = -1
+        self.drop_position = -1
+        
+        # 鼠标悬停相关属性
+        self.hovered_section = -1
+        
     def mousePressEvent(self, event):
         """处理鼠标按下事件"""
         if self.orientation() == Qt.Orientation.Horizontal:
@@ -603,32 +610,161 @@ class CustomHeaderView(QHeaderView):
         super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
-        """处理鼠标移动事件"""
-        if self.orientation() == Qt.Orientation.Horizontal:
-            pos = event.position()
+        """处理鼠标移动事件，跟踪悬停列"""
+        if self.orientation() != Qt.Orientation.Horizontal:
+            return
+        
+        # 检查鼠标是否在某一列的右边边缘（用于调整列宽）
+        pos = event.position()
+        section = self.logicalIndexAt(pos.x())
+        
+        if section != -1:  # 鼠标在某个列上
+            section_pos = self.sectionViewportPosition(section)
+            section_width = self.sectionSize(section)
             
-            # 检查鼠标是否在某一列的右边边缘（用于调整列宽）
-            section = self.logicalIndexAt(pos.x())
-            
-            if section != -1:  # 鼠标在某个列上
-                section_pos = self.sectionViewportPosition(section)
-                section_width = self.sectionSize(section)
+            # 检查鼠标是否在列的右边边缘（5像素内）
+            if pos.x() >= section_pos + section_width - 5:
+                # 检查这一列是否是视觉上最右边的列
+                is_last_visible = True
+                for i in range(self.count()):
+                    if not self.isSectionHidden(i) and i != section:
+                        i_pos = self.sectionViewportPosition(i)
+                        i_width = self.sectionSize(i)
+                        if i_pos + i_width > section_pos + section_width:
+                            is_last_visible = False
+                            break
                 
-                # 检查鼠标是否在列的右边边缘（5像素内）
-                if pos.x() >= section_pos + section_width - 5:
-                    # 检查这一列是否是视觉上最右边的列
-                    is_last_visible = True
-                    for i in range(self.count()):
-                        if not self.isSectionHidden(i) and i != section:
-                            i_pos = self.sectionViewportPosition(i)
-                            i_width = self.sectionSize(i)
-                            if i_pos + i_width > section_pos + section_width:
-                                is_last_visible = False
-                                break
-                    
-                    # 如果是最右边的列的右边边缘，不显示拖拽光标
-                    if is_last_visible:
-                        self.unsetCursor()
-                        return
+                # 如果是最右边的列的右边边缘，不显示拖拽光标
+                if is_last_visible:
+                    self.unsetCursor()
+                    return
+        
+        # 跟踪鼠标悬停的列
+        if self.hovered_section != section:
+            self.hovered_section = section
+            self.update()
         
         super().mouseMoveEvent(event)
+    
+    def dragMoveEvent(self, event):
+        """处理拖拽移动事件，显示插入符号"""
+        super().dragMoveEvent(event)
+        
+        if self.orientation() != Qt.Orientation.Horizontal:
+            return
+        
+        # 获取拖拽位置
+        pos = event.position()
+        logical_index = self.logicalIndexAt(pos.x())
+        
+        # 计算插入位置
+        if logical_index == -1:
+            # 拖拽到最后一列右边
+            self.drop_position = self.count()
+        else:
+            section_pos = self.sectionViewportPosition(logical_index)
+            if pos.x() < section_pos + self.sectionSize(logical_index) / 2:
+                # 拖拽到列的左半部分，插入到当前列左边
+                self.drop_position = self.visualIndex(logical_index)
+            else:
+                # 拖拽到列的右半部分，插入到当前列右边
+                self.drop_position = self.visualIndex(logical_index) + 1
+        
+        # 更新显示
+        self.update()
+    
+    def dragLeaveEvent(self, event):
+        """处理拖拽离开事件，清除插入符号"""
+        super().dragLeaveEvent(event)
+        self.drop_position = -1
+        self.update()
+    
+    def dropEvent(self, event):
+        """处理拖拽放下事件，清除插入符号"""
+        super().dropEvent(event)
+        self.drop_position = -1
+        self.update()
+    
+    def leaveEvent(self, event):
+        """处理鼠标离开事件，清除悬停状态"""
+        super().leaveEvent(event)
+        if self.hovered_section != -1:
+            self.hovered_section = -1
+            self.update()
+    
+    def paintEvent(self, event):
+        """绘制表头，包括插入符号和悬浮特效"""
+        super().paintEvent(event)
+        
+        # 检查是否有需要绘制的内容
+        if self.orientation() != Qt.Orientation.Horizontal:
+            return
+        
+        # 只在需要绘制悬停特效或插入符号时才创建QPainter
+        if self.hovered_section != -1 or self.drop_position != -1:
+            # 使用with语句确保painter正确初始化和关闭
+            try:
+                viewport = self.viewport()
+                if viewport is None:
+                    return
+                
+                with QPainter(viewport) as painter:
+                    # 绘制悬停特效
+                    if self.hovered_section != -1:
+                        # 获取悬停列的位置和大小
+                        hovered_pos = self.sectionViewportPosition(self.hovered_section)
+                        hovered_size = self.sectionSize(self.hovered_section)
+                        
+                        # 创建渐变背景
+                        gradient = QLinearGradient(hovered_pos, 0, hovered_pos + hovered_size, 0)
+                        gradient.setColorAt(0, QColor(0, 120, 215, 50))
+                        gradient.setColorAt(1, QColor(0, 120, 215, 20))
+                        
+                        # 绘制渐变背景
+                        painter.fillRect(hovered_pos, 0, hovered_size, self.height(), gradient)
+                        
+                        # 绘制边框
+                        painter.setPen(QPen(QColor(0, 120, 215, 150), 2, Qt.PenStyle.SolidLine))
+                        painter.drawRect(hovered_pos, 0, hovered_size, self.height())
+                    
+                    # 绘制插入符号
+                    if self.drop_position != -1:
+                        # 计算插入符号位置
+                        if self.drop_position == 0:
+                            # 插入到最左边
+                            x = 0
+                        elif self.drop_position >= self.count():
+                            # 插入到最右边
+                            x = self.sectionViewportPosition(self.count() - 1) + self.sectionSize(self.count() - 1)
+                        else:
+                            # 插入到中间位置
+                            logical_index = self.logicalIndex(self.drop_position - 1)
+                            x = self.sectionViewportPosition(logical_index) + self.sectionSize(logical_index)
+                        
+                        # 使用更明显的颜色（亮黄色）
+                        indicator_color = QColor(255, 215, 0)  # 金黄色
+                        painter.setPen(QPen(indicator_color, 3, Qt.PenStyle.SolidLine))
+                        painter.setBrush(indicator_color)
+                        
+                        # 绘制垂直线
+                        painter.drawLine(x, 0, x, self.height())
+                        
+                        # 绘制顶部箭头（向下指）
+                        arrow_size = 12
+                        top_arrow = [
+                            QPoint(x, 0),
+                            QPoint(x - arrow_size, arrow_size),
+                            QPoint(x + arrow_size, arrow_size)
+                        ]
+                        painter.drawPolygon(top_arrow)
+                        
+                        # 绘制底部箭头（向上指）
+                        bottom_arrow = [
+                            QPoint(x, self.height()),
+                            QPoint(x - arrow_size, self.height() - arrow_size),
+                            QPoint(x + arrow_size, self.height() - arrow_size)
+                        ]
+                        painter.drawPolygon(bottom_arrow)
+            except Exception as e:
+                # 捕获所有异常，避免程序崩溃
+                print(f"paintEvent error: {e}")

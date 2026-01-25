@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolenCMiR.ui'
+## Form generated from reading UI file 'CorpusSearchToolJbfLHa.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -749,57 +749,7 @@ class Ui_CorpusSearchTool(object):
         self.result_table.setHorizontalHeaderItem(4, __qtablewidgetitem4)
         self.result_table.setObjectName(u"result_table")
         self.result_table.setMinimumSize(QSize(450, 300))
-        self.result_table.setStyleSheet(u"QPlainTextEdit {\n"
-"    /* 1. \u5fc5\u987b\u6709\u8fb9\u6846\uff0c\u900f\u660e\u5373\u53ef */\n"
-"    border: 1px solid transparent;\n"
-"    border-radius: 10px;\n"
-"    /* 1. \u663e\u5f0f\u58f0\u660e background\uff0c\u4e0d\u8981\u53ea\u7528 background-color */\n"
-"    background: palette(base);\n"
-"    /* 3. \u6838\u5fc3\uff1a\u5fc5\u987b\u5b9a\u4e49\u80cc\u666f\u8272\uff0c\u5706\u89d2\u624d\u80fd\u88ab\u201c\u586b\u5145\u201d\u51fa\u6765 */\n"
-"    /* palette(base) \u4f1a\u81ea\u52a8\u8ddf\u968f\u4e3b\u9898\uff1a\u6d45\u8272\u65f6\u662f\u767d\u8272\uff0c\u6df1\u8272\u65f6\u662f\u6df1\u7070 */\n"
-"    background-color: palette(base);\n"
-"    \n"
-"    /* 4. \u6587\u5b57\u989c\u8272\u4e5f\u8ddf\u968f\u4e3b\u9898 */\n"
-"    color: palette(text);\n"
-"    \n"
-"    /* \u5efa\u8bae\u52a0\u70b9\u5185\u8fb9\u8ddd\uff0c\u5426\u5219\u5b57\u4f1a\u8d34\u5230\u5706\u89d2\u8fb9\u4e0a */\n"
-"    padding: 3px;\n"
-"}\n"
-"\n"
-"/* \u6df1\u8272\u6a21\u5f0f\u7ec6\u5316 */\n"
-"[theme=\"dark\"] QMenu {\n"
-"    color: #eeeeee;\n"
-" "
-                        "   background-color: #2b2b2b; /* \u4f7f\u7528\u6df1\u7070\u8272\u6bd4\u7eaf\u9ed1\u66f4\u5177\u9ad8\u7ea7\u611f */\n"
-"    border-color: #555555; \n"
-"    border-radius: 9px;\n"
-"}\n"
-"\n"
-"/* \u6d45\u8272\u6a21\u5f0f\u7ec6\u5316 */\n"
-"[theme=\"light\"] QMenu {\n"
-"    color: #333333;\n"
-"    background-color: #ffffff;\n"
-"    border-color: #cccccc;\n"
-"    border-radius: 9px;\n"
-"}\n"
-"\n"
-"/* \u83dc\u5355\u9879\u6574\u4f53\u6837\u5f0f */\n"
-"QMenu::item {\n"
-"    padding: 6px 25px 6px 20px; /* \u589e\u52a0\u70b9\u51fb\u533a\u57df\u5927\u5c0f */\n"
-"    border-radius: 3px;\n"
-"}\n"
-"\n"
-"/* \u9009\u4e2d/\u60ac\u505c\u72b6\u6001 */\n"
-"QMenu::item:selected {\n"
-"    background-color: #FFC209; /* \u9ec4\u8272\u9009\u4e2d\u6548\u679c\uff0c\u66f4\u7b26\u5408\u4e3b\u6d41\u5ba1\u7f8e */\n"
-"    color: black;              /* \u786e\u4fdd\u9009\u4e2d\u65f6\u6587\u5b57\u4f9d\u7136\u6e05\u6670 */\n"
-"}\n"
-"\n"
-"/* \u7981\u7528\u72b6\u6001\uff08\u6bd4\u5982\u6ca1\u6709\u5185\u5bb9\u53ef\u7c98\u8d34\u65f6\uff09 */\n"
-"Q"
-                        "Menu::item:disabled {\n"
-"    color: #888888;\n"
-"}")
+        self.result_table.setStyleSheet(u"")
         self.result_table.setColumnCount(5)
         self.result_table.horizontalHeader().setVisible(True)
         self.result_table.verticalHeader().setVisible(False)

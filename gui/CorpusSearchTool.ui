@@ -1257,55 +1257,7 @@ QPushButton:pressed {
            </size>
           </property>
           <property name="styleSheet">
-           <string notr="true">QPlainTextEdit {
-    /* 1. 必须有边框，透明即可 */
-    border: 1px solid transparent;
-    border-radius: 10px;
-    /* 1. 显式声明 background，不要只用 background-color */
-    background: palette(base);
-    /* 3. 核心：必须定义背景色，圆角才能被“填充”出来 */
-    /* palette(base) 会自动跟随主题：浅色时是白色，深色时是深灰 */
-    background-color: palette(base);
-    
-    /* 4. 文字颜色也跟随主题 */
-    color: palette(text);
-    
-    /* 建议加点内边距，否则字会贴到圆角边上 */
-    padding: 3px;
-}
-
-/* 深色模式细化 */
-[theme=&quot;dark&quot;] QMenu {
-    color: #eeeeee;
-    background-color: #2b2b2b; /* 使用深灰色比纯黑更具高级感 */
-    border-color: #555555; 
-    border-radius: 9px;
-}
-
-/* 浅色模式细化 */
-[theme=&quot;light&quot;] QMenu {
-    color: #333333;
-    background-color: #ffffff;
-    border-color: #cccccc;
-    border-radius: 9px;
-}
-
-/* 菜单项整体样式 */
-QMenu::item {
-    padding: 6px 25px 6px 20px; /* 增加点击区域大小 */
-    border-radius: 3px;
-}
-
-/* 选中/悬停状态 */
-QMenu::item:selected {
-    background-color: #FFC209; /* 黄色选中效果，更符合主流审美 */
-    color: black;              /* 确保选中时文字依然清晰 */
-}
-
-/* 禁用状态（比如没有内容可粘贴时） */
-QMenu::item:disabled {
-    color: #888888;
-}</string>
+           <string notr="true"/>
           </property>
           <property name="columnCount">
            <number>5</number>
