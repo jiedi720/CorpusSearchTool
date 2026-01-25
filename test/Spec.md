@@ -230,3 +230,25 @@
   self.result_table.verticalHeader().setMaximumSectionSize(18)
   ```
 - **效果**：行高固定为 18 像素，表格更紧凑，显示更多内容
+
+### 搜索结果表格文字居中修复
+- **问题**：表格中的文字往上偏，没有垂直居中
+- **根本原因**：之前使用固定偏移量 `y = option.rect.top() + 8` 来定位文字，这种方法只适用于固定行高的情况。当行高动态变化时，固定偏移量无法保证文字居中
+- **解决方案**：使用动态计算的方式确定 y 坐标
+  ```python
+  y = option.rect.top() + (available_height - int(text_height)) / 2
+  ```
+- **关键点**：
+  1. 获取单元格实际高度：`option.rect.height()`
+  2. 获取文字实际高度：`doc.size().height()`
+  3. 计算垂直居中位置：`(单元格高度 - 文字高度) / 2`
+  4. 加上单元格顶部偏移：`option.rect.top()`
+- **为什么这样可以工作**：
+  - 无论单元格高度是 30px（单行）还是更高（多行），都能正确计算居中位置
+  - 文字高度由 `QTextDocument` 自动计算，考虑了字体大小、行高等因素
+  - 公式 `(H_cell - H_text) / 2` 确保文字在单元格内垂直居中
+- **其他相关设置**：
+  - 左右边距：各 8px，通过 `padding_left` 和 `padding_right` 控制
+  - 上下边距：通过 `sizeHint` 方法中的 `row_height = text_height + 16` 实现
+  - 行高自适应：通过 `sizeHint` 方法根据文本内容动态计算行高
+  - 列宽变化时自动调整行高：通过 `on_column_resized` 和 `update_row_heights` 方法实现

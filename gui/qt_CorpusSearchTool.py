@@ -381,6 +381,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 连接列宽变化信号，确保所有列的宽度不小于80
         self.result_table.horizontalHeader().sectionResized.connect(self.enforce_min_column_width)
         
+        # 连接列宽变化信号，重新计算行高
+        self.result_table.horizontalHeader().sectionResized.connect(self.on_column_resized)
+        
         # 连接表头右键菜单信号
         header = self.result_table.horizontalHeader()
         header.customContextMenuRequested.connect(self.show_header_context_menu)
@@ -1856,6 +1859,25 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 self.result_table.setColumnWidth(logicalIndex, min_width)
             elif newSize > max_width:
                 self.result_table.setColumnWidth(logicalIndex, max_width)
+    
+    def on_column_resized(self, logicalIndex, oldSize, newSize):
+        """列宽变化时重新计算行高"""
+        # 延迟执行，避免频繁更新
+        if hasattr(self, '_resize_timer'):
+            self._resize_timer.stop()
+        
+        self._resize_timer = QTimer()
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.timeout.connect(self.update_row_heights)
+        self._resize_timer.start(100)  # 100ms 后执行
+    
+    def update_row_heights(self):
+        """更新所有行的行高"""
+        for row in range(self.result_table.rowCount()):
+            # 触发 sizeHint 重新计算
+            index = self.result_table.model().index(row, 2)  # 对应台词列
+            size_hint = self.result_table.itemDelegate(index).sizeHint(self.result_table.viewOptions(), index)
+            self.result_table.setRowHeight(row, size_hint.height())
     
     def toggle_column_visibility(self, col_index, checked):
         """切换列的显示/隐藏状态"""

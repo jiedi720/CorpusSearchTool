@@ -119,6 +119,9 @@ class HTMLDelegate(QStyledItemDelegate):
             
             doc.setHtml(final_html)
             
+            # 设置文本宽度，确保换行正确
+            doc.setTextWidth(option.rect.width() - 16)
+            
             painter.save()
             
             # 根据对齐方式计算绘制位置
@@ -131,15 +134,16 @@ class HTMLDelegate(QStyledItemDelegate):
             available_width = option.rect.width() - padding_left - padding_right
             
             x = option.rect.left() + padding_left
-            y = option.rect.top() + (option.rect.height() - text_height) / 2  # 垂直居中
+            
+            # 垂直居中：文字应该在单元格内垂直居中
+            # 计算垂直居中的 y 坐标
+            available_height = option.rect.height()
+            y = option.rect.top() + (available_height - int(text_height)) / 2
             
             if alignment & Qt.AlignmentFlag.AlignHCenter:
                 x += (available_width - text_width) / 2
             elif alignment & Qt.AlignmentFlag.AlignRight:
                 x += available_width - text_width
-            
-            # 设置文本宽度，确保文本在可用宽度内换行
-            doc.setTextWidth(available_width)
             
             painter.translate(x, y)
             
@@ -223,13 +227,26 @@ class HTMLDelegate(QStyledItemDelegate):
             html_text = highlighted_text
         
         # 用前景色包裹文本
-        final_html = f'<span style="color: #ffffff; margin: 0px; padding: 0px; line-height: 1;">{html_text}</span>'
+        final_html = f'<span style="color: #ffffff; margin: 0px; padding: 0px; line-height: 1.3;">{html_text}</span>'
         
         doc.setHtml(final_html)
-        # 不设置文本宽度，让文档自然计算宽度
+        
+        # 设置文本宽度，模拟实际渲染时的宽度限制
+        # 减去左右边距（各8px）
+        doc.setTextWidth(option.rect.width() - 16)
+        
+        # 计算文档实际高度
+        text_height = doc.size().height()
+        
+        # 添加上下边距（各8px）
+        row_height = int(text_height) + 16
+        
+        # 确保单行时至少30px（文字高度约14px + 上下各8px）
+        if row_height < 30:
+            row_height = 30
         
         # 返回固定高度，宽度使用文档的理想宽度
-        return QSize(int(doc.idealWidth()), 30)  # 高度为30，与默认行高一致
+        return QSize(int(doc.idealWidth()), row_height)
 
 
 class SearchResultTableManager:
@@ -287,7 +304,6 @@ class SearchResultTableManager:
         # 设置行高
         self.result_table.verticalHeader().setDefaultSectionSize(30)
         self.result_table.verticalHeader().setMinimumSectionSize(30)
-        self.result_table.verticalHeader().setMaximumSectionSize(30)
         self.result_table.verticalHeader().setVisible(False)
         
         # 初始化HTML代理
