@@ -1331,6 +1331,12 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             QMessageBox.warning(self, "❌ 错误", "请输入关键词")
             return
         
+        # 获取语料库类型
+        if self.current_corpus_tab == 0:  # 英语语料库
+            corpus_type = "english"
+        else:  # 韩语语料库
+            corpus_type = "korean"
+        
         # 检查是否是引号内的完全匹配
         exact_match = False
         if keywords.startswith('"') and keywords.endswith('"'):
@@ -1345,7 +1351,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             'case_sensitive': case_sensitive,
             'fuzzy_match': fuzzy_match,
             'regex_enabled': regex_enabled,
-            'exact_match': exact_match
+            'exact_match': exact_match,
+            'corpus_type': corpus_type
         }
         
         # 更新配置
@@ -1356,12 +1363,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             regex_enabled=regex_enabled
         )
         
-        # 获取语料库类型和关键词类型
+        # 获取关键词类型
         if self.current_corpus_tab == 0:  # 英语语料库
-            corpus_type = "english"
             keyword_type = self.english_keyword_combo.currentText()
         else:  # 韩语语料库
-            corpus_type = "korean"
             keyword_type = self.korean_keyword_combo.currentText()
         
         # 保存关键词类型到参数中
@@ -1624,10 +1629,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 自动调整行高以适应内容
         self.result_table.resizeRowsToContents()
 
-        # 为每行添加额外的上下边距（总共6像素，上下各3像素）
+        # 为每行添加额外的上下边距（总共2像素，上下各1像素）
         for row in range(self.result_table.rowCount()):
             current_height = self.result_table.rowHeight(row)
-            self.result_table.setRowHeight(row, current_height + 6)
+            self.result_table.setRowHeight(row, current_height + 2)
 
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
