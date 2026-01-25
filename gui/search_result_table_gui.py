@@ -88,10 +88,10 @@ class HTMLDelegate(QStyledItemDelegate):
             highlighted_text = plain_text
             for keyword in current_keywords:
                 if keyword:
-                    # 使用正则表达式替换，确保只替换完整的单词，不区分大小写
+                    # 使用正则表达式替换，不使用单词边界（适用于韩语）
                     regex_pattern = re.escape(keyword)
                     highlighted_text = re.sub(
-                        rf'(\b{regex_pattern}\b)',
+                        rf'({regex_pattern})',
                         r'<b><span style="color: #ffff00;">\1</span></b>',
                         highlighted_text,
                         flags=re.IGNORECASE
@@ -174,10 +174,10 @@ class HTMLDelegate(QStyledItemDelegate):
             highlighted_text = plain_text
             for keyword in current_keywords:
                 if keyword:
-                    # 使用正则表达式替换，确保只替换完整的单词，不区分大小写
+                    # 使用正则表达式替换，不使用单词边界（适用于韩语）
                     regex_pattern = re.escape(keyword)
                     highlighted_text = re.sub(
-                        rf'(\b{regex_pattern}\b)',
+                        rf'({regex_pattern})',
                         r'<b><span style="color: #ffff00;">\1</span></b>',
                         highlighted_text,
                         flags=re.IGNORECASE

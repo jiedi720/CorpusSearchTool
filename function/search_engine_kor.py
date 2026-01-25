@@ -479,7 +479,7 @@ class KoreanSearchEngine(SearchEngineBase):
 
     def _generate_korean_variants(self, word: str) -> List[str]:
         """
-        生成韩语单词的可能变形
+        生成韩语单词的可能变形（使用kiwipiepy的join方法）
 
         Args:
             word: 韩语基础词（以다结尾的动词/形容词）
@@ -488,119 +488,93 @@ class KoreanSearchEngine(SearchEngineBase):
             韩语变形词列表
         """
         variants = []
+        
+        # 如果词典形不以다结尾，直接返回原词
+        if not word.endswith('다'):
+            variants.append(word)
+            return variants
 
-        # 韩语动词和形容词的时态和变体规则
-        # 假设输入的是词干形式（去掉다的词干）
-        if word.endswith('다'):  # 动词/形容词原形
-            base = word[:-1]  # 去掉다
-            
-            # 检查是否是 하다 类型的动词/形容词（하다用言）
-            if base.endswith('하'):
-                # 하다类型：존경하다, 가득하다, 좋아하다, 생각하다 等
-                root = base[:-1]  # 去掉 '하' 得到词根（主题）
-                
-                # 主题（Topic Form）- 词根本身
-                variants.append(root)
-                
-                # 基本形（原形）
-                variants.append(word)  # 존경하다
-                variants.append(base)  # 존경하
-                
-                # 第Ⅰ语基形式（第一语基）
-                # 用于 -기, -게, -고 等连接词尾
-                variants.extend([
-                    root + '하기',   # 존경하기
-                    root + '하게',   # 존경하게
-                    root + '하고',   # 존경하고
-                ])
-                
-                # 第Ⅱ语基形式（第二语基）
-                # 用于 -ㄴ, -ㄹ, -ㅁ 等连接词尾
-                variants.extend([
-                    root + '한',     # 존경한
-                    root + '함',     # 존경함
-                    root + '할',     # 존경할
-                ])
-                
-                # 第Ⅲ语基形式（第三语基）
-                # 用于 -아/어, -아서/어서 等连接词尾
-                variants.extend([
-                    root + '해',     # 존경해
-                    root + '하여',   # 존경하여
-                    root + '해요',   # 존경해요
-                    root + '해서',   # 존경해서
-                ])
-                
-                # 过去式（过去时态）
-                variants.extend([
-                    root + '했',     # 존경했
-                    root + '했다',   # 존경했다
-                    root + '했어',   # 존경했어
-                    root + '했어요', # 존경했어요
-                    root + '했고',   # 존경했고
-                    root + '했다가', # 존경했다가
-                    root + '했으면', # 존경했으면
-                ])
-                
-                # 其他常见变体
-                variants.extend([
-                    root + '하는',   # 존경하는（现在时定语）
-                    root + '하면',   # 존경하면（条件形）
-                    root + '하니',   # 존경하니（原因形）
-                    root + '하지',   # 존경하지（否定前缀）
-                    root + '하지 않다',   # 존경하지 않다
-                    root + '하지 않아요', # 존경하지 않아요
-                ])
-                
-                # 使动形式
-                variants.extend([
-                    root + '하게',   # 존경하게（使动副词）
-                    root + '하게 해',   # 존경하게 해
-                    root + '하게 했다', # 존경하게 했다
-                ])
-            else:
-                # 普通动词/形容词（非하다用言）
-                # 基本形
-                variants.append(word)
-                
-                # 基础变位
-                variants.extend([
-                    base + '고',      # 속고
-                    base + '지',      # 속지
-                    base + '아',      # 속아
-                    base + '아서',    # 속아서
-                    base + '아요',    # 속아요
-                    base + '으니',    # 속으니
-                    base + '는',      # 속는
-                    base + '은',      # 속은
-                    base + '을',      # 속을
-                    base + '음',      # 속음
-                    base + '기',      # 속기
-                ])
-                
-                # 过去时
-                variants.extend([
-                    base + '았다',    # 속았다
-                    base + '았어',    # 속았어
-                    base + '았어요',  # 속았어요
-                    base + '았고',    # 속았고
-                ])
-                
-                # 使役派生（-이다形式）
-                causative_base = base + '이'  # 속이
-                variants.extend([
-                    causative_base + '다',     # 속이다
-                    causative_base[:-1] + '여', # 속여 (속이 + 여)
-                    causative_base[:-1] + '여서', # 속여서
-                    causative_base[:-1] + '여요', # 속여요
-                    causative_base[:-1] + '였다', # 속였다
-                    causative_base[:-1] + '였어', # 속였어
-                    causative_base[:-1] + '였어요', # 속였어요
-                    causative_base + '고',     # 속이고
-                ])
+        # 去掉다得到词干
+        base = word[:-1]  # 去掉다
+        
+        # 使用kiwipiepy分析原词，判断是动词(VV)还是形容词(VA)
+        analysis_result = self.kiwi.analyze(word)
+        if analysis_result and len(analysis_result) > 0:
+            tokens = analysis_result[0][0]
+            # 查找词干的词性
+            pos = 'VV'  # 默认为动词
+            for token in tokens:
+                if token.form == base:
+                    if token.tag in ('VV', 'VA'):
+                        pos = token.tag
+                    break
         else:
-            # 如果不是以다结尾，可能是词干或其他形式
-            # 直接添加原词
+            pos = 'VV'  # 默认为动词
+        
+        # 常见的动词/形容词词尾组合列表
+        # 使用kiwipiepy的join方法生成变体
+        # 每个元素是(词尾1, 词尾2, ...)的列表，会被join组合
+        endings_list = [
+            # 终结词尾
+            [('다', 'EF')],
+            [('어', 'EF')],
+            [('어요', 'EF')],
+            [('어서', 'EC')],
+            [('으니', 'EC')],
+            [('니', 'EC')],
+            [('지', 'EC')],
+            
+            # 过去时
+            [('었', 'EP'), ('다', 'EF')],
+            [('었', 'EP'), ('어', 'EF')],
+            [('었', 'EP'), ('어요', 'EF')],
+            [('었', 'EP'), ('고', 'EC')],
+            [('었', 'EP'), ('으니', 'EC')],
+            
+            # 连接词尾
+            [('고', 'EC')],
+            [('면', 'EC')],
+            [('자', 'EC')],
+            
+            # 名词化
+            [('음', 'ETN')],
+            [('기', 'ETN')],
+            
+            # 冠词形
+            [('는', 'ETM')],
+            [('은', 'ETM')],
+            [('을', 'ETM')],
+            
+            # 将来时
+            [('겠', 'EP'), ('다', 'EF')],
+            [('겠', 'EP'), ('어', 'EF')],
+            [('겠', 'EP'), ('어요', 'EF')],
+            
+            # 否定
+            [('지', 'EC'), ('않', 'VA'), ('다', 'EF')],
+            [('지', 'EC'), ('않', 'VA'), ('아', 'EF')],
+            [('지', 'EC'), ('않', 'VA'), ('아요', 'EF')],
+            
+            # 敬语
+            [('시', 'EP'), ('어요', 'EF')],
+            [('시', 'EP'), ('었', 'EP'), ('어요', 'EF')],
+        ]
+        
+        # 使用kiwipiepy的join方法生成变体
+        for endings in endings_list:
+            try:
+                # 构建形态素列表：词干 + 词尾
+                morphs = [(base, pos)] + endings
+                # 使用kiwipiepy的join方法组合
+                variant = self.kiwi.join(morphs)
+                if variant and variant not in variants:
+                    variants.append(variant)
+            except Exception as e:
+                # 如果join失败，跳过
+                continue
+        
+        # 添加原词
+        if word not in variants:
             variants.append(word)
         
         return variants
