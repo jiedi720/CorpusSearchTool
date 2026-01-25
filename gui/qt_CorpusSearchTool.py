@@ -1851,12 +1851,12 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             action.triggered.connect(lambda checked, c=col: self.toggle_column_visibility(c, checked))
         
         menu.addSeparator()
-        reset_action = menu.addAction("🔄 重置列宽")
+        reset_action = menu.addAction("🔄 重置表格")
         
         action = menu.exec(self.result_table.horizontalHeader().mapToGlobal(pos))
         
         if action == reset_action:
-            self.table_manager.reset_column_widths()
+            self.reset_table()
     
     def enforce_min_column_width(self, logicalIndex, oldSize, newSize):
         """确保列宽在配置的限制范围内"""
@@ -2053,6 +2053,36 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.setColumnWidth(2, 600)  # 对应台词列
         self.result_table.setColumnWidth(3, 60)   # 行号列（固定，60像素）
         self.result_table.setColumnWidth(4, 200)  # 文件名列
+    
+    def reset_table(self):
+        """重置表格：重置列宽、列顺序和列显示状态"""
+        header = self.result_table.horizontalHeader()
+        
+        # 1. 重置列宽
+        self.reset_column_widths()
+        
+        # 2. 重置列顺序到默认顺序（0, 1, 2, 3, 4）
+        # 先重置所有列到默认顺序
+        for logical_index in range(self.result_table.columnCount()):
+            current_visual_index = header.visualIndex(logical_index)
+            if current_visual_index != logical_index:
+                header.moveSection(current_visual_index, logical_index)
+        
+        # 3. 重置所有列为显示状态（不隐藏任何列）
+        for col in range(self.result_table.columnCount()):
+            if self.result_table.isColumnHidden(col):
+                self.result_table.setColumnHidden(col, False)
+        
+        # 4. 更新配置文件
+        # 保存默认列顺序和可见性
+        default_order = [0, 1, 2, 3, 4]
+        default_visibility = [True, True, True, True, True]
+        
+        # 获取当前列宽
+        all_widths = [self.result_table.columnWidth(col) for col in range(self.result_table.columnCount())]
+        
+        # 保存到配置文件
+        config_manager.set_column_settings('result', all_widths, default_order, default_visibility)
     
     def restore_column_settings(self):
         """恢复列宽和顺序"""
