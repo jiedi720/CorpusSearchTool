@@ -369,8 +369,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 获取HTML代理
         self.html_delegate = self.table_manager.html_delegate
         
-        # 连接列宽变化信号，确保所有列的宽度不小于80
-        self.result_table.horizontalHeader().sectionResized.connect(self.enforce_min_column_width)
+        # 移除旧的列宽限制信号连接，改用表格管理器的实现
+        # self.result_table.horizontalHeader().sectionResized.connect(self.enforce_min_column_width)
         
         # 连接列宽变化信号，重新计算行高
         self.result_table.horizontalHeader().sectionResized.connect(self.on_column_resized)
@@ -1861,15 +1861,29 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def enforce_min_column_width(self, logicalIndex, oldSize, newSize):
         """确保列宽在配置的限制范围内"""
         config = self.table_manager.get_column_config(logicalIndex)
-        
+
         # 检查是否为固定列
         if config.get('mode') == 'fixed':
             # 固定列：强制恢复为固定宽度
             self.result_table.blockSignals(True)
             self.result_table.setColumnWidth(logicalIndex, config['fixed_width'])
             self.result_table.blockSignals(False)
+
+            # 检查最后一个可见列是否是固定列，如果是则不启用拉伸
+            header = self.result_table.horizontalHeader()
+            last_visible_col = None
+            for visual_idx in range(header.count()):
+                logical_idx = header.logicalIndex(visual_idx)
+                if not self.result_table.isColumnHidden(logical_idx):
+                    last_visible_col = logical_idx
+            if last_visible_col is not None:
+                last_col_config = self.table_manager.get_column_config(last_visible_col)
+                if last_col_config.get('mode') == 'fixed':
+                    header.setStretchLastSection(False)
+                else:
+                    header.setStretchLastSection(True)
             return
-        
+
         # 检查是否有宽度限制
         min_width = config.get('min_width')
         max_width = config.get('max_width')
@@ -1903,7 +1917,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def update_row_heights(self):
         """更新所有行的行高"""
         from PySide6.QtWidgets import QStyleOptionViewItem
-        
+
         # 恢复固定列的宽度
         for col in range(self.result_table.columnCount()):
             config = self.table_manager.get_column_config(col)
@@ -1911,58 +1925,75 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 self.result_table.blockSignals(True)
                 self.result_table.setColumnWidth(col, config['fixed_width'])
                 self.result_table.blockSignals(False)
-        
+
         for row in range(self.result_table.rowCount()):
             # 触发 sizeHint 重新计算
             index = self.result_table.model().index(row, 2)  # 对应台词列
-            
+
             # 创建正确的 option 参数
             option = QStyleOptionViewItem()
             option.initFrom(self.result_table)
             option.rect = self.result_table.visualRect(index)
-            
+
             size_hint = self.result_table.itemDelegate(index).sizeHint(option, index)
             self.result_table.setRowHeight(row, size_hint.height())
+
+        # 根据最后一个可见列是否为固定列来设置拉伸属性
+        header = self.result_table.horizontalHeader()
+        last_visible_col = None
+        for visual_idx in range(header.count()):
+            logical_idx = header.logicalIndex(visual_idx)
+            if not self.result_table.isColumnHidden(logical_idx):
+                last_visible_col = logical_idx
+        if last_visible_col is not None:
+            last_col_config = self.table_manager.get_column_config(last_visible_col)
+            if last_col_config.get('mode') == 'fixed':
+                header.setStretchLastSection(False)
+            else:
+                header.setStretchLastSection(True)
+
+        # 强制更新表头布局，确保固定列宽设置生效
+        header.doItemsLayout()
+        self.result_table.updateGeometry()
     
     def toggle_column_visibility(self, col_index, checked):
         """切换列的显示/隐藏状态"""
         self.result_table.setColumnHidden(col_index, not checked)
-        
+
         # 保存列显示配置
         visibility = []
         for col in range(self.result_table.columnCount()):
             visibility.append(not self.result_table.isColumnHidden(col))
-        
+
         # 获取当前的列设置
         column_settings = config_manager.get_column_settings('result')
         # 只更新 visibility，保持 widths 和 order 不变
         config_manager.set_column_settings('result', column_settings['widths'], column_settings['order'], visibility)
-        
+
         # 重新设置列的调整模式和拉伸属性
         header = self.result_table.horizontalHeader()
-        
+
         # 先设置所有列的ResizeMode
         for col in range(self.result_table.columnCount()):
-            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+            config = self.table_manager.get_column_config(col)
+            if config.get('mode') == 'fixed':
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
-            elif col == self.result_table.columnCount() - 1:  # 最后一列
-                # 只有当最后一列不是固定列时，才设置为Stretch
-                if col not in [1, 3]:
-                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
-                else:
-                    # 如果最后一列是固定列，则设置为Fixed
-                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
             else:  # 其他可调整列
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
-        
-        # 只有当最后一列不是固定列时，才启用自动拉伸
-        if self.result_table.columnCount() > 0:
-            last_col = self.result_table.columnCount() - 1
-            if last_col not in [1, 3]:
-                header.setStretchLastSection(True)
-            else:
+
+        # 检查最后一个可见列是否是固定列，如果是则不启用拉伸
+        last_visible_col = None
+        for visual_idx in range(header.count()):
+            logical_idx = header.logicalIndex(visual_idx)
+            if not self.result_table.isColumnHidden(logical_idx):
+                last_visible_col = logical_idx
+        if last_visible_col is not None:
+            last_col_config = self.table_manager.get_column_config(last_visible_col)
+            if last_col_config.get('mode') == 'fixed':
                 header.setStretchLastSection(False)
-        
+            else:
+                header.setStretchLastSection(True)
+
         # 更新状态栏提示
         column_names = ['出处', '时间轴', '对应台词', '行号', '文件名']
         status = "显示" if checked else "隐藏"
@@ -2091,22 +2122,22 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         widths = column_settings['widths']
         visibility = column_settings['visibility']
         order = column_settings['order']
-        
+
         # 设置列宽调整模式
         header = self.result_table.horizontalHeader()
-        
+
         # 确保宽度列表至少有5个元素
         while len(widths) < 5:
             widths.append(0)
-        
+
         # 确保可见性列表至少有5个元素
         while len(visibility) < 5:
             visibility.append(True)
-        
+
         # 恢复列的显示/隐藏状态
         for col in range(self.result_table.columnCount()):
             self.result_table.setColumnHidden(col, not visibility[col])
-        
+
         # 恢复列顺序
         if order and len(order) == self.result_table.columnCount():
             # 先重置所有列到默认顺序
@@ -2114,60 +2145,55 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 current_visual_index = header.visualIndex(logical_index)
                 if current_visual_index != logical_index:
                     header.moveSection(current_visual_index, logical_index)
-            
+
             # 然后按照配置的顺序移动列
             for visual_index, logical_index in enumerate(order):
                 current_visual_index = header.visualIndex(logical_index)
                 if current_visual_index != visual_index:
                     header.moveSection(current_visual_index, visual_index)
-        
+
         # 先设置所有列的ResizeMode
         for col in range(self.result_table.columnCount()):
-            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+            config = self.table_manager.get_column_config(col)
+            if config.get('mode') == 'fixed':
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
-            elif col == self.result_table.columnCount() - 1:  # 最后一列
-                # 只有当最后一列不是固定列时，才设置为Stretch
-                if col not in [1, 3]:
-                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
-                else:
-                    # 如果最后一列是固定列，则设置为Fixed
-                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
             else:  # 其他可调整列
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
 
-        # 只有当最后一列不是固定列时，才启用自动拉伸
-        if self.result_table.columnCount() > 0:
-            last_col = self.result_table.columnCount() - 1
-            if last_col not in [1, 3]:
-                header.setStretchLastSection(True)
-            else:
+        # 检查最后一个可见列是否是固定列，如果是则不启用拉伸
+        last_visible_col = None
+        for visual_idx in range(header.count()):
+            logical_idx = header.logicalIndex(visual_idx)
+            if not self.result_table.isColumnHidden(logical_idx):
+                last_visible_col = logical_idx
+        if last_visible_col is not None:
+            last_col_config = self.table_manager.get_column_config(last_visible_col)
+            if last_col_config.get('mode') == 'fixed':
                 header.setStretchLastSection(False)
-        
+            else:
+                header.setStretchLastSection(True)
+
         # 然后设置列宽
         # 临时禁用sectionResized信号，防止信号处理影响列宽
-        header.sectionResized.disconnect(self.enforce_min_column_width)
+        # 不再需要断开连接，因为已经使用表格管理器的实现
 
         for col in range(self.result_table.columnCount()):
-            if col == 1:  # 时间轴列（固定列）
+            config = self.table_manager.get_column_config(col)
+            if config.get('mode') == 'fixed':
                 # 固定列使用硬编码值，不受配置文件影响
-                self.result_table.setColumnWidth(col, 80)
-            elif col == 3:  # 行号列（固定列）
-                # 固定列使用硬编码值，不受配置文件影响
-                self.result_table.setColumnWidth(col, 60)
+                self.result_table.setColumnWidth(col, config['fixed_width'])
             else:  # 可调整列
                 # 直接使用配置文件中的宽度，覆盖初始值
                 width = widths[col]
                 # 如果配置文件中该列有宽度设置，则使用配置文件中的值，否则使用默认值
                 if width > 0:
                     # 应用宽度限制
-                    config = self.table_manager.get_column_config(col)
                     min_width = config.get('min_width')
                     max_width = config.get('max_width')
                     if min_width is not None and max_width is not None:
                         width = min(max(min_width, width), max_width)
                 else:
                     # 如果配置文件中该列没有宽度设置，则使用默认值
-                    config = self.table_manager.get_column_config(col)
                     width = config.get('default', 200)
 
                 # 强制设置列宽，覆盖初始值
@@ -2190,7 +2216,34 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def on_section_moved(self, logicalIndex, oldVisualIndex, newVisualIndex):
         """当列顺序变化时，保存新的列顺序"""
+        # 恢复固定列的宽度
+        for col in range(self.result_table.columnCount()):
+            config = self.table_manager.get_column_config(col)
+            if config.get('mode') == 'fixed':
+                self.result_table.blockSignals(True)
+                self.result_table.setColumnWidth(col, config['fixed_width'])
+                self.result_table.blockSignals(False)
+
+        # 保存列设置
         self.save_column_settings()
+
+        # 根据最后一个可见列是否为固定列来设置拉伸属性
+        header = self.result_table.horizontalHeader()
+        last_visible_col = None
+        for visual_idx in range(header.count()):
+            logical_idx = header.logicalIndex(visual_idx)
+            if not self.result_table.isColumnHidden(logical_idx):
+                last_visible_col = logical_idx
+        if last_visible_col is not None:
+            last_col_config = self.table_manager.get_column_config(last_visible_col)
+            if last_col_config.get('mode') == 'fixed':
+                header.setStretchLastSection(False)
+            else:
+                header.setStretchLastSection(True)
+
+        # 强制更新表头布局，确保固定列宽设置生效
+        header.doItemsLayout()
+        self.result_table.updateGeometry()
     
     def save_column_settings(self):
         """保存列宽和列顺序到配置文件"""
