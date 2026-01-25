@@ -1959,6 +1959,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def toggle_column_visibility(self, col_index, checked):
         """切换列的显示/隐藏状态"""
+        # 获取表格容器宽度
+        table_width = self.result_table.viewport().width()
+        
+        # 记录当前所有列的宽度，用于后续计算
+        current_widths = [self.result_table.columnWidth(col) for col in range(self.result_table.columnCount())]
+        
+        # 执行列隐藏/显示操作
         self.result_table.setColumnHidden(col_index, not checked)
 
         # 保存列显示配置
@@ -1974,6 +1981,48 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 重新设置列的调整模式和拉伸属性
         header = self.result_table.horizontalHeader()
 
+        # 计算可见列的总宽度和弹性列信息
+        visible_width = 0
+        flexible_columns = []  # 存储弹性列索引
+        fixed_columns = []     # 存储固定列索引
+        
+        for col in range(self.result_table.columnCount()):
+            if not self.result_table.isColumnHidden(col):
+                config = self.table_manager.get_column_config(col)
+                if config.get('mode') == 'fixed':
+                    visible_width += config['fixed_width']
+                    fixed_columns.append(col)
+                else:
+                    visible_width += self.result_table.columnWidth(col)
+                    flexible_columns.append(col)
+        
+        # 计算可用宽度和需要分配的额外宽度
+        available_width = table_width
+        extra_width = available_width - visible_width
+        
+        # 如果有额外宽度需要分配，且存在弹性列
+        if extra_width > 0 and flexible_columns:
+            # 计算每个弹性列当前宽度占弹性列总宽度的比例
+            total_flexible_width = 0
+            for col in flexible_columns:
+                total_flexible_width += self.result_table.columnWidth(col)
+            
+            # 按照比例分配额外宽度
+            for col in flexible_columns:
+                current_width = self.result_table.columnWidth(col)
+                if total_flexible_width > 0:
+                    # 计算该列应分配的额外宽度
+                    col_extra = int(extra_width * (current_width / total_flexible_width))
+                    new_width = current_width + col_extra
+                    
+                    # 应用宽度限制
+                    config = self.table_manager.get_column_config(col)
+                    min_width = config.get('min_width', 0)
+                    max_width = config.get('max_width', float('inf'))
+                    new_width = max(min_width, min(max_width, new_width))
+                    
+                    self.result_table.setColumnWidth(col, new_width)
+        
         # 先设置所有列的ResizeMode
         for col in range(self.result_table.columnCount()):
             config = self.table_manager.get_column_config(col)
