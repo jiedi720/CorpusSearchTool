@@ -1102,8 +1102,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 alternate-background-color: #252525;
                 color: #ffffff;
                 gridline-color: #404040;
-                border: 1px solid #404040;
-                border-radius: 5px;
+                border: none;
+                border-radius: 0px;
                 font-size: 11pt;
             }
             QTableWidget::item:selected {
@@ -1126,7 +1126,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             QHeaderView::section {
                 background-color: #505050;
                 color: #ffffff;
-                padding: 5px 8px;
+                padding: 0px 0px;
                 border: none;
                 border-right: 1px solid #606060;
                 border-bottom: 1px solid #606060;
@@ -1966,11 +1966,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         for col in range(self.result_table.columnCount()):
             if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
-            else:  # 可调整列
+            elif col == self.result_table.columnCount() - 1:  # 最后一列（文件名列）
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+            else:  # 其他可调整列
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
 
-        # 禁用最后一列自动拉伸，确保固定列不受影响
-        header.setStretchLastSection(False)
+        # 启用最后一列自动拉伸，填满剩余空间
+        header.setStretchLastSection(True)
         
         # 然后设置列宽
         # 临时禁用sectionResized信号，防止信号处理影响列宽
