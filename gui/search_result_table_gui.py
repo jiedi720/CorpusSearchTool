@@ -304,21 +304,20 @@ class SearchResultTableManager:
         self.result_table.setColumnCount(5)
         self.result_table.setHorizontalHeaderLabels(['集数', '时间轴', '对应台词', '行号', '文件名'])
         
-        # 设置表头
-        header = self.result_table.horizontalHeader()
-        header.setSectionsMovable(True)  # 允许列拖动
-        header.setSectionsClickable(True)  # 允许点击列头排序
-        header.setSortIndicatorShown(False)  # 默认不显示排序指示器
-        
         # 创建自定义表头
         custom_header = CustomHeaderView(Qt.Orientation.Horizontal, self.result_table)
         self.result_table.setHorizontalHeader(custom_header)
         
-        # 确保表头允许调整列宽
+        # 设置表头属性
         custom_header.setSectionsMovable(True)  # 允许列拖动
         custom_header.setSectionsClickable(True)  # 允许点击列头排序
         custom_header.setHighlightSections(True)  # 高亮选中的列
         custom_header.setCascadingSectionResizes(True)  # 允许级联调整列宽
+        custom_header.setDragEnabled(True)  # 启用拖拽功能
+        
+        # 启用表格的拖放功能
+        self.result_table.setDragDropMode(QTableWidget.DragDropMode.DragDrop)
+        self.result_table.setDragEnabled(True)
         
         # 设置列宽
         self.restore_column_settings()
@@ -570,6 +569,9 @@ class CustomHeaderView(QHeaderView):
         self.setSectionsClickable(True)
         self.setHighlightSections(True)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        # 启用拖拽功能
+        self.setDragEnabled(True)
+        self.setSectionsMovable(True)
         # 不在这里连接信号，而是在主窗口类中连接
         
         # 拖拽相关属性
@@ -580,7 +582,7 @@ class CustomHeaderView(QHeaderView):
         self.hovered_section = -1
         
     def mousePressEvent(self, event):
-        """处理鼠标按下事件"""
+        """处理鼠标按下事件，设置拖拽状态"""
         if self.orientation() == Qt.Orientation.Horizontal:
             pos = event.position()
             
@@ -606,11 +608,14 @@ class CustomHeaderView(QHeaderView):
                     # 如果是最右边的列的右边边缘，禁止拖拽
                     if is_last_visible:
                         return
+                else:
+                    # 不是调整列宽，准备开始拖拽
+                    self.dragging_section = section
         
         super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
-        """处理鼠标移动事件，跟踪悬停列"""
+        """处理鼠标移动事件，跟踪悬停列，拖拽时锁定悬停特效"""
         if self.orientation() != Qt.Orientation.Horizontal:
             return
         
@@ -639,10 +644,11 @@ class CustomHeaderView(QHeaderView):
                     self.unsetCursor()
                     return
         
-        # 跟踪鼠标悬停的列
-        if self.hovered_section != section:
-            self.hovered_section = section
-            self.update()
+        # 只有在非拖拽状态下才更新悬停列
+        if self.dragging_section == -1:
+            if self.hovered_section != section:
+                self.hovered_section = section
+                self.update()
         
         super().mouseMoveEvent(event)
     
@@ -685,6 +691,13 @@ class CustomHeaderView(QHeaderView):
         self.drop_position = -1
         self.update()
     
+    def mouseReleaseEvent(self, event):
+        """处理鼠标释放事件，重置拖拽状态"""
+        super().mouseReleaseEvent(event)
+        # 重置拖拽状态
+        self.dragging_section = -1
+        self.update()
+    
     def leaveEvent(self, event):
         """处理鼠标离开事件，清除悬停状态"""
         super().leaveEvent(event)
@@ -710,24 +723,28 @@ class CustomHeaderView(QHeaderView):
                 
                 with QPainter(viewport) as painter:
                     # 绘制悬停特效
-                    if self.hovered_section != -1:
-                        # 获取悬停列的位置和大小
-                        hovered_pos = self.sectionViewportPosition(self.hovered_section)
-                        hovered_size = self.sectionSize(self.hovered_section)
+                    # 如果正在拖拽，悬浮特效显示在被拖拽的表头上
+                    # 否则显示在鼠标悬停的表头上
+                    active_section = self.dragging_section if self.dragging_section != -1 else self.hovered_section
+                    
+                    if active_section != -1:
+                        # 获取活动列的位置和大小
+                        active_pos = self.sectionViewportPosition(active_section)
+                        active_size = self.sectionSize(active_section)
                         
                         # 创建渐变背景
-                        gradient = QLinearGradient(hovered_pos, 0, hovered_pos + hovered_size, 0)
+                        gradient = QLinearGradient(active_pos, 0, active_pos + active_size, 0)
                         gradient.setColorAt(0, QColor(0, 120, 215, 50))
                         gradient.setColorAt(1, QColor(0, 120, 215, 20))
                         
                         # 绘制渐变背景
-                        painter.fillRect(hovered_pos, 0, hovered_size, self.height(), gradient)
+                        painter.fillRect(active_pos, 0, active_size, self.height(), gradient)
                         
                         # 绘制边框
                         painter.setPen(QPen(QColor(0, 120, 215, 150), 2, Qt.PenStyle.SolidLine))
-                        painter.drawRect(hovered_pos, 0, hovered_size, self.height())
+                        painter.drawRect(active_pos, 0, active_size, self.height())
                     
-                    # 绘制插入符号
+                    # 绘制插入符号 - 在表格边线上显示白色高亮线
                     if self.drop_position != -1:
                         # 计算插入符号位置
                         if self.drop_position == 0:
@@ -741,30 +758,16 @@ class CustomHeaderView(QHeaderView):
                             logical_index = self.logicalIndex(self.drop_position - 1)
                             x = self.sectionViewportPosition(logical_index) + self.sectionSize(logical_index)
                         
-                        # 使用更明显的颜色（亮黄色）
-                        indicator_color = QColor(255, 215, 0)  # 金黄色
-                        painter.setPen(QPen(indicator_color, 3, Qt.PenStyle.SolidLine))
-                        painter.setBrush(indicator_color)
+                        # 使用白色高亮线
+                        highlight_color = QColor(255, 255, 255)  # 白色
+                        painter.setPen(QPen(highlight_color, 2, Qt.PenStyle.SolidLine))
                         
-                        # 绘制垂直线
+                        # 绘制垂直高亮线
                         painter.drawLine(x, 0, x, self.height())
                         
-                        # 绘制顶部箭头（向下指）
-                        arrow_size = 12
-                        top_arrow = [
-                            QPoint(x, 0),
-                            QPoint(x - arrow_size, arrow_size),
-                            QPoint(x + arrow_size, arrow_size)
-                        ]
-                        painter.drawPolygon(top_arrow)
-                        
-                        # 绘制底部箭头（向上指）
-                        bottom_arrow = [
-                            QPoint(x, self.height()),
-                            QPoint(x - arrow_size, self.height() - arrow_size),
-                            QPoint(x + arrow_size, self.height() - arrow_size)
-                        ]
-                        painter.drawPolygon(bottom_arrow)
+                        # 绘制水平高亮线，连接到垂直高亮线的两端
+                        painter.drawLine(x - 10, 0, x + 10, 0)  # 顶部水平线段
+                        painter.drawLine(x - 10, self.height(), x + 10, self.height())  # 底部水平线段
             except Exception as e:
                 # 捕获所有异常，避免程序崩溃
                 print(f"paintEvent error: {e}")
