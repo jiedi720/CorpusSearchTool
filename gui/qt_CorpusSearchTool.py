@@ -907,7 +907,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         search_btn.setMaximumWidth(140)
         
         # 创建独立的历史按钮
-        history_btn = QPushButton("📜 搜索历史")
+        history_btn = QPushButton("搜索历史")
         history_btn.clicked.connect(self.show_search_history)
         history_btn.setMinimumWidth(140)
         history_btn.setMaximumWidth(140)
@@ -973,9 +973,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 更新当前标签页索引
         self.current_corpus_tab = index
         
+        # 更新搜索历史管理器的语料库类型
+        corpus_type = "eng" if index == 0 else "kor"
+        search_history_manager.set_corpus_type(corpus_type)
+        
         # 根据新标签页类型更新ReadPathInput
-        corpus_type = "english" if index == 0 else "korean"
-        corpus_config = config_manager.get_corpus_config(corpus_type)
+        corpus_type_config = "english" if index == 0 else "korean"
+        corpus_config = config_manager.get_corpus_config(corpus_type_config)
         self.ReadPathInput.setText(corpus_config['input_dir'])
     
     def save_current_tab_config(self):
@@ -984,9 +988,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             corpus_type = "english"
             input_path = self.ReadPathInput.text().strip()
             keyword_type = self.english_keyword_combo.currentText()  # 获取实际选项文本
-            case_sensitive = self.english_case_sensitive_check.isChecked()
-            fuzzy_match = self.english_fuzzy_match_check.isChecked()
-            regex_enabled = self.english_regex_check.isChecked()
+            case_sensitive = self.english_case_sensitive_check.isChecked() if hasattr(self, 'english_case_sensitive_check') else False
+            fuzzy_match = self.english_fuzzy_match_check.isChecked() if hasattr(self, 'english_fuzzy_match_check') else False
+            regex_enabled = self.english_regex_check.isChecked() if hasattr(self, 'english_regex_check') else False
         else:  # 韩语语料库
             corpus_type = "korean"
             input_path = self.ReadPathInput.text().strip()
@@ -1299,9 +1303,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         if self.current_corpus_tab == 0:  # 英语语料库
             keywords = self.english_keyword_edit.text().strip()
-            case_sensitive = self.english_case_sensitive_check.isChecked()
-            fuzzy_match = self.english_fuzzy_match_check.isChecked()
-            regex_enabled = self.english_regex_check.isChecked()
+            case_sensitive = self.english_case_sensitive_check.isChecked() if hasattr(self, 'english_case_sensitive_check') else False
+            fuzzy_match = self.english_fuzzy_match_check.isChecked() if hasattr(self, 'english_fuzzy_match_check') else False
+            regex_enabled = self.english_regex_check.isChecked() if hasattr(self, 'english_regex_check') else False
         else:  # 韩语语料库
             keywords = self.korean_keyword_edit.text().strip()
             case_sensitive = False  # 韩语不区分大小写
@@ -1457,14 +1461,11 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.ProgressBar.setValue(0)
         
         # 创建并启动搜索线程
-        # 对于韩语，使用生成的变体列表；对于英语，使用原始关键词
-        search_keywords = keywords
-        if self.current_corpus_tab == 1 and hasattr(self, 'korean_variant_set'):
-            search_keywords = self.korean_variant_set
-        
+        # 使用原始关键词进行搜索
+        # 对于韩语，搜索线程内部的 search_korean_advanced 方法会自动生成变体列表
         self.search_thread = SearchThread(
             input_path,
-            search_keywords,
+            keywords,
             case_sensitive,
             fuzzy_match,
             regex_enabled,
@@ -1657,18 +1658,33 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
         search_history_manager.set_corpus_type(corpus_type)
         
+        print(f"[DEBUG] 当前标签页: {self.current_corpus_tab}, 语料库类型: {corpus_type}")
+        print(f"[DEBUG] 历史文件: {search_history_manager.history_file}")
+        
         # 检查是否有历史记录
         history = search_history_manager.get_recent_records(100)
+        print(f"[DEBUG] 加载的历史记录数量: {len(history)}")
+        
         if not history:
             corpus_name = "英语" if corpus_type == "eng" else "韩语"
-            QMessageBox.information(self, "📜 搜索历史", f"{corpus_name}语料库暂无搜索历史")
+            QMessageBox.information(self, "搜索历史", f"{corpus_name}语料库暂无搜索历史")
             return
         
-        # 如果历史窗口已存在且未关闭，则直接显示
-        if self.history_window is not None and not self.history_window.isHidden():
+        # 如果历史窗口已存在且未关闭，且语料库类型匹配，则直接显示
+        if (self.history_window is not None and 
+            not self.history_window.isHidden() and 
+            hasattr(self.history_window, 'corpus_type') and 
+            self.history_window.corpus_type == corpus_type):
             self.history_window.raise_()
             self.history_window.activateWindow()
             return
+        
+        # 关闭旧的历史窗口（如果存在且语料库类型不匹配）
+        if (self.history_window is not None and 
+            hasattr(self.history_window, 'corpus_type') and 
+            self.history_window.corpus_type != corpus_type):
+            self.history_window.close()
+            self.history_window = None
         
         # 创建并显示历史窗口
         self.history_window = SearchHistoryWindow(corpus_type, self)
