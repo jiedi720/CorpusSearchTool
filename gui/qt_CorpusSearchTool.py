@@ -60,6 +60,11 @@ class SearchThread(QThread):
         self.exact_match = exact_match  # 是否完全匹配（引号内）
         self.lemma = ""  # 系统判定的词典形
         self.actual_variant_set = []  # 基于词典形实际命中的所有变体形式列表
+        self._stop_flag = False  # 停止标志
+    
+    def stop(self):
+        """停止搜索"""
+        self._stop_flag = True
     
     def run(self):
         """执行搜索"""
@@ -108,6 +113,10 @@ class SearchThread(QThread):
                 self.target_variant_set = []
                 
                 for i, file_path in enumerate(files_to_search):
+                    # 检查是否需要停止
+                    if self._stop_flag:
+                        return
+                    
                     try:
                         # 使用新的 search_korean_advanced 方法
                         search_record = search_engine_kor.search_korean_advanced(
@@ -183,6 +192,10 @@ class SearchThread(QThread):
                 if contains_korean and not self.regex_enabled:
                     # 使用韩语变形匹配功能
                     for i, file_path in enumerate(files_to_search):
+                        # 检查是否需要停止
+                        if self._stop_flag:
+                            return
+                        
                         file_results = search_engine_eng.search_english_variants(
                             file_path,
                             self.keywords.split(),
@@ -198,6 +211,10 @@ class SearchThread(QThread):
                     keyword_list = self.keywords.split()
                     
                     for i, file_path in enumerate(files_to_search):
+                        # 检查是否需要停止
+                        if self._stop_flag:
+                            return
+                        
                         try:
                             file_results = search_engine_eng.search_in_file(
                                 file_path,
@@ -389,6 +406,12 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 连接搜索历史按钮点击事件
         self.history_btn.clicked.connect(self.show_search_history)
         
+        # 连接生成变体表按钮点击事件
+        self.lemmalist_btn.clicked.connect(self.generate_lemmalist)
+        
+        # 连接停止搜索按钮点击事件
+        self.stop_search_btn.clicked.connect(self.stop_search)
+        
         # 初始化变量
         self.current_corpus_tab = self.corpus_tab_widget.currentIndex()
         
@@ -432,6 +455,69 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 标记初始化完成
         self._initialized = True
     
+    def generate_lemmalist(self):
+        """
+        生成变体表
+        """
+        try:
+            # 获取当前标签页和关键词
+            if self.current_corpus_tab == 0:  # 英语语料库
+                keywords = self.english_keyword_edit.text().strip()
+                if not keywords:
+                    QMessageBox.warning(self, "❌ 错误", "请输入关键词")
+                    return
+                
+                # 生成英语变体表（简化版）
+                # 这里可以扩展，实现更复杂的英语变体表生成逻辑
+                lemmalist_text = f"关键词: {keywords}\n\n变体表生成功能正在开发中..."
+                
+                # 更新显示
+                self.english_lemmalist_display.setText(lemmalist_text)
+            else:  # 韩语语料库
+                keywords = self.korean_keyword_edit.text().strip()
+                if not keywords:
+                    QMessageBox.warning(self, "❌ 错误", "请输入关键词")
+                    return
+                
+                # 使用韩语搜索引擎生成变体表
+                from function.search_engine_kor import search_engine_kor
+                
+                # 生成变体列表
+                target_variant_set = []
+                
+                # 使用 search_korean_advanced 方法生成变体列表
+                # 注意：这里我们只需要变体列表，不需要实际搜索结果
+                # 所以我们可以创建一个临时的搜索记录，只获取变体列表
+                temp_search_record = search_engine_kor.search_korean_advanced(
+                    "",  # 空文件路径，仅用于获取变体列表
+                    keywords,
+                    case_sensitive=True
+                )
+                
+                if 'target_variant_set' in temp_search_record:
+                    target_variant_set = temp_search_record['target_variant_set']
+                
+                # 格式化变体列表
+                if target_variant_set:
+                    lemmalist_text = f"关键词: {keywords}\n\n变体列表:\n" + "\n".join(target_variant_set)
+                else:
+                    lemmalist_text = f"关键词: {keywords}\n\n未生成变体列表"
+                
+                # 更新显示
+                self.korean_lemmalist_display.setText(lemmalist_text)
+        except Exception as e:
+            QMessageBox.critical(self, "❌ 错误", f"生成变体表失败: {str(e)}")
+    
+    def stop_search(self):
+        """
+        停止当前搜索
+        """
+        if self.search_thread and self.search_thread.isRunning():
+            self.search_thread.stop()
+            QMessageBox.information(self, "ℹ️ 提示", "搜索已停止")
+        else:
+            QMessageBox.information(self, "ℹ️ 提示", "当前没有正在运行的搜索")
+    
     def set_icon_paths(self):
         """
         重新设置图标路径，确保图标正确加载
@@ -455,6 +541,12 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # search_btn 按钮使用 search 图标
         self.search_btn.setIcon(QIcon(os.path.join(icon_dir, "search.png")))
+        
+        # lemmalist_btn 按钮使用 start-up 图标
+        self.lemmalist_btn.setIcon(QIcon(os.path.join(icon_dir, "start-up.png")))
+        
+        # stop_search_btn 按钮使用 stop 图标
+        self.stop_search_btn.setIcon(QIcon(os.path.join(icon_dir, "stop.png")))
     
     def load_settings(self):
         """加载配置"""
