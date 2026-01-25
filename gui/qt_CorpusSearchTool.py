@@ -455,6 +455,19 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 标记初始化完成
         self._initialized = True
     
+    def format_lemma_display(self, pos_full, lemma):
+        """
+        格式化词典形显示文本（共享方法）
+        
+        Args:
+            pos_full: 完整的词性描述
+            lemma: 词典形
+            
+        Returns:
+            格式化后的文本：[词性]：词典形
+        """
+        return f"[{pos_full}]：{lemma}"
+    
     def generate_lemmalist(self):
         """
         生成变体表
@@ -482,31 +495,87 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 # 使用韩语搜索引擎生成变体表
                 from function.search_engine_kor import search_engine_kor
                 
-                # 生成变体列表
-                target_variant_set = []
+                # 1. 使用kiwipiepy分析原始关键词
+                analyzed_words = search_engine_kor.kiwi.analyze(keywords)
                 
-                # 使用 search_korean_advanced 方法生成变体列表
-                # 注意：这里我们只需要变体列表，不需要实际搜索结果
-                # 所以我们可以创建一个临时的搜索记录，只获取变体列表
-                temp_search_record = search_engine_kor.search_korean_advanced(
-                    "",  # 空文件路径，仅用于获取变体列表
-                    keywords,
-                    case_sensitive=True
-                )
+                # 提取第一个分析结果的主要词（假设只有一个关键词）
+                main_word = None
+                for token in analyzed_words[0][0]:
+                    if token.form.strip() == keywords.strip():
+                        main_word = token
+                        break
                 
-                if 'target_variant_set' in temp_search_record:
-                    target_variant_set = temp_search_record['target_variant_set']
+                if not main_word:
+                    # 如果直接匹配失败，尝试取第一个非标点的词
+                    for token in analyzed_words[0][0]:
+                        if token.tag not in ['SF', 'SP', 'SS', 'SE', 'SO', 'SW']:
+                            main_word = token
+                            break
                 
-                # 格式化变体列表
-                if target_variant_set:
-                    lemmalist_text = f"关键词: {keywords}\n\n变体列表:\n" + "\n".join(target_variant_set)
+                # 后处理：修正kiwipiepy的常见分析错误
+                should_fix = False
+                if main_word and keywords.endswith('다') and main_word.tag == 'MAG':
+                    tokens = analyzed_words[0][0]
+                    if len(tokens) >= 2:
+                        if tokens[-1].form == '다':
+                            combined_lemma = ''.join([t.form for t in tokens])
+                            pos = 'VV'
+                            lemma = combined_lemma
+                            should_fix = True
+                
+                if not main_word:
+                    lemma = keywords
+                    pos = 'Noun'
                 else:
-                    lemmalist_text = f"关键词: {keywords}\n\n未生成变体列表"
+                    if not should_fix:
+                        lemma = main_word.lemma
+                        pos = main_word.tag
                 
-                # 更新显示
-                self.korean_lemmalist_display.setText(lemmalist_text)
+                # 词性标签映射
+                pos_map = {
+                    'VV': '规则动词 (Regular Verb)',
+                    'VV-I': '不规则动词 (Irregular Verb)',
+                    'VA': '规则形容词 (Regular Adjective)',
+                    'VA-I': '不规则形容词 (Irregular Adjective)',
+                    'VX': '辅助用言 (Auxiliary Verb)',
+                    'VCP': '肯定体词谓词 (Positive Copula)',
+                    'VCN': '否定体词谓词 (Negative Copula)',
+                    'XSV': '动词性派生词 (Verb Derivative)',
+                    'XSA': '形容词性派生词 (Adjective Derivative)',
+                    'NNG': '一般名词 (Common Noun)',
+                    'NNP': '专有名词 (Proper Noun)',
+                    'NNB': '依存名词 (Dependent Noun)',
+                    'NR': '数词 (Numeral)',
+                    'NP': '代名词 (Pronoun)',
+                    'MAG': '一般副词 (General Adverb)',
+                    'MAJ': '接续副词 (Conjunctive Adverb)',
+                }
+                pos_full = pos_map.get(pos, pos)
+                
+                # 2. 更新词典形显示框（使用共享的格式化方法）
+                self.korean_lemma_display.setText(self.format_lemma_display(pos_full, lemma))
+                
+                # 3. 判定词性并生成变体
+                verb_adj_tags = ['VV', 'VV-I', 'VA', 'VA-I', 'VX', 'VCP', 'VCN', 'XSV', 'XSA']
+                is_verb_adj = pos in verb_adj_tags
+                
+                noun_adv_tags = ['NNG', 'NNP', 'NNB', 'NR', 'NP', 'MAG', 'MAJ']
+                is_noun_adv = pos in noun_adv_tags
+                
+                if is_noun_adv:
+                    variant_set = [keywords]
+                else:
+                    variant_set = search_engine_kor._generate_korean_variants(lemma)
+                    if lemma not in variant_set:
+                        variant_set.append(lemma)
+                    if keywords not in variant_set:
+                        variant_set.append(keywords)
+                
+                # 4. 更新变体列表显示框（用逗号分隔，与搜索功能一致）
+                variant_text = ", ".join(variant_set)
+                self.korean_lemmalist_display.setText(variant_text)
         except Exception as e:
-            QMessageBox.critical(self, "❌ 错误", f"生成变体表失败: {str(e)}")
+            QMessageBox.critical(self, "错误", f"生成变体表失败: {str(e)}")
     
     def stop_search(self):
         """
@@ -514,9 +583,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         """
         if self.search_thread and self.search_thread.isRunning():
             self.search_thread.stop()
-            QMessageBox.information(self, "ℹ️ 提示", "搜索已停止")
+            QMessageBox.information(self, "提示", "搜索已停止")
         else:
-            QMessageBox.information(self, "ℹ️ 提示", "当前没有正在运行的搜索")
+            QMessageBox.information(self, "提示", "当前没有正在运行的搜索")
     
     def set_icon_paths(self):
         """
@@ -1284,72 +1353,100 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.current_search_params['keyword_type'] = keyword_type
         
         # 分析关键词词典型并显示
+        # 对于韩语，先调用 generate_lemmalist 生成变体列表
         if self.current_corpus_tab == 0:  # 英语语料库
             # 英语词典型显示（简化版）
             lemma_text = "N/A"  # 英语暂不实现词典型分析
             self.english_lemma_display.setText(lemma_text)
         else:  # 韩语语料库
-            # 使用kiwipiepy分析韩语关键词
+            # 调用 generate_lemmalist 方法生成词典形和变体列表
             from function.search_engine_kor import search_engine_kor
             try:
-                # 分析关键词
+                # 1. 使用kiwipiepy分析原始关键词
                 analyzed_words = search_engine_kor.kiwi.analyze(keywords)
                 
-                # 提取主要词的词典型
-                lemma_text = "N/A"
-                if analyzed_words and analyzed_words[0] and analyzed_words[0][0]:
-                    # 取第一个分析结果的第一个词
-                    main_word = analyzed_words[0][0][0]
-                    
-                    # 后处理：修正kiwipiepy的常见分析错误
-                    # 如果原始关键词以다结尾，但被分析为副词(MAG)，则修正为动词(VV)
-                    should_fix = False
-                    if keywords.endswith('다') and main_word.tag == 'MAG':
-                        # 检查是否由多个token组成
-                        tokens = analyzed_words[0][0]
-                        if len(tokens) >= 2 and tokens[-1].form == '다':
-                            # 修正词性和词典形
-                            combined_lemma = ''.join([t.form for t in tokens])
-                            # 创建修正后的词性
-                            corrected_tag = 'VV'
-                            corrected_lemma = combined_lemma
-                            should_fix = True
-                    
-                    # 词性标签映射：缩写 → 全称
-                    pos_map = {
-                        # 用言 (动词/形容词) 及其变体后缀
-                        'VV': '规则动词 (Regular Verb)',
-                        'VV-I': '不规则动词 (Irregular Verb)',
-                        'VA': '规则形容词 (Regular Adjective)',
-                        'VA-I': '不规则形容词 (Irregular Adjective)',
-                        'VX': '辅助用言 (Auxiliary Verb)',
-                        'VCP': '肯定体词谓词 (Positive Copula)',
-                        'VCN': '否定体词谓词 (Negative Copula)',
-                        'XSV': '动词性派生词 (Verb Derivative)',
-                        'XSA': '形容词性派生词 (Adjective Derivative)',
-                        
-                        # 体词 (名词类) 的细分
-                        'NNG': '一般名词 (Common Noun)',
-                        'NNP': '专有名词 (Proper Noun)',
-                        'NNB': '依存名词 (Dependent Noun)',
-                        'NR': '数词 (Numeral)',
-                        'NP': '代名词 (Pronoun)',
-                        
-                        # 其他词性
-                        'MAG': '一般副词 (General Adverb)',
-                        'MAJ': '接续副词 (Conjunctive Adverb)'
-                    }
-                    
-                    # 使用修正后的词性或原始词性
-                    tag_to_use = corrected_tag if should_fix else main_word.tag
-                    lemma_to_use = corrected_lemma if should_fix else main_word.lemma
-                    pos_full = pos_map.get(tag_to_use, tag_to_use)
-                    lemma_text = f"{keywords} ({pos_full}) → {lemma_to_use}"
+                # 提取第一个分析结果的主要词
+                main_word = None
+                for token in analyzed_words[0][0]:
+                    if token.form.strip() == keywords.strip():
+                        main_word = token
+                        break
                 
-                self.korean_lemma_display.setText(lemma_text)
+                if not main_word:
+                    for token in analyzed_words[0][0]:
+                        if token.tag not in ['SF', 'SP', 'SS', 'SE', 'SO', 'SW']:
+                            main_word = token
+                            break
+                
+                # 后处理：修正kiwipiepy的常见分析错误
+                should_fix = False
+                if main_word and keywords.endswith('다') and main_word.tag == 'MAG':
+                    tokens = analyzed_words[0][0]
+                    if len(tokens) >= 2:
+                        if tokens[-1].form == '다':
+                            combined_lemma = ''.join([t.form for t in tokens])
+                            pos = 'VV'
+                            lemma = combined_lemma
+                            should_fix = True
+                
+                if not main_word:
+                    lemma = keywords
+                    pos = 'Noun'
+                else:
+                    if not should_fix:
+                        lemma = main_word.lemma
+                        pos = main_word.tag
+                
+                # 词性标签映射
+                pos_map = {
+                    'VV': '规则动词 (Regular Verb)',
+                    'VV-I': '不规则动词 (Irregular Verb)',
+                    'VA': '规则形容词 (Regular Adjective)',
+                    'VA-I': '不规则形容词 (Irregular Adjective)',
+                    'VX': '辅助用言 (Auxiliary Verb)',
+                    'VCP': '肯定体词谓词 (Positive Copula)',
+                    'VCN': '否定体词谓词 (Negative Copula)',
+                    'XSV': '动词性派生词 (Verb Derivative)',
+                    'XSA': '形容词性派生词 (Adjective Derivative)',
+                    'NNG': '一般名词 (Common Noun)',
+                    'NNP': '专有名词 (Proper Noun)',
+                    'NNB': '依存名词 (Dependent Noun)',
+                    'NR': '数词 (Numeral)',
+                    'NP': '代名词 (Pronoun)',
+                    'MAG': '一般副词 (General Adverb)',
+                    'MAJ': '接续副词 (Conjunctive Adverb)',
+                }
+                pos_full = pos_map.get(pos, pos)
+                
+                # 2. 更新词典形显示框
+                self.korean_lemma_display.setText(self.format_lemma_display(pos_full, lemma))
+                
+                # 3. 判定词性并生成变体
+                verb_adj_tags = ['VV', 'VV-I', 'VA', 'VA-I', 'VX', 'VCP', 'VCN', 'XSV', 'XSA']
+                is_verb_adj = pos in verb_adj_tags
+                
+                noun_adv_tags = ['NNG', 'NNP', 'NNB', 'NR', 'NP', 'MAG', 'MAJ']
+                is_noun_adv = pos in noun_adv_tags
+                
+                if is_noun_adv:
+                    variant_set = [keywords]
+                else:
+                    variant_set = search_engine_kor._generate_korean_variants(lemma)
+                    if lemma not in variant_set:
+                        variant_set.append(lemma)
+                    if keywords not in variant_set:
+                        variant_set.append(keywords)
+                
+                # 4. 更新变体列表显示框
+                variant_text = ", ".join(variant_set)
+                self.korean_lemmalist_display.setText(variant_text)
+                
+                # 5. 保存变体列表到实例变量，供搜索使用
+                self.korean_variant_set = variant_set
             except Exception as e:
                 print(f"分析韩语关键词出错: {e}")
                 self.korean_lemma_display.setText("分析错误")
+                self.korean_variant_set = [keywords]  # 出错时使用原始关键词
         
         # 禁用搜索按钮
         self.search_btn.setEnabled(False)
@@ -1360,9 +1457,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.ProgressBar.setValue(0)
         
         # 创建并启动搜索线程
+        # 对于韩语，使用生成的变体列表；对于英语，使用原始关键词
+        search_keywords = keywords
+        if self.current_corpus_tab == 1 and hasattr(self, 'korean_variant_set'):
+            search_keywords = self.korean_variant_set
+        
         self.search_thread = SearchThread(
             input_path,
-            keywords,
+            search_keywords,
             case_sensitive,
             fuzzy_match,
             regex_enabled,

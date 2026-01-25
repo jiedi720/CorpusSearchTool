@@ -361,7 +361,7 @@ QTabBar::tab:selected {
                  <number>10</number>
                 </property>
                 <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="0,0,1,0,1">
+                 <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="0,0,3,0,4">
                   <property name="spacing">
                    <number>8</number>
                   </property>
@@ -663,7 +663,7 @@ QFrame {
                  <number>10</number>
                 </property>
                 <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1,0,1">
+                 <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,3,0,4">
                   <property name="spacing">
                    <number>8</number>
                   </property>
@@ -856,7 +856,7 @@ QFrame {
 }</string>
                     </property>
                     <property name="text">
-                     <string>关键词 → 词典型</string>
+                     <string>[词性]：词典型</string>
                     </property>
                     <property name="alignment">
                      <set>Qt::AlignmentFlag::AlignCenter</set>

@@ -9,14 +9,9 @@
 import os
 import sys
 
-# 禁用 PySide6 的自动类型检查（避免递归错误）
-os.environ['PYQT_DISABLE_AUTOSIP'] = '1'
-os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
-
 
 def main():
     """主函数，启动应用程序"""
-    # 导入主窗口，延迟导入以处理PySide6依赖
     try:
         from PySide6.QtWidgets import QApplication
         from gui.qt_CorpusSearchTool import CorpusSearchToolGUI
@@ -34,8 +29,6 @@ def main():
         sys.exit(app.exec())
     except ImportError as e:
         print(f"导入错误: {e}")
-        print("请确保已安装所有依赖包:")
-        print("pip install -r requirements.txt")
         input("按回车键退出...")
         return 1
     except Exception as e:

@@ -300,37 +300,41 @@ def apply_theme(mode):
         if hasattr(widget, 'objectName') and widget.objectName() in display_widget_names:
             widget.setPalette(palette)
             # 设置显示控件的样式表，根据主题模式调整背景色和文本色
+            # 对于 lemmalist_display，使用更对称的 padding
+            is_lemmalist = 'lemmalist_display' in widget.objectName()
+            padding_value = '5px 10px' if is_lemmalist else '5px 15px'
+            
             if mode == "Dark":
-                widget.setStyleSheet("""
+                widget.setStyleSheet(f"""
                     /* 默认样式 (你的基础样式) */
-                    QLabel {
+                    QLabel {{
                         color: #ffffff;
                         background-color: #3a3a3a;
                         border: 2px solid #7953B1;
                         border-radius: 9px;
-                        padding: 5px 15px;
-                    }
+                        padding: {padding_value};
+                    }}
                     /* 拖拽悬浮时的特效样式 */
-                    QLabel[active="true"] {
+                    QLabel[active="true"] {{
                         background-color: #4a3f5e;  /* 背景变成浅紫色，暗示可放入 */
                         border: 3px solid #9b72cf;  /* 边框加粗并亮化 */
-                    }
+                    }}
                 """)
             else:  # Light 或 System 模式
-                widget.setStyleSheet("""
+                widget.setStyleSheet(f"""
                     /* 默认样式 (你的基础样式) */
-                    QLabel {
+                    QLabel {{
                         color: rgb(0, 0, 0);
                         background-color: #f0f0f0;
                         border: 2px solid #7953B1;
                         border-radius: 9px;
-                        padding: 5px 15px;
-                    }
+                        padding: {padding_value};
+                    }}
                     /* 拖拽悬浮时的特效样式 */
-                    QLabel[active="true"] {
+                    QLabel[active="true"] {{
                         background-color: #e0d4f7;  /* 背景变成浅紫色，暗示可放入 */
                         border: 3px solid #9b72cf;  /* 边框加粗并亮化 */
-                    }
+                    }}
                 """)
             widget.update()
         

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolueUrKP.ui'
+## Form generated from reading UI file 'CorpusSearchToolXoAEmU.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -355,8 +355,8 @@ class Ui_CorpusSearchTool(object):
 
         self.horizontalLayout_6.addWidget(self.english_lemma_display)
 
-        self.horizontalLayout_6.setStretch(2, 1)
-        self.horizontalLayout_6.setStretch(4, 1)
+        self.horizontalLayout_6.setStretch(2, 3)
+        self.horizontalLayout_6.setStretch(4, 4)
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_6)
 
@@ -506,8 +506,8 @@ class Ui_CorpusSearchTool(object):
 
         self.horizontalLayout_3.addWidget(self.korean_lemma_display)
 
-        self.horizontalLayout_3.setStretch(2, 1)
-        self.horizontalLayout_3.setStretch(4, 1)
+        self.horizontalLayout_3.setStretch(2, 3)
+        self.horizontalLayout_3.setStretch(4, 4)
 
         self.verticalLayout.addLayout(self.horizontalLayout_3)
 
@@ -900,7 +900,7 @@ class Ui_CorpusSearchTool(object):
 
         self.korean_keyword_edit.setPlaceholderText(QCoreApplication.translate("CorpusSearchTool", u"\u8f93\u5165\u641c\u7d22\u5173\u952e\u8bcd...", None))
         self.korean_lemma_label.setText(QCoreApplication.translate("CorpusSearchTool", u"\u8bcd\u5178\u578b:", None))
-        self.korean_lemma_display.setText(QCoreApplication.translate("CorpusSearchTool", u"\u5173\u952e\u8bcd \u2192 \u8bcd\u5178\u578b", None))
+        self.korean_lemma_display.setText(QCoreApplication.translate("CorpusSearchTool", u"[\u8bcd\u6027]\uff1a\u8bcd\u5178\u578b", None))
         self.korean_lemmalist_label.setText(QCoreApplication.translate("CorpusSearchTool", u"\u53d8\u4f53\u8868:", None))
         self.korean_lemmalist_display.setText(QCoreApplication.translate("CorpusSearchTool", u"\u53d8\u4f53\u578b\u5217\u8868", None))
         self.corpus_tab_widget.setTabText(self.corpus_tab_widget.indexOf(self.korean_tab), QCoreApplication.translate("CorpusSearchTool", u"\u97e9\u8bed\u8bed\u6599\u5e93", None))
