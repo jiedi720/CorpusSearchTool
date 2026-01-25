@@ -285,9 +285,6 @@ class SearchHistoryManager:
         if not timestamps_list:
             return
 
-        print(f"[DEBUG] 要删除的时间戳列表: {timestamps_list}")
-        print(f"[DEBUG] 删除前历史记录数量: {len(self.history)}")
-
         # 创建新的历史记录列表，排除指定时间戳的记录
         new_history = []
         removed_count = 0
@@ -306,8 +303,6 @@ class SearchHistoryManager:
                 # 其他格式，尝试只保留前19个字符
                 processed_timestamps.add(ts[:19])
         
-        print(f"[DEBUG] 处理后的时间戳列表: {processed_timestamps}")
-        
         for record in self.history:
             # 获取记录时间戳的前19个字符（YYYY-MM-DDTHH:MM:SS）
             record_ts = record['timestamp'][:19]
@@ -315,12 +310,10 @@ class SearchHistoryManager:
                 new_history.append(record)
             else:
                 removed_count += 1
-                print(f"[DEBUG] 删除记录: {record['keywords']} - {record['timestamp']}")
 
         # 更新历史记录
         self.history = new_history
         self.save_history()
-        print(f"[DEBUG] 删除后历史记录数量: {len(self.history)}, 实际删除: {removed_count}")
 
     def clear_history(self):
         """清空历史记录"""

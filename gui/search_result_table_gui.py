@@ -5,7 +5,7 @@
 
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QColor, QFont, QTextDocument, QPainter, QBrush
-from PySide6.QtWidgets import QStyledItemDelegate, QTableWidget, QHeaderView, QStyleOptionViewItem, QSizePolicy
+from PySide6.QtWidgets import QStyledItemDelegate, QTableWidget, QHeaderView, QStyleOptionViewItem, QSizePolicy, QMenu
 from gui.font import FontConfig
 from function.config_manager import ConfigManager
 
@@ -595,21 +595,31 @@ class CustomHeaderView(QHeaderView):
         # 获取所有列名
         column_names = []
         for col in range(self.count()):
-            column_names.append(self.model().headerData(col))
+            column_names.append(self.model().headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole))
         
         # 为每列创建菜单项
         for col, name in enumerate(column_names):
             action = menu.addAction(name)
             action.setCheckable(True)
             action.setChecked(not self.isSectionHidden(col))
-            action.triggered.connect(lambda checked, c=col: self.hideSection(c, checked))
+            action.triggered.connect(lambda checked, c=col: self.toggle_column_visibility(c, checked))
         
         menu.exec_(self.mapToGlobal(pos))
     
-    def hideSection(self, logical_index, hide):
+    def toggle_column_visibility(self, logical_index, visible):
         """显示/隐藏列"""
-        if hide:
-            self.hideSection(logical_index)
-        else:
-            self.showSection(logical_index)
-        self.setSectionHidden(logical_index, hide)
+        self.setSectionHidden(logical_index, not visible)
+        # 保存列显示配置
+        self.save_column_visibility()
+    
+    def save_column_visibility(self):
+        """保存列显示配置"""
+        from function.config_manager import config_manager
+        visibility = []
+        for col in range(self.count()):
+            visibility.append(not self.isSectionHidden(col))
+        
+        # 获取当前的列设置
+        column_settings = config_manager.get_column_settings('result')
+        # 只更新 visibility，保持 widths 和 order 不变
+        config_manager.set_column_settings('result', column_settings['widths'], column_settings['order'], visibility)

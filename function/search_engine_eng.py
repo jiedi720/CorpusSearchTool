@@ -33,7 +33,6 @@ class EnglishSearchEngine(SearchEngineBase):
         for word in base_words:
             # 生成可能的变形词
             variants = self._generate_english_variants(word)
-            print(f"[DEBUG] 词 '{word}' 生成的变体: {variants}")
             all_keywords.extend(variants)
         
         # 去重

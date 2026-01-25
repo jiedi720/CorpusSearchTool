@@ -98,7 +98,6 @@ class SearchEngineBase:
                     if keyword in search_content:
                         matched = True
                         matched_keywords.append(keyword)
-                        print(f"[DEBUG] 找到匹配: 关键词='{keyword}' 在内容中")
             
             if matched:
                 result_item = item.copy()
@@ -192,7 +191,6 @@ class SearchEngineBase:
                     'matched_keywords': [exact_text]
                 }
                 results.append(result)
-                print(f"[DEBUG] 完全匹配: {content} (行号: {line_number})")
         
         return results
 

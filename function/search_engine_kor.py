@@ -36,7 +36,6 @@ class KoreanSearchEngine(SearchEngineBase):
         for word in base_words:
             # 生成可能的变形词
             variants = self._generate_korean_variants(word)
-            print(f"[DEBUG] 词 '{word}' 生成的变体: {variants}")
             all_keywords.extend(variants)
         
         # 去重
@@ -73,26 +72,20 @@ class KoreanSearchEngine(SearchEngineBase):
         
         # 1. 使用kiwipiepy分析原始关键词
         analyzed_words = self.kiwi.analyze(raw_keyword)
-        print(f"[DEBUG] 关键词分析结果: {analyzed_words}")
         
         # 提取第一个分析结果的主要词（假设只有一个关键词）
         # 取第一个结果，忽略空格和其他词
         main_word = None
-        print(f"[DEBUG] 尝试匹配原始关键词: '{raw_keyword}'")
         for token in analyzed_words[0][0]:
-            print(f"[DEBUG] Token: form='{token.form}', tag='{token.tag}', lemma='{token.lemma}'")
             if token.form.strip() == raw_keyword.strip():
                 main_word = token
-                print(f"[DEBUG] 找到匹配的token: {token.form} ({token.tag})")
                 break
 
         if not main_word:
             # 如果直接匹配失败，尝试取第一个非标点的词
-            print(f"[DEBUG] 直接匹配失败，尝试取第一个非标点的词")
             for token in analyzed_words[0][0]:
                 if token.tag not in ['SF', 'SP', 'SS', 'SE', 'SO', 'SW']:
                     main_word = token
-                    print(f"[DEBUG] 选择非标点token: {token.form} ({token.tag})")
                     break
                     break
 
@@ -100,7 +93,6 @@ class KoreanSearchEngine(SearchEngineBase):
         # 如果原始关键词以다结尾，但被分析为副词(MAG)，则修正为动词(VV)
         should_fix = False
         if main_word and raw_keyword.endswith('다') and main_word.tag == 'MAG':
-            print(f"[DEBUG] 检测到다结尾的词被误判为副词，修正为动词")
             # 检查是否由多个token组成（如 이루 + 다）
             tokens = analyzed_words[0][0]
             if len(tokens) >= 2:
@@ -112,10 +104,8 @@ class KoreanSearchEngine(SearchEngineBase):
                     pos = 'VV'
                     lemma = combined_lemma
                     should_fix = True
-                    print(f"[DEBUG] 修正后: pos='{pos}', lemma='{lemma}'")
 
         if not main_word:
-            print(f"[DEBUG] 无法分析关键词: {raw_keyword}")
             # 无法分析时，默认按名词处理
             lemma = raw_keyword
             pos = 'Noun'
@@ -169,8 +159,6 @@ class KoreanSearchEngine(SearchEngineBase):
         noun_adv_tags = ['NNG', 'NNP', 'NNB', 'NR', 'NP', 'MAG', 'MAJ']
         is_noun_adv = pos in noun_adv_tags
 
-        print(f"[DEBUG] 词性判定: pos='{pos}', is_verb_adj={is_verb_adj}, is_noun_adv={is_noun_adv}")
-        
         # 3. 构建搜索用的目标形式集合
         if is_noun_adv:
             # 名词/副词：仅包含原始关键词
@@ -184,7 +172,6 @@ class KoreanSearchEngine(SearchEngineBase):
             # 确保包含原始关键词
             if raw_keyword not in variant_set:
                 variant_set.append(raw_keyword)
-            print(f"[DEBUG] 生成的所有变体: {variant_set}")
         
         # 4. 在语料库中检索
         results = []
@@ -251,7 +238,6 @@ class KoreanSearchEngine(SearchEngineBase):
                     'matched_keyword': matched_variant
                 }
                 results.append(result)
-                print(f"[DEBUG] 匹配到: {content} (行号: {line_number})")
         
         # 词性标签映射：缩写 → 全称
         pos_map = {
@@ -331,14 +317,12 @@ class KoreanSearchEngine(SearchEngineBase):
         
         # 提取核心词（去掉助词）
         core_words = self._extract_core_words(idiom)
-        print(f"[DEBUG] 惯用语核心词: {core_words}")
         
         # 为每个核心词生成变体（动词/形容词）
         all_word_variants = {}
         for word in core_words:
             variants = self._generate_korean_variants(word)
             all_word_variants[word] = variants
-            print(f"[DEBUG] '{word}' 的变体: {variants}")
         
         results = []
         
@@ -410,7 +394,6 @@ class KoreanSearchEngine(SearchEngineBase):
                     'matched_keywords': matched_variants
                 }
                 results.append(result)
-                print(f"[DEBUG] 惯用语匹配: {content}")
         
         return results
     

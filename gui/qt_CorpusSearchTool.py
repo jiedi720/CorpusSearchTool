@@ -99,15 +99,7 @@ class SearchThread(QThread):
                 korean_pattern = re.compile(r'[\uac00-\ud7af]')
                 contains_korean = bool(korean_pattern.search(self.keywords))
                 
-                print(f"[DEBUG] 韩语模式搜索:")
-                print(f"  关键词: '{self.keywords}'")
-                print(f"  关键词类型: '{self.keyword_type}'")
-                print(f"  包含韩语: {contains_korean}")
-                print(f"  正则表达式: {self.regex_enabled}")
-                print(f"  文件总数: {total_files}")
-                
                 # 使用新的高级韩语搜索方法
-                print(f"[DEBUG] 使用高级韩语搜索")
                 
                 # 保存生成的变体列表
                 self.target_variant_set = []
@@ -128,7 +120,6 @@ class SearchThread(QThread):
                         # 提取搜索结果
                         file_results = search_record['search_results']
                         if file_results:
-                            print(f"[DEBUG] 文件 {file_path}: 找到 {len(file_results)} 个结果")
                             all_results.extend(file_results)
                         
                         # 保存搜索记录
@@ -146,9 +137,6 @@ class SearchThread(QThread):
                         import traceback
                         traceback.print_exc()
                         continue
-                
-                print(f"[DEBUG] 搜索完成，共找到 {len(all_results)} 个结果")
-                print(f"[DEBUG] 生成的变体列表: {self.target_variant_set}")
                 
                 # 提取词典形和实际变体形式列表
                 pos_full = ""
@@ -244,6 +232,9 @@ class SearchThread(QThread):
             
         except Exception as e:
             self.search_failed.emit(str(e))
+
+
+
 
 
 class CustomHeaderView(QHeaderView):
@@ -388,7 +379,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         header = self.result_table.horizontalHeader()
         header.customContextMenuRequested.connect(self.show_header_context_menu)
         
-        # 连接表格右键菜单信号
+        # 为表格设置右键菜单
+        self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.result_table.customContextMenuRequested.connect(self.show_context_menu)
         
         # 连接标签页切换信号
@@ -1051,18 +1043,16 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.progress_bar.setMaximumHeight(25)
         result_layout.addWidget(self.progress_bar)
         
-        # 表格
-        self.result_table = QTableWidget()
-        self.result_table.setColumnCount(5)
-        self.result_table.setHorizontalHeaderLabels(['出处', '时间轴', '对应台词', '行号', '文件名'])
+
         
         # 设置表格属性
         self.result_table.setAlternatingRowColors(True)
         self.result_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.result_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.result_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.result_table.setWordWrap(True)  # 启用文字换行
+        self.result_table.setWordWrap(False)  # 禁用文字换行，避免影响右键菜单
         self.result_table.setHorizontalScrollMode(QTableWidget.ScrollMode.ScrollPerPixel)  # 像素级横向滚动
+        self.result_table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)  # 确保表格可以接收焦点
         self.result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # 需要时显示横向滚动条
         
         # 启用 HTML 格式渲染
@@ -1094,9 +1084,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.verticalHeader().setVisible(False)
         self.result_table.resizeRowsToContents()
         
-        # 设置右键菜单
-        self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.result_table.customContextMenuRequested.connect(self.show_context_menu)
+
         
         # 设置表格样式，参考搜索历史表格
         self.result_table.setStyleSheet("""
@@ -1348,7 +1336,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         if keywords.startswith('"') and keywords.endswith('"'):
             exact_match = True
             keywords = keywords[1:-1]  # 去掉引号
-            print(f"[DEBUG] 检测到引号内完全匹配: '{keywords}'")
+
         
         # 保存搜索参数到实例变量，用于保存历史记录
         self.current_search_params = {
@@ -1729,12 +1717,28 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def show_context_menu(self, pos):
         """显示右键菜单"""
-        item = self.result_table.itemAt(pos)
-        if not item:
-            return
+        # 将全局坐标转换为表格内部坐标
+        table_pos = self.result_table.mapFromGlobal(pos)
         
-        row = item.row()
-        col = item.column()
+        # 获取点击位置的单元格
+        item = self.result_table.itemAt(table_pos)
+        
+        # 如果没有点击到单元格，尝试获取当前选中的行
+        if item:
+            row = item.row()
+            col = item.column()
+            has_selection = True
+        else:
+            # 获取当前选中的行
+            selected_items = self.result_table.selectedItems()
+            if selected_items:
+                row = selected_items[0].row()
+                col = selected_items[0].column()
+                has_selection = True
+            else:
+                has_selection = False
+                row = -1
+                col = -1
         
         menu = QMenu(self)
         menu.setStyleSheet("""
@@ -1767,15 +1771,22 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         open_action = menu.addAction("📂 打开文件")
         export_action = menu.addAction("📤 导出选中行")
         
+        # 如果没有选中任何内容，禁用某些菜单项
+        if not has_selection:
+            copy_cell_action.setEnabled(False)
+            copy_action.setEnabled(False)
+            open_action.setEnabled(False)
+            export_action.setEnabled(False)
+        
         action = menu.exec(self.result_table.mapToGlobal(pos))
         
-        if action == copy_cell_action:
+        if has_selection and action == copy_cell_action:
             self.copy_selected_cell(row, col)
-        elif action == copy_action:
+        elif has_selection and action == copy_action:
             self.copy_selected_row(row)
-        elif action == open_action:
+        elif has_selection and action == open_action:
             self.open_file(row)
-        elif action == export_action:
+        elif has_selection and action == export_action:
             self.export_selected_row(row)
     
     def show_header_context_menu(self, pos):
@@ -1914,6 +1925,16 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         """切换列的显示/隐藏状态"""
         self.result_table.setColumnHidden(col_index, not checked)
         
+        # 保存列显示配置
+        visibility = []
+        for col in range(self.result_table.columnCount()):
+            visibility.append(not self.result_table.isColumnHidden(col))
+        
+        # 获取当前的列设置
+        column_settings = config_manager.get_column_settings('result')
+        # 只更新 visibility，保持 widths 和 order 不变
+        config_manager.set_column_settings('result', column_settings['widths'], column_settings['order'], visibility)
+        
         # 更新状态栏提示
         column_names = ['出处', '时间轴', '对应台词', '行号', '文件名']
         status = "显示" if checked else "隐藏"
@@ -2010,6 +2031,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 从配置文件获取列设置
         column_settings = config_manager.get_column_settings('result')
         widths = column_settings['widths']
+        visibility = column_settings['visibility']
         
         # 设置列宽调整模式
         header = self.result_table.horizontalHeader()
@@ -2017,6 +2039,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 确保宽度列表至少有5个元素
         while len(widths) < 5:
             widths.append(0)
+        
+        # 确保可见性列表至少有5个元素
+        while len(visibility) < 5:
+            visibility.append(True)
+        
+        # 恢复列的显示/隐藏状态
+        for col in range(self.result_table.columnCount()):
+            self.result_table.setColumnHidden(col, not visibility[col])
         
         # 先设置所有列的ResizeMode
         for col in range(self.result_table.columnCount()):
