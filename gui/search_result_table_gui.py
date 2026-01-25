@@ -259,36 +259,26 @@ class SearchResultTableManager:
         self.result_table = result_table
         self.html_delegate = None
         
-        # 固定列宽度设定
-        self.FIXED_WIDTHS = {
-            1: 80,  # 时间轴列
-            3: 60   # 行号列
+        # 统一的列宽配置
+        # 列索引: 0=集数, 1=时间轴, 2=对应台词, 3=行号, 4=文件名
+        self.COLUMN_CONFIG = {
+            0: {'mode': 'interactive', 'fixed_width': None, 'min_width': 100, 'max_width': 500, 'default': 200},
+            1: {'mode': 'fixed', 'fixed_width': 80, 'min_width': None, 'max_width': None, 'default': 80},
+            2: {'mode': 'interactive', 'fixed_width': None, 'min_width': 200, 'max_width': 800, 'default': 600},
+            3: {'mode': 'interactive', 'fixed_width': None, 'min_width': 50, 'max_width': 100, 'default': 60},
+            4: {'mode': 'interactive', 'fixed_width': None, 'min_width': 150, 'max_width': 600, 'default': 200}
         }
-
-        # 可调整列的最小和最大宽度限制（空字典表示无限制）
-        self.COLUMN_WIDTH_LIMITS = {}
     
-    def get_fixed_width(self, column_index):
-        """获取固定列的宽度
+    def get_column_config(self, column_index):
+        """获取列配置
         
         Args:
             column_index: 列索引
             
         Returns:
-            int: 固定列宽度，如果不是固定列则返回None
+            dict: 列配置字典，包含 mode, fixed_width, min_width, max_width, default
         """
-        return self.FIXED_WIDTHS.get(column_index)
-    
-    def get_column_width_limits(self, column_index):
-        """获取可调整列的宽度限制
-        
-        Args:
-            column_index: 列索引
-            
-        Returns:
-            tuple: (min_width, max_width)，如果不是可调整列则返回None
-        """
-        return self.COLUMN_WIDTH_LIMITS.get(column_index)
+        return self.COLUMN_CONFIG.get(column_index, {})
     
     def initialize_table(self):
         """初始化表格设置"""
@@ -323,6 +313,12 @@ class SearchResultTableManager:
         # 创建自定义表头
         custom_header = CustomHeaderView(Qt.Orientation.Horizontal, self.result_table)
         self.result_table.setHorizontalHeader(custom_header)
+        
+        # 确保表头允许调整列宽
+        custom_header.setSectionsMovable(False)  # 禁止列拖动
+        custom_header.setSectionsClickable(True)  # 允许点击列头排序
+        custom_header.setHighlightSections(True)  # 高亮选中的列
+        custom_header.setCascadingSectionResizes(True)  # 允许级联调整列宽
         
         # 设置列宽
         self.restore_column_settings()
@@ -406,34 +402,32 @@ class SearchResultTableManager:
         
         # 设置每列的调整模式
         for col in range(self.result_table.columnCount()):
-            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+            config = self.get_column_config(col)
+            mode = config.get('mode', 'interactive')
+            if mode == 'fixed':
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
-            elif col == self.result_table.columnCount() - 1:  # 最后一列（文件名列）
-                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
-            else:  # 其他可调整列
+            else:
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
 
-        # 启用最后一列自动拉伸，填满剩余空间
-        header.setStretchLastSection(True)
+        # 禁用最后一列自动拉伸，允许手动调整
+        header.setStretchLastSection(False)
         
         # 然后设置列宽
         for col in range(self.result_table.columnCount()):
-            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+            config = self.get_column_config(col)
+            if config.get('mode') == 'fixed':
                 # 固定列使用硬编码值，不受配置文件影响
-                if col == 1:  # 时间轴列
-                    self.result_table.setColumnWidth(col, 80)
-                else:  # 行号列
-                    self.result_table.setColumnWidth(col, 60)
-            else:  # 可调整列
-                # 直接使用配置文件中的宽度，覆盖初始值
+                self.result_table.setColumnWidth(col, config['fixed_width'])
+            else:
+                # 可调整列：优先使用配置文件中的宽度，否则使用默认值
                 width = column_widths[col] if col < len(column_widths) else 0
-                # 如果配置文件中该列有宽度设置，则使用配置文件中的值，否则使用默认值
-                if width > 0:
-                    # 应用宽度限制
-                    limits = self.get_column_width_limits(col)
-                    if limits:
-                        min_width, max_width = limits
-                        width = min(max(min_width, width), max_width)
+                if width <= 0:
+                    width = config.get('default', 200)
+                # 应用宽度限制
+                min_width = config.get('min_width')
+                max_width = config.get('max_width')
+                if min_width is not None and max_width is not None:
+                    width = min(max(min_width, width), max_width)
                 self.result_table.setColumnWidth(col, width)
         
         # 重新连接sectionResized信号
@@ -446,20 +440,21 @@ class SearchResultTableManager:
         header.update()
 
     def enforce_min_column_width(self, logical_index, old_size, new_size):
-        """强制执行最小列宽限制"""
+        """强制执行列宽限制"""
+        config = self.get_column_config(logical_index)
+        
         # 检查是否为固定列
-        fixed_width = self.get_fixed_width(logical_index)
-        if fixed_width is not None:
+        if config.get('mode') == 'fixed':
             # 固定列：恢复为固定宽度
             self.result_table.blockSignals(True)
-            self.result_table.setColumnWidth(logical_index, fixed_width)
+            self.result_table.setColumnWidth(logical_index, config['fixed_width'])
             self.result_table.blockSignals(False)
             return
         
         # 检查是否有宽度限制
-        limits = self.get_column_width_limits(logical_index)
-        if limits:
-            min_width, max_width = limits
+        min_width = config.get('min_width')
+        max_width = config.get('max_width')
+        if min_width is not None and max_width is not None:
             if new_size < min_width:
                 self.result_table.blockSignals(True)
                 self.result_table.setColumnWidth(logical_index, min_width)
@@ -573,6 +568,7 @@ class CustomHeaderView(QHeaderView):
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
         self.setSectionsClickable(True)
+        self.setHighlightSections(True)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
     

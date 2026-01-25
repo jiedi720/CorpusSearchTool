@@ -1845,20 +1845,35 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             self.table_manager.reset_column_widths()
     
     def enforce_min_column_width(self, logicalIndex, oldSize, newSize):
-        """确保可调整列的宽度不小于最小值，跳过固定宽度列"""
-        # 跳过固定宽度的列
-        fixed_width = self.table_manager.get_fixed_width(logicalIndex)
-        if fixed_width is not None:
+        """确保列宽在配置的限制范围内"""
+        config = self.table_manager.get_column_config(logicalIndex)
+        
+        # 检查是否为固定列
+        if config.get('mode') == 'fixed':
+            # 固定列：强制恢复为固定宽度
+            self.result_table.blockSignals(True)
+            self.result_table.setColumnWidth(logicalIndex, config['fixed_width'])
+            self.result_table.blockSignals(False)
             return
         
-        # 获取该列的宽度限制
-        limits = self.table_manager.get_column_width_limits(logicalIndex)
-        if limits:
-            min_width, max_width = limits
+        # 检查是否有宽度限制
+        min_width = config.get('min_width')
+        max_width = config.get('max_width')
+        if min_width is not None and max_width is not None:
             if newSize < min_width:
                 self.result_table.setColumnWidth(logicalIndex, min_width)
             elif newSize > max_width:
                 self.result_table.setColumnWidth(logicalIndex, max_width)
+    
+    def _restore_fixed_width(self):
+        """恢复固定宽度列的宽度"""
+        if hasattr(self, '_fixed_column_to_restore'):
+            logicalIndex = self._fixed_column_to_restore
+            fixed_width = self.table_manager.get_fixed_width(logicalIndex)
+            if fixed_width is not None:
+                self.result_table.blockSignals(True)
+                self.result_table.setColumnWidth(logicalIndex, fixed_width)
+                self.result_table.blockSignals(False)
     
     def on_column_resized(self, logicalIndex, oldSize, newSize):
         """列宽变化时重新计算行高"""
@@ -1874,6 +1889,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def update_row_heights(self):
         """更新所有行的行高"""
         from PySide6.QtWidgets import QStyleOptionViewItem
+        
+        # 恢复固定列的宽度
+        for col in range(self.result_table.columnCount()):
+            config = self.table_manager.get_column_config(col)
+            if config.get('mode') == 'fixed':
+                self.result_table.blockSignals(True)
+                self.result_table.setColumnWidth(col, config['fixed_width'])
+                self.result_table.blockSignals(False)
         
         for row in range(self.result_table.rowCount()):
             # 触发 sizeHint 重新计算
@@ -2012,30 +2035,24 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         header.sectionResized.disconnect(self.enforce_min_column_width)
 
         for col in range(self.result_table.columnCount()):
-            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+            if col == 1:  # 时间轴列（固定列）
                 # 固定列使用硬编码值，不受配置文件影响
-                if col == 1:  # 时间轴列
-                    self.result_table.setColumnWidth(col, 80)
-                else:  # 行号列
-                    self.result_table.setColumnWidth(col, 60)
+                self.result_table.setColumnWidth(col, 80)
             else:  # 可调整列
                 # 直接使用配置文件中的宽度，覆盖初始值
                 width = widths[col]
                 # 如果配置文件中该列有宽度设置，则使用配置文件中的值，否则使用默认值
                 if width > 0:
                     # 应用宽度限制
-                    limits = self.table_manager.get_column_width_limits(col)
-                    if limits:
-                        min_width, max_width = limits
+                    config = self.table_manager.get_column_config(col)
+                    min_width = config.get('min_width')
+                    max_width = config.get('max_width')
+                    if min_width is not None and max_width is not None:
                         width = min(max(min_width, width), max_width)
                 else:
                     # 如果配置文件中该列没有宽度设置，则使用默认值
-                    default_widths = {
-                        0: 200,  # 出处列
-                        2: 600,  # 对应台词列
-                        4: 200   # 文件名列
-                    }
-                    width = default_widths.get(col, 200)
+                    config = self.table_manager.get_column_config(col)
+                    width = config.get('default', 200)
 
                 # 强制设置列宽，覆盖初始值
                 self.result_table.setColumnWidth(col, width)
@@ -2057,32 +2074,20 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def save_column_settings(self):
         """保存列宽到配置文件"""
-        # 设置固定列宽度（硬编码值）
-        fixed_widths = {
-            1: 80,  # 时间轴列
-            3: 60   # 行号列
-        }
-        
-        # 获取可调整列的默认宽度
-        default_widths = {
-            0: 200,  # 出处列
-            2: 600,  # 对应台词列
-            4: 200   # 文件名列
-        }
-        
         # 获取所有列的宽度
         all_widths = [0] * self.result_table.columnCount()
         
         for col in range(self.result_table.columnCount()):
-            if col in fixed_widths:
+            config = self.table_manager.get_column_config(col)
+            if config.get('mode') == 'fixed':
                 # 固定列使用硬编码值
-                all_widths[col] = fixed_widths[col]
+                all_widths[col] = config['fixed_width']
             else:
                 # 可调整列获取当前宽度并应用限制
                 width = self.result_table.columnWidth(col)
-                limits = self.table_manager.get_column_width_limits(col)
-                if limits:
-                    min_width, max_width = limits
+                min_width = config.get('min_width')
+                max_width = config.get('max_width')
+                if min_width is not None and max_width is not None:
                     width = min(max(min_width, width), max_width)
                 all_widths[col] = width
         
