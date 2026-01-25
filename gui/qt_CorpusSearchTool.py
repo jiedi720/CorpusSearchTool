@@ -1955,6 +1955,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 强制更新表头布局，确保固定列宽设置生效
         header.doItemsLayout()
         self.result_table.updateGeometry()
+        self.result_table.viewport().update()
     
     def toggle_column_visibility(self, col_index, checked):
         """切换列的显示/隐藏状态"""
@@ -1994,11 +1995,100 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             else:
                 header.setStretchLastSection(True)
 
+        # 如果隐藏的是最右边的列（文件名列），则将行号列移动到最右边
+        if col_index == 4 and not checked:  # 隐藏文件名列
+            header = self.result_table.horizontalHeader()
+
+            # 获取行号列（逻辑索引3）的当前视觉位置
+            row_num_visual_pos = header.visualIndex(3)
+            # 将行号列移动到最右边（最后一个可见位置）
+            header.moveSection(row_num_visual_pos, header.count() - 1)
+
+            # 重新设置拉伸属性，让可调整列自动扩展以填补空白
+            # 启用拉伸，让最后一个可见的非固定列填充剩余空间
+            header.setStretchLastSection(True)
+
+            # 重新设置所有列的ResizeMode，确保布局一致性
+            for col in range(self.result_table.columnCount()):
+                config = self.table_manager.get_column_config(col)
+                if config.get('mode') == 'fixed':
+                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
+                else:  # 其他可调整列
+                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+
+            # 确保表格布局立即更新，防止列位置被重置
+            header.doItemsLayout()
+            self.result_table.doItemsLayout()
+
+            # 使用定时器在稍后的时间再次确认行号列的位置
+            QTimer.singleShot(100, lambda: self._ensure_row_number_column_at_end())
+
+        # 强制重新布局，确保隐藏列后其他列正确填充空间
+        header.doItemsLayout()
+        self.result_table.updateGeometry()
+        self.result_table.viewport().update()
+
+        # 强制整个表格重新布局
+        self.result_table.doItemsLayout()
+
+        # 如果隐藏的是文件名列，再次确保行号列在最右边
+        if col_index == 4 and not checked:
+            # 再次确认行号列在最右边位置
+            header = self.result_table.horizontalHeader()
+            row_num_visual_pos = header.visualIndex(3)
+            if row_num_visual_pos != header.count() - 1:
+                # 临时断开信号
+                try:
+                    header.sectionMoved.disconnect(self.on_section_moved)
+                except:
+                    pass
+                header.moveSection(row_num_visual_pos, header.count() - 1)
+                # 重新连接信号
+                header.sectionMoved.connect(self.on_section_moved)
+            # 再次更新布局
+            header.doItemsLayout()
+            self.result_table.doItemsLayout()
+            # 再次设置拉伸属性，确保可调整列扩展
+            header.setStretchLastSection(True)
+
         # 更新状态栏提示
         column_names = ['出处', '时间轴', '对应台词', '行号', '文件名']
         status = "显示" if checked else "隐藏"
         self.status_bar.showMessage(f"📊 已{status}列: {column_names[col_index]}")
-    
+
+    def _ensure_row_number_column_at_end(self):
+        """确保行号列保持在表格的最右边"""
+        # 检查是否隐藏了文件名列
+        if not self.result_table.isColumnHidden(4):  # 如果文件名列未被隐藏，则不执行
+            return
+
+        header = self.result_table.horizontalHeader()
+        # 获取行号列（逻辑索引3）的当前位置
+        row_num_visual_pos = header.visualIndex(3)
+        # 获取最后一个可见位置
+        last_pos = header.count() - 1
+
+        # 如果行号列不在最后位置，则移动它
+        if row_num_visual_pos != last_pos:
+            # 临时断开sectionMoved信号以避免递归调用
+            try:
+                header.sectionMoved.disconnect(self.on_section_moved)
+            except:
+                pass  # 如果信号未连接，则忽略
+
+            # 移动行号列到最右边
+            header.moveSection(row_num_visual_pos, last_pos)
+
+            # 重新连接信号
+            header.sectionMoved.connect(self.on_section_moved)
+
+            # 更新布局
+            header.doItemsLayout()
+            self.result_table.doItemsLayout()
+
+            # 再次设置拉伸属性，确保可调整列扩展
+            header.setStretchLastSection(True)
+
     def copy_selected_cell(self, row, col):
         """复制选中单元格（纯文本，不含HTML标签）"""
         item = self.result_table.item(row, col)
@@ -2208,6 +2298,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.result_table.update()
         self.result_table.updateGeometry()
         self.result_table.update()
+        self.result_table.viewport().update()
 
         # 强制刷新表头样式，确保高度设置生效
         header.style().unpolish(header)
@@ -2244,6 +2335,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 强制更新表头布局，确保固定列宽设置生效
         header.doItemsLayout()
         self.result_table.updateGeometry()
+        self.result_table.viewport().update()
     
     def save_column_settings(self):
         """保存列宽和列顺序到配置文件"""
