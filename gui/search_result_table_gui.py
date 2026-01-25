@@ -265,7 +265,7 @@ class SearchResultTableManager:
             0: {'mode': 'interactive', 'fixed_width': None, 'min_width': 100, 'max_width': 500, 'default': 200},
             1: {'mode': 'fixed', 'fixed_width': 80, 'min_width': None, 'max_width': None, 'default': 80},
             2: {'mode': 'interactive', 'fixed_width': None, 'min_width': 200, 'max_width': 800, 'default': 600},
-            3: {'mode': 'interactive', 'fixed_width': None, 'min_width': 50, 'max_width': 100, 'default': 60},
+            3: {'mode': 'fixed', 'fixed_width': 60, 'min_width': None, 'max_width': None, 'default': 60},
             4: {'mode': 'interactive', 'fixed_width': None, 'min_width': 150, 'max_width': 600, 'default': 200}
         }
     
@@ -306,7 +306,7 @@ class SearchResultTableManager:
         
         # 设置表头
         header = self.result_table.horizontalHeader()
-        header.setSectionsMovable(False)  # 禁止列拖动
+        header.setSectionsMovable(True)  # 允许列拖动
         header.setSectionsClickable(True)  # 允许点击列头排序
         header.setSortIndicatorShown(False)  # 默认不显示排序指示器
         
@@ -315,7 +315,7 @@ class SearchResultTableManager:
         self.result_table.setHorizontalHeader(custom_header)
         
         # 确保表头允许调整列宽
-        custom_header.setSectionsMovable(False)  # 禁止列拖动
+        custom_header.setSectionsMovable(True)  # 允许列拖动
         custom_header.setSectionsClickable(True)  # 允许点击列头排序
         custom_header.setHighlightSections(True)  # 高亮选中的列
         custom_header.setCascadingSectionResizes(True)  # 允许级联调整列宽
@@ -570,56 +570,65 @@ class CustomHeaderView(QHeaderView):
         self.setSectionsClickable(True)
         self.setHighlightSections(True)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.show_context_menu)
+        # 不在这里连接信号，而是在主窗口类中连接
+        
+    def mousePressEvent(self, event):
+        """处理鼠标按下事件"""
+        if self.orientation() == Qt.Orientation.Horizontal:
+            pos = event.position()
+            
+            # 检查鼠标是否在某一列的右边边缘（用于调整列宽）
+            section = self.logicalIndexAt(pos.x())
+            
+            if section != -1:  # 鼠标在某个列上
+                section_pos = self.sectionViewportPosition(section)
+                section_width = self.sectionSize(section)
+                
+                # 检查鼠标是否在列的右边边缘（5像素内）
+                if pos.x() >= section_pos + section_width - 5:
+                    # 检查这一列是否是视觉上最右边的列
+                    is_last_visible = True
+                    for i in range(self.count()):
+                        if not self.isSectionHidden(i) and i != section:
+                            i_pos = self.sectionViewportPosition(i)
+                            i_width = self.sectionSize(i)
+                            if i_pos + i_width > section_pos + section_width:
+                                is_last_visible = False
+                                break
+                    
+                    # 如果是最右边的列的右边边缘，禁止拖拽
+                    if is_last_visible:
+                        return
+        
+        super().mousePressEvent(event)
     
-    def show_context_menu(self, pos):
-        """显示右键菜单"""
-        menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #3d3d3d;
-                color: #ffffff;
-                border: 1px solid #505050;
-            }
-            QMenu::item {
-                padding: 5px 20px;
-            }
-            QMenu::item:selected {
-                background-color: #005a9e;
-            }
-            QMenu::item:hover {
-                background-color: #505050;
-            }
-        """)
+    def mouseMoveEvent(self, event):
+        """处理鼠标移动事件"""
+        if self.orientation() == Qt.Orientation.Horizontal:
+            pos = event.position()
+            
+            # 检查鼠标是否在某一列的右边边缘（用于调整列宽）
+            section = self.logicalIndexAt(pos.x())
+            
+            if section != -1:  # 鼠标在某个列上
+                section_pos = self.sectionViewportPosition(section)
+                section_width = self.sectionSize(section)
+                
+                # 检查鼠标是否在列的右边边缘（5像素内）
+                if pos.x() >= section_pos + section_width - 5:
+                    # 检查这一列是否是视觉上最右边的列
+                    is_last_visible = True
+                    for i in range(self.count()):
+                        if not self.isSectionHidden(i) and i != section:
+                            i_pos = self.sectionViewportPosition(i)
+                            i_width = self.sectionSize(i)
+                            if i_pos + i_width > section_pos + section_width:
+                                is_last_visible = False
+                                break
+                    
+                    # 如果是最右边的列的右边边缘，不显示拖拽光标
+                    if is_last_visible:
+                        self.unsetCursor()
+                        return
         
-        # 获取所有列名
-        column_names = []
-        for col in range(self.count()):
-            column_names.append(self.model().headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole))
-        
-        # 为每列创建菜单项
-        for col, name in enumerate(column_names):
-            action = menu.addAction(name)
-            action.setCheckable(True)
-            action.setChecked(not self.isSectionHidden(col))
-            action.triggered.connect(lambda checked, c=col: self.toggle_column_visibility(c, checked))
-        
-        menu.exec_(self.mapToGlobal(pos))
-    
-    def toggle_column_visibility(self, logical_index, visible):
-        """显示/隐藏列"""
-        self.setSectionHidden(logical_index, not visible)
-        # 保存列显示配置
-        self.save_column_visibility()
-    
-    def save_column_visibility(self):
-        """保存列显示配置"""
-        from function.config_manager import config_manager
-        visibility = []
-        for col in range(self.count()):
-            visibility.append(not self.isSectionHidden(col))
-        
-        # 获取当前的列设置
-        column_settings = config_manager.get_column_settings('result')
-        # 只更新 visibility，保持 widths 和 order 不变
-        config_manager.set_column_settings('result', column_settings['widths'], column_settings['order'], visibility)
+        super().mouseMoveEvent(event)

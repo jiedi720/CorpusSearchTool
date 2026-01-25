@@ -375,6 +375,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 连接列宽变化信号，重新计算行高
         self.result_table.horizontalHeader().sectionResized.connect(self.on_column_resized)
         
+        # 连接列顺序变化信号，保存列顺序
+        self.result_table.horizontalHeader().sectionMoved.connect(self.on_section_moved)
+        
         # 连接表头右键菜单信号
         header = self.result_table.horizontalHeader()
         header.customContextMenuRequested.connect(self.show_header_context_menu)
@@ -1935,6 +1938,31 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 只更新 visibility，保持 widths 和 order 不变
         config_manager.set_column_settings('result', column_settings['widths'], column_settings['order'], visibility)
         
+        # 重新设置列的调整模式和拉伸属性
+        header = self.result_table.horizontalHeader()
+        
+        # 先设置所有列的ResizeMode
+        for col in range(self.result_table.columnCount()):
+            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
+            elif col == self.result_table.columnCount() - 1:  # 最后一列
+                # 只有当最后一列不是固定列时，才设置为Stretch
+                if col not in [1, 3]:
+                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+                else:
+                    # 如果最后一列是固定列，则设置为Fixed
+                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
+            else:  # 其他可调整列
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+        
+        # 只有当最后一列不是固定列时，才启用自动拉伸
+        if self.result_table.columnCount() > 0:
+            last_col = self.result_table.columnCount() - 1
+            if last_col not in [1, 3]:
+                header.setStretchLastSection(True)
+            else:
+                header.setStretchLastSection(False)
+        
         # 更新状态栏提示
         column_names = ['出处', '时间轴', '对应台词', '行号', '文件名']
         status = "显示" if checked else "隐藏"
@@ -2021,9 +2049,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def reset_column_widths(self):
         """重置列宽"""
         self.result_table.setColumnWidth(0, 200)  # 出处列
-        self.result_table.setColumnWidth(1, 30)   # 时间轴列（固定）
+        self.result_table.setColumnWidth(1, 80)   # 时间轴列（固定，80像素）
         self.result_table.setColumnWidth(2, 600)  # 对应台词列
-        self.result_table.setColumnWidth(3, 50)   # 行号列（固定）
+        self.result_table.setColumnWidth(3, 60)   # 行号列（固定，60像素）
         self.result_table.setColumnWidth(4, 200)  # 文件名列
     
     def restore_column_settings(self):
@@ -2032,6 +2060,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         column_settings = config_manager.get_column_settings('result')
         widths = column_settings['widths']
         visibility = column_settings['visibility']
+        order = column_settings['order']
         
         # 设置列宽调整模式
         header = self.result_table.horizontalHeader()
@@ -2048,17 +2077,41 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         for col in range(self.result_table.columnCount()):
             self.result_table.setColumnHidden(col, not visibility[col])
         
+        # 恢复列顺序
+        if order and len(order) == self.result_table.columnCount():
+            # 先重置所有列到默认顺序
+            for logical_index in range(self.result_table.columnCount()):
+                current_visual_index = header.visualIndex(logical_index)
+                if current_visual_index != logical_index:
+                    header.moveSection(current_visual_index, logical_index)
+            
+            # 然后按照配置的顺序移动列
+            for visual_index, logical_index in enumerate(order):
+                current_visual_index = header.visualIndex(logical_index)
+                if current_visual_index != visual_index:
+                    header.moveSection(current_visual_index, visual_index)
+        
         # 先设置所有列的ResizeMode
         for col in range(self.result_table.columnCount()):
             if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
-            elif col == self.result_table.columnCount() - 1:  # 最后一列（文件名列）
-                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+            elif col == self.result_table.columnCount() - 1:  # 最后一列
+                # 只有当最后一列不是固定列时，才设置为Stretch
+                if col not in [1, 3]:
+                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+                else:
+                    # 如果最后一列是固定列，则设置为Fixed
+                    header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
             else:  # 其他可调整列
                 header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
 
-        # 启用最后一列自动拉伸，填满剩余空间
-        header.setStretchLastSection(True)
+        # 只有当最后一列不是固定列时，才启用自动拉伸
+        if self.result_table.columnCount() > 0:
+            last_col = self.result_table.columnCount() - 1
+            if last_col not in [1, 3]:
+                header.setStretchLastSection(True)
+            else:
+                header.setStretchLastSection(False)
         
         # 然后设置列宽
         # 临时禁用sectionResized信号，防止信号处理影响列宽
@@ -2068,6 +2121,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             if col == 1:  # 时间轴列（固定列）
                 # 固定列使用硬编码值，不受配置文件影响
                 self.result_table.setColumnWidth(col, 80)
+            elif col == 3:  # 行号列（固定列）
+                # 固定列使用硬编码值，不受配置文件影响
+                self.result_table.setColumnWidth(col, 60)
             else:  # 可调整列
                 # 直接使用配置文件中的宽度，覆盖初始值
                 width = widths[col]
@@ -2102,8 +2158,12 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         header.style().polish(header)
         header.update()
     
+    def on_section_moved(self, logicalIndex, oldVisualIndex, newVisualIndex):
+        """当列顺序变化时，保存新的列顺序"""
+        self.save_column_settings()
+    
     def save_column_settings(self):
-        """保存列宽到配置文件"""
+        """保存列宽和列顺序到配置文件"""
         # 获取所有列的宽度
         all_widths = [0] * self.result_table.columnCount()
         
@@ -2121,8 +2181,15 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     width = min(max(min_width, width), max_width)
                 all_widths[col] = width
         
-        # 保存所有列的宽度
-        config_manager.set_column_settings('result', all_widths) 
+        # 获取当前列顺序
+        header = self.result_table.horizontalHeader()
+        column_order = []
+        for visual_index in range(header.count()):
+            logical_index = header.logicalIndex(visual_index)
+            column_order.append(logical_index)
+        
+        # 保存所有列的宽度和顺序
+        config_manager.set_column_settings('result', all_widths, column_order) 
     
     def closeEvent(self, event):
         """窗口关闭事件"""
