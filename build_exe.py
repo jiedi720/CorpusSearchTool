@@ -2,6 +2,8 @@ import os
 import subprocess
 import sys
 import shutil
+from tqdm import tqdm
+import re
 
 def remove_directory(path):
     """彻底删除目录"""
@@ -127,22 +129,58 @@ def main():
     print()
     
     try:
-        # 在新的命令行窗口中执行 PyInstaller
-        cmd_command = f"{sys.executable} -m PyInstaller {spec_file}"
-        print(f"[Info] Opening new CMD window to run: {cmd_command}")
-        
-        subprocess.run(
-            ["start", "cmd", "/c", cmd_command],
-            shell=True,
-            check=True
-        )
-        
-        print("[Info] Build process started in new window!")
-        print("[Info] Please check the new CMD window for build progress.")
+        # 直接执行 PyInstaller 并捕获输出
+        cmd_command = [sys.executable, "-m", "PyInstaller", spec_file]
+        print(f"[Info] Running: {' '.join(cmd_command)}")
+        print("[Info] Showing build progress...")
         print()
         
-        # 等待用户确认
-        input("Press Enter to continue after build completes...")
+        # 执行 PyInstaller 并捕获输出
+        process = subprocess.Popen(
+            cmd_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+        
+        # 进度条配置
+        total_steps = 100  # 预估总步骤数
+        pbar = tqdm(total=total_steps, desc="Building", unit="steps", ncols=80)
+        
+        # 读取输出并更新进度条
+        step_count = 0
+        for line in process.stdout:
+            # 显示关键输出信息
+            line = line.strip()
+            if line:
+                # 过滤掉不重要的调试信息
+                if any(keyword in line for keyword in ["INFO:", "ERROR:", "WARNING:"]):
+                    # 清除进度条，打印信息，然后恢复进度条
+                    pbar.clear()
+                    print(f"[PyInstaller] {line}")
+                    pbar.refresh()
+            
+            # 更新进度条
+            step_count += 1
+            pbar.update(1)
+            
+            # 如果超过预估总步骤，调整进度条
+            if step_count > total_steps:
+                pbar.total = step_count
+                pbar.refresh()
+        
+        # 等待进程结束
+        process.wait()
+        pbar.close()
+        
+        if process.returncode != 0:
+            print(f"\n[Error] PyInstaller failed with exit code: {process.returncode}")
+            # 清理 __pycache__ 文件夹
+            pycache_dir = os.path.join(current_dir, "__pycache__")
+            remove_directory(pycache_dir)
+            input("Press Enter to exit...")
+            return process.returncode
         
         # 打包后的处理
         print("\n[Info] Post-build processing...")
