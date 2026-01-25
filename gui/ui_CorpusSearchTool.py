@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolXoAEmU.ui'
+## Form generated from reading UI file 'CorpusSearchToolmDJtbu.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -26,9 +26,9 @@ class Ui_CorpusSearchTool(object):
     def setupUi(self, CorpusSearchTool):
         if not CorpusSearchTool.objectName():
             CorpusSearchTool.setObjectName(u"CorpusSearchTool")
-        CorpusSearchTool.resize(1000, 800)
-        CorpusSearchTool.setMinimumSize(QSize(1000, 800))
-        CorpusSearchTool.setMaximumSize(QSize(1300, 800))
+        CorpusSearchTool.resize(1200, 800)
+        CorpusSearchTool.setMinimumSize(QSize(1100, 800))
+        CorpusSearchTool.setMaximumSize(QSize(1500, 800))
         self.actionlight = QAction(CorpusSearchTool)
         self.actionlight.setObjectName(u"actionlight")
         self.actionDark = QAction(CorpusSearchTool)
@@ -43,6 +43,7 @@ class Ui_CorpusSearchTool(object):
         self.verticalLayout_5.setContentsMargins(10, 3, 10, -1)
         self.verticalLayout_2 = QVBoxLayout()
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalLayout_2.setContentsMargins(-1, -1, -1, 0)
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.ReadPathLabel = QLabel(self.centralwidget)
@@ -190,7 +191,7 @@ class Ui_CorpusSearchTool(object):
         self.corpus_tab_widget = QTabWidget(self.centralwidget)
         self.corpus_tab_widget.setObjectName(u"corpus_tab_widget")
         self.corpus_tab_widget.setMinimumSize(QSize(520, 150))
-        self.corpus_tab_widget.setMaximumSize(QSize(16777215, 999))
+        self.corpus_tab_widget.setMaximumSize(QSize(16777215, 16777215))
         self.corpus_tab_widget.setFont(font)
         self.corpus_tab_widget.setStyleSheet(u"/* \u6574\u4f53\u5bb9\u5668\u7f8e\u5316 */\n"
 "QTabWidget[theme=\"light\"]::pane {\n"
@@ -392,6 +393,7 @@ class Ui_CorpusSearchTool(object):
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_8)
 
+        self.verticalLayout_4.setStretch(1, 1)
 
         self.verticalLayout_7.addLayout(self.verticalLayout_4)
 
@@ -526,8 +528,8 @@ class Ui_CorpusSearchTool(object):
 
         self.korean_lemmalist_display = QLabel(self.korean_tab)
         self.korean_lemmalist_display.setObjectName(u"korean_lemmalist_display")
-        self.korean_lemmalist_display.setMinimumSize(QSize(300, 70))
-        self.korean_lemmalist_display.setMaximumSize(QSize(16777215, 70))
+        self.korean_lemmalist_display.setMinimumSize(QSize(300, 90))
+        self.korean_lemmalist_display.setMaximumSize(QSize(16777215, 90))
         self.korean_lemmalist_display.setFont(font)
         self.korean_lemmalist_display.setStyleSheet(u"/* \u9ed8\u8ba4\u6837\u5f0f (\u4f60\u7684\u57fa\u7840\u6837\u5f0f) */\n"
 "QFrame {\n"
@@ -543,6 +545,7 @@ class Ui_CorpusSearchTool(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout_5)
 
+        self.verticalLayout.setStretch(1, 1)
 
         self.verticalLayout_3.addLayout(self.verticalLayout)
 
@@ -557,7 +560,7 @@ class Ui_CorpusSearchTool(object):
         self.search_btn = QPushButton(self.centralwidget)
         self.search_btn.setObjectName(u"search_btn")
         self.search_btn.setMinimumSize(QSize(81, 40))
-        self.search_btn.setMaximumSize(QSize(100, 100))
+        self.search_btn.setMaximumSize(QSize(100, 70))
         self.search_btn.setFont(font)
         self.search_btn.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
 "QPushButton {\n"
@@ -602,7 +605,7 @@ class Ui_CorpusSearchTool(object):
         sizePolicy2.setHeightForWidth(self.stop_search_btn.sizePolicy().hasHeightForWidth())
         self.stop_search_btn.setSizePolicy(sizePolicy2)
         self.stop_search_btn.setMinimumSize(QSize(81, 40))
-        self.stop_search_btn.setMaximumSize(QSize(100, 100))
+        self.stop_search_btn.setMaximumSize(QSize(100, 70))
         font2 = QFont()
         font2.setPointSize(12)
         font2.setWeight(QFont.DemiBold)
@@ -649,7 +652,7 @@ class Ui_CorpusSearchTool(object):
         self.history_btn = QPushButton(self.centralwidget)
         self.history_btn.setObjectName(u"history_btn")
         self.history_btn.setMinimumSize(QSize(81, 40))
-        self.history_btn.setMaximumSize(QSize(100, 100))
+        self.history_btn.setMaximumSize(QSize(100, 70))
         self.history_btn.setFont(font)
         self.history_btn.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
 "QPushButton {\n"
@@ -681,7 +684,7 @@ class Ui_CorpusSearchTool(object):
         self.lemmalist_btn = QPushButton(self.centralwidget)
         self.lemmalist_btn.setObjectName(u"lemmalist_btn")
         self.lemmalist_btn.setMinimumSize(QSize(81, 40))
-        self.lemmalist_btn.setMaximumSize(QSize(100, 100))
+        self.lemmalist_btn.setMaximumSize(QSize(100, 70))
         self.lemmalist_btn.setFont(font)
         self.lemmalist_btn.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
 "QPushButton {\n"
@@ -844,7 +847,7 @@ class Ui_CorpusSearchTool(object):
         CorpusSearchTool.setCentralWidget(self.centralwidget)
         self.menuBar = QMenuBar(CorpusSearchTool)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1000, 22))
+        self.menuBar.setGeometry(QRect(0, 0, 1200, 22))
         self.menuTheme = QMenu(self.menuBar)
         self.menuTheme.setObjectName(u"menuTheme")
         CorpusSearchTool.setMenuBar(self.menuBar)

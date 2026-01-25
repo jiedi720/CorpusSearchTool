@@ -13,6 +13,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from function.search_history_manager import search_history_manager
 from function.config_manager import config_manager
+from gui.font import FontConfig
 
 
 class CustomHeaderView(QHeaderView):
@@ -213,6 +214,9 @@ class SearchHistoryWindow(QMainWindow):
             
             # 关键词列
             keyword_item = QTableWidgetItem(record.get('keywords', ''))
+            # 如果是韩语语料库，使用韩语字体
+            if self.corpus_type == "kor":
+                keyword_item.setFont(FontConfig.get_korean_font())
             self.history_table.setItem(row, 1, keyword_item)
             
             # 关键词类型列

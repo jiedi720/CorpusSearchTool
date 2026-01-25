@@ -659,6 +659,17 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 应用主题
         self.change_theme(theme)
         
+        # 设置字体
+        self._setup_fonts()
+    
+    def _setup_fonts(self):
+        """设置字体"""
+        from gui.font import FontConfig
+        
+        # 为韩语变体列表显示设置韩语字体
+        if hasattr(self, 'korean_lemmalist_display'):
+            self.korean_lemmalist_display.setFont(FontConfig.get_korean_font())
+        
     def change_theme(self, mode):
         """
         处理主题切换事件
@@ -1658,12 +1669,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
         search_history_manager.set_corpus_type(corpus_type)
         
-        print(f"[DEBUG] 当前标签页: {self.current_corpus_tab}, 语料库类型: {corpus_type}")
-        print(f"[DEBUG] 历史文件: {search_history_manager.history_file}")
-        
         # 检查是否有历史记录
         history = search_history_manager.get_recent_records(100)
-        print(f"[DEBUG] 加载的历史记录数量: {len(history)}")
         
         if not history:
             corpus_name = "英语" if corpus_type == "eng" else "韩语"

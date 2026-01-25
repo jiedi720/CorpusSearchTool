@@ -6,19 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
+    <width>1200</width>
     <height>800</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>1000</width>
+    <width>1100</width>
     <height>800</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>1300</width>
+    <width>1500</width>
     <height>800</height>
    </size>
   </property>
@@ -43,6 +43,9 @@
       </property>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
@@ -294,7 +297,7 @@ QPushButton:pressed {
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>999</height>
+              <height>16777215</height>
              </size>
             </property>
             <property name="font">
@@ -356,7 +359,7 @@ QTabBar::tab:selected {
              </attribute>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayout_4">
+               <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,1">
                 <property name="spacing">
                  <number>10</number>
                 </property>
@@ -658,7 +661,7 @@ QFrame {
              </attribute>
              <layout class="QVBoxLayout" name="verticalLayout_3">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayout">
+               <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1">
                 <property name="spacing">
                  <number>10</number>
                 </property>
@@ -907,13 +910,13 @@ QFrame {
                     <property name="minimumSize">
                      <size>
                       <width>300</width>
-                      <height>70</height>
+                      <height>90</height>
                      </size>
                     </property>
                     <property name="maximumSize">
                      <size>
                       <width>16777215</width>
-                      <height>70</height>
+                      <height>90</height>
                      </size>
                     </property>
                     <property name="font">
@@ -965,7 +968,7 @@ QFrame {
               <property name="maximumSize">
                <size>
                 <width>100</width>
-                <height>100</height>
+                <height>70</height>
                </size>
               </property>
               <property name="font">
@@ -1044,7 +1047,7 @@ QPushButton:pressed {
               <property name="maximumSize">
                <size>
                 <width>100</width>
-                <height>100</height>
+                <height>70</height>
                </size>
               </property>
               <property name="font">
@@ -1126,7 +1129,7 @@ QPushButton:pressed {
               <property name="maximumSize">
                <size>
                 <width>100</width>
-                <height>100</height>
+                <height>70</height>
                </size>
               </property>
               <property name="font">
@@ -1185,7 +1188,7 @@ QPushButton:pressed {
               <property name="maximumSize">
                <size>
                 <width>100</width>
-                <height>100</height>
+                <height>70</height>
                </size>
               </property>
               <property name="font">
@@ -1427,7 +1430,7 @@ QProgressBar::chunk {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1000</width>
+     <width>1200</width>
      <height>22</height>
     </rect>
    </property>

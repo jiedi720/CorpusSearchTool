@@ -7,6 +7,7 @@
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QColor, QFont, QTextDocument, QPainter, QBrush
 from PySide6.QtWidgets import QStyledItemDelegate, QTableWidget, QHeaderView, QStyleOptionViewItem
+from gui.font import FontConfig
 
 
 class HTMLDelegate(QStyledItemDelegate):
@@ -53,14 +54,14 @@ class HTMLDelegate(QStyledItemDelegate):
             doc = QTextDocument()
             
             # 设置字体大小和字体族
-            font = QFont()
             # 除了对应台词列（索引2）之外，其他列都使用10pt字体
             if index.column() == 2:  # 对应台词列
-                font.setPointSize(11)
-                # 对于韩语，使用 Noto Sans KR 字体
-                font.setFamily('Noto Sans KR')
+                # 根据当前语料库类型设置字体
+                # 韩语使用 Noto Sans KR，英语使用系统默认
+                # 这里统一使用较大的字体大小
+                font = FontConfig.get_korean_font() if hasattr(self, 'current_search_params') and self.current_search_params.get('corpus_type') == 'korean' else FontConfig.get_english_font()
             else:  # 其他列（集数、时间轴、行号、文件名）
-                font.setPointSize(10)
+                font = FontConfig.get_table_other_font()
             doc.setDefaultFont(font)
             
             # 获取当前搜索的关键词，用于高亮
@@ -153,12 +154,12 @@ class HTMLDelegate(QStyledItemDelegate):
         doc = QTextDocument()
         
         # 设置字体大小
-        font = QFont()
         # 除了对应台词列（索引2）之外，其他列都使用10pt字体
         if index.column() == 2:  # 对应台词列
-            font.setPointSize(11)
+            # 根据当前语料库类型设置字体
+            font = FontConfig.get_korean_font() if hasattr(self, 'current_search_params') and self.current_search_params.get('corpus_type') == 'korean' else FontConfig.get_english_font()
         else:  # 其他列（集数、时间轴、行号、文件名）
-            font.setPointSize(10)
+            font = FontConfig.get_table_other_font()
         doc.setDefaultFont(font)
         
         # 获取当前搜索的关键词，用于高亮
