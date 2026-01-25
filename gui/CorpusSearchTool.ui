@@ -567,7 +567,7 @@ QFrame {
 }</string>
                     </property>
                     <property name="text">
-                     <string>关键词 → 词典型</string>
+                     <string>[词性]：词典型</string>
                     </property>
                     <property name="alignment">
                      <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -618,13 +618,13 @@ QFrame {
                     <property name="minimumSize">
                      <size>
                       <width>300</width>
-                      <height>70</height>
+                      <height>90</height>
                      </size>
                     </property>
                     <property name="maximumSize">
                      <size>
                       <width>16777215</width>
-                      <height>70</height>
+                      <height>90</height>
                      </size>
                     </property>
                     <property name="font">

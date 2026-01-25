@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 搜索结果表格GUI设定模块
 负责搜索结果表格的样式、布局、代理等GUI相关设定
@@ -6,8 +5,12 @@
 
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QColor, QFont, QTextDocument, QPainter, QBrush
-from PySide6.QtWidgets import QStyledItemDelegate, QTableWidget, QHeaderView, QStyleOptionViewItem
+from PySide6.QtWidgets import QStyledItemDelegate, QTableWidget, QHeaderView, QStyleOptionViewItem, QSizePolicy
 from gui.font import FontConfig
+from function.config_manager import ConfigManager
+
+# 创建配置管理器实例
+config_manager = ConfigManager()
 
 
 class HTMLDelegate(QStyledItemDelegate):
@@ -64,6 +67,9 @@ class HTMLDelegate(QStyledItemDelegate):
                 font = FontConfig.get_table_other_font()
             doc.setDefaultFont(font)
             
+            # 设置文档布局，控制行高
+            doc.setDocumentMargin(0)
+            
             # 获取当前搜索的关键词，用于高亮
             current_keywords = []
             if self.current_search_params:
@@ -109,7 +115,7 @@ class HTMLDelegate(QStyledItemDelegate):
                 html_text = highlighted_text
             
             # 用前景色包裹文本
-            final_html = f'<span style="color: {color.name()};">{html_text}</span>'
+            final_html = f'<span style="color: {color.name()}; margin: 0px; padding: 0px; line-height: 1;">{html_text}</span>'
             
             doc.setHtml(final_html)
             doc.setTextWidth(option.rect.width())
@@ -121,7 +127,7 @@ class HTMLDelegate(QStyledItemDelegate):
             text_height = doc.size().height()
             
             x = option.rect.left()
-            y = option.rect.top() + (option.rect.height() - text_height) / 2
+            y = option.rect.top() + (option.rect.height() - text_height) / 2  # 垂直居中
             
             if alignment & Qt.AlignmentFlag.AlignHCenter:
                 x += (option.rect.width() - text_width) / 2
@@ -161,6 +167,9 @@ class HTMLDelegate(QStyledItemDelegate):
         else:  # 其他列（集数、时间轴、行号、文件名）
             font = FontConfig.get_table_other_font()
         doc.setDefaultFont(font)
+        
+        # 设置文档布局，控制行高
+        doc.setDocumentMargin(0)
         
         # 获取当前搜索的关键词，用于高亮
         current_keywords = []
@@ -207,13 +216,13 @@ class HTMLDelegate(QStyledItemDelegate):
             html_text = highlighted_text
         
         # 用前景色包裹文本
-        final_html = f'<span style="color: #ffffff;">{html_text}</span>'
+        final_html = f'<span style="color: #ffffff; margin: 0px; padding: 0px; line-height: 1;">{html_text}</span>'
         
         doc.setHtml(final_html)
         # 不设置文本宽度，让文档自然计算宽度
         
         # 返回固定高度，宽度使用文档的理想宽度
-        return QSize(int(doc.idealWidth()), 30)  # 高度为30，与行高一致
+        return QSize(int(doc.idealWidth()), 18)  # 高度为18，与默认行高一致
 
 
 class SearchResultTableManager:
@@ -269,137 +278,319 @@ class SearchResultTableManager:
         self.result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # 需要时显示横向滚动条
         
         # 设置行高
-        self.result_table.verticalHeader().setDefaultSectionSize(30)
+        self.result_table.verticalHeader().setDefaultSectionSize(18)
+        self.result_table.verticalHeader().setMinimumSectionSize(18)
+        self.result_table.verticalHeader().setMaximumSectionSize(18)
         self.result_table.verticalHeader().setVisible(False)
         
         # 初始化HTML代理
         self.html_delegate = HTMLDelegate(self.result_table)
         self.result_table.setItemDelegate(self.html_delegate)
         
-        # 设置右键菜单
-        self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        # 设置列数和列名
+        self.result_table.setColumnCount(5)
+        self.result_table.setHorizontalHeaderLabels(['集数', '时间轴', '对应台词', '行号', '文件名'])
         
-        # 设置表头右键菜单
+        # 设置表头
         header = self.result_table.horizontalHeader()
-        header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        header.setSectionsMovable(False)  # 禁止列拖动
+        header.setSectionsClickable(True)  # 允许点击列头排序
+        header.setSortIndicatorShown(False)  # 默认不显示排序指示器
         
-        # 应用初始样式
-        self.fix_table_style()
-    
-    def fix_table_style(self):
-        """修复表格样式和布局"""
-        # 清除UI设计器生成的错误样式
-        self.result_table.setStyleSheet("")
+        # 创建自定义表头
+        custom_header = CustomHeaderView(Qt.Orientation.Horizontal, self.result_table)
+        self.result_table.setHorizontalHeader(custom_header)
         
-        # 设置表格样式
+        # 设置列宽
+        self.restore_column_settings()
+        
+        # 设置表格样式，参考搜索历史表格
         self.result_table.setStyleSheet("""
-            /* 表格主体样式 */
             QTableWidget {
                 background-color: #1f1f1f;
                 alternate-background-color: #252525;
                 color: #ffffff;
                 gridline-color: #404040;
-                border: 1px solid #404040;
-                border-radius: 5px;
-                font-size: 11pt;
-                margin: 0;
-                padding: 0;
+                border: none;
+                border-radius: 0px;
+                font-size: 9pt;
+                padding: 0px;
+                margin: 0px;
             }
-            
-            /* 表格项样式 */
             QTableWidget::item:selected {
                 background-color: #005a9e;
                 color: white;
             }
-            
             QTableWidget::item:hover {
                 background-color: #3d3d3d;
                 color: white;
             }
-            
-            /* 表头样式 */
+            QTableWidget::item {
+                padding: 0px;
+                margin: 0px;
+            }
             QHeaderView {
-                background-color: #2a2a2a;
-                color: #ffffff;
-                border: 1px solid #404040;
-                font-size: 10pt;
-                font-weight: bold;
+                background-color: #505050;
+                margin: 0;
+                padding: 0;
             }
-            
+
             QHeaderView::section {
-                background-color: #2a2a2a;
+                background-color: #505050;
                 color: #ffffff;
-                border: 1px solid #404040;
-                padding: 5px;
-                min-height: 30px;
+                padding: 0px 0px;
+                border: none;
+                border-right: 1px solid #606060;
+                border-bottom: 1px solid #606060;
+                font-weight: bold;
+                font-size: 10pt;
+                margin: 0;
             }
-            
-            QHeaderView::section:checked {
-                background-color: #005a9e;
-            }
-            
-            /* 表头在Dark主题下的样式 */
-            QHeaderView[theme="dark"] {
-                background-color: #2a2a2a;
-                color: #ffffff;
-            }
-            
-            QHeaderView[theme="dark"]::section {
-                background-color: #2a2a2a;
-                color: #ffffff;
-                border: 1px solid #404040;
-            }
-            
-            /* 表头在Light主题下的样式 */
-            QHeaderView[theme="light"] {
-                background-color: #f0f0f0;
-                color: #000000;
-            }
-            
-            QHeaderView[theme="light"]::section {
-                background-color: #f0f0f0;
-                color: #000000;
-                border: 1px solid #cccccc;
-            }
+            /* 移除section:first的border-left，避免影响边界对齐 */
         """)
-    
-    def set_table_theme(self, theme_mode):
-        """设置表格主题"""
-        # 特别为result_table的表头设置theme属性
-        header = self.result_table.horizontalHeader()
-        if header:
-            header.setProperty("theme", theme_mode)
-            # 强制刷新表头样式
-            header.style().unpolish(header)
-            header.style().polish(header)
         
-        # 强制刷新result_table的样式
+        # 确保表格没有内边距，避免最右边留白
+        self.result_table.setContentsMargins(0, 0, 0, 0)
+
+        # 确保表头高度固定且没有额外空间
+        header = self.result_table.horizontalHeader()
+        header.setFixedHeight(30)
+        header.setContentsMargins(0, 0, 0, 0)
+        
+        # 确保表格填满父容器
+        self.result_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # 强制更新样式和布局
+        self.result_table.updateGeometry()
+        self.result_table.resize(self.result_table.parent().size())
         self.result_table.style().unpolish(self.result_table)
         self.result_table.style().polish(self.result_table)
         self.result_table.update()
-    
-    def set_search_params(self, search_params, variants=None):
-        """设置搜索参数，用于关键词高亮"""
-        if self.html_delegate:
-            self.html_delegate.set_search_params(search_params, variants)
-            self.result_table.update()
-    
-    def reset_column_widths(self):
-        """重置列宽"""
-        # 设置固定列宽度
-        for col, width in self.FIXED_WIDTHS.items():
-            self.result_table.setColumnWidth(col, width)
         
-        # 设置可调整列的默认宽度（使用限制范围内的中间值）
-        default_widths = {
-            0: 200,  # 出处列
-            2: 600,  # 对应台词列
-            4: 200   # 文件名列
-        }
-        
-        for col, default_width in default_widths.items():
-            self.result_table.setColumnWidth(col, default_width)
+        # 确保父容器布局正确
+        if self.result_table.parent() and hasattr(self.result_table.parent(), 'updateGeometry'):
+            self.result_table.parent().updateGeometry()
+            self.result_table.parent().update()
     
-    def get_html_delegate(self):
-        """获取HTML代理对象"""
-        return self.html_delegate
+    def restore_column_settings(self):
+        """恢复列宽设置"""
+        # 从配置文件加载列宽设置
+        column_settings = config_manager.get_column_settings('result')
+        column_widths = column_settings['widths']
+        
+        # 获取表头
+        header = self.result_table.horizontalHeader()
+        
+        # 设置每列的调整模式
+        for col in range(self.result_table.columnCount()):
+            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
+            elif col == self.result_table.columnCount() - 1:  # 最后一列（文件名列）
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+            else:  # 其他可调整列
+                header.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+
+        # 启用最后一列自动拉伸，填满剩余空间
+        header.setStretchLastSection(True)
+        
+        # 然后设置列宽
+        for col in range(self.result_table.columnCount()):
+            if col == 1 or col == 3:  # 时间轴列和行号列（固定列）
+                # 固定列使用硬编码值，不受配置文件影响
+                if col == 1:  # 时间轴列
+                    self.result_table.setColumnWidth(col, 80)
+                else:  # 行号列
+                    self.result_table.setColumnWidth(col, 60)
+            else:  # 可调整列
+                # 直接使用配置文件中的宽度，覆盖初始值
+                width = column_widths[col] if col < len(column_widths) else 0
+                # 如果配置文件中该列有宽度设置，则使用配置文件中的值，否则使用默认值
+                if width > 0:
+                    # 应用宽度限制
+                    limits = self.get_column_width_limits(col)
+                    if limits:
+                        min_width, max_width = limits
+                        width = min(max(min_width, width), max_width)
+                self.result_table.setColumnWidth(col, width)
+        
+        # 重新连接sectionResized信号
+        header.sectionResized.connect(self.enforce_min_column_width)
+        
+        # 确保表头高度为30px
+        header.setFixedHeight(30)
+        header.style().unpolish(header)
+        header.style().polish(header)
+        header.update()
+
+    def enforce_min_column_width(self, logical_index, old_size, new_size):
+        """强制执行最小列宽限制"""
+        # 检查是否为固定列
+        fixed_width = self.get_fixed_width(logical_index)
+        if fixed_width is not None:
+            # 固定列：恢复为固定宽度
+            self.result_table.blockSignals(True)
+            self.result_table.setColumnWidth(logical_index, fixed_width)
+            self.result_table.blockSignals(False)
+            return
+        
+        # 检查是否有宽度限制
+        limits = self.get_column_width_limits(logical_index)
+        if limits:
+            min_width, max_width = limits
+            if new_size < min_width:
+                self.result_table.blockSignals(True)
+                self.result_table.setColumnWidth(logical_index, min_width)
+                self.result_table.blockSignals(False)
+            elif new_size > max_width:
+                self.result_table.blockSignals(True)
+                self.result_table.setColumnWidth(logical_index, max_width)
+                self.result_table.blockSignals(False)
+    
+    def clear_table(self):
+        """清空表格"""
+        self.result_table.setRowCount(0)
+        self.result_table.clearContents()
+    
+    def set_table_theme(self, theme_mode):
+        """设置表格主题
+        
+        Args:
+            theme_mode: 主题模式 ('light' 或 'dark')
+        """
+        if theme_mode == 'dark':
+            # 深色主题
+            self.result_table.setStyleSheet("""
+                QTableWidget {
+                    background-color: #1f1f1f;
+                    alternate-background-color: #252525;
+                    color: #ffffff;
+                    gridline-color: #404040;
+                    border: none;
+                    border-radius: 0px;
+                    font-size: 11pt;
+                    padding: 0px;
+                    margin: 0px;
+                }
+                QTableWidget::item:selected {
+                    background-color: #005a9e;
+                    color: white;
+                }
+                QTableWidget::item:hover {
+                    background-color: #3d3d3d;
+                    color: white;
+                }
+                QTableWidget::item {
+                    padding: 0px;
+                    margin: 0px;
+                }
+                QHeaderView {
+                    background-color: #505050;
+                    margin: 0;
+                    padding: 0;
+                }
+                QHeaderView::section {
+                    background-color: #505050;
+                    color: #ffffff;
+                    padding: 0px 0px;
+                    border: none;
+                    border-right: 1px solid #606060;
+                    border-bottom: 1px solid #606060;
+                    font-weight: bold;
+                    font-size: 10pt;
+                    margin: 0;
+                }
+            """)
+        else:
+            # 浅色主题
+            self.result_table.setStyleSheet("""
+                QTableWidget {
+                    background-color: #ffffff;
+                    alternate-background-color: #f0f0f0;
+                    color: #000000;
+                    gridline-color: #d0d0d0;
+                    border: none;
+                    border-radius: 0px;
+                    font-size: 11pt;
+                    padding: 0px;
+                    margin: 0px;
+                }
+                QTableWidget::item:selected {
+                    background-color: #0078d4;
+                    color: white;
+                }
+                QTableWidget::item:hover {
+                    background-color: #e5f3ff;
+                    color: black;
+                }
+                QTableWidget::item {
+                    padding: 0px;
+                    margin: 0px;
+                }
+                QHeaderView {
+                    background-color: #f0f0f0;
+                    margin: 0;
+                    padding: 0;
+                }
+                QHeaderView::section {
+                    background-color: #f0f0f0;
+                    color: #000000;
+                    padding: 0px 0px;
+                    border: none;
+                    border-right: 1px solid #d0d0d0;
+                    border-bottom: 1px solid #d0d0d0;
+                    font-weight: bold;
+                    font-size: 10pt;
+                    margin: 0;
+                }
+            """)
+
+
+class CustomHeaderView(QHeaderView):
+    """自定义表头，支持右键菜单显示/隐藏列"""
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+        self.setSectionsClickable(True)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
+    
+    def show_context_menu(self, pos):
+        """显示右键菜单"""
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #3d3d3d;
+                color: #ffffff;
+                border: 1px solid #505050;
+            }
+            QMenu::item {
+                padding: 5px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #005a9e;
+            }
+            QMenu::item:hover {
+                background-color: #505050;
+            }
+        """)
+        
+        # 获取所有列名
+        column_names = []
+        for col in range(self.count()):
+            column_names.append(self.model().headerData(col))
+        
+        # 为每列创建菜单项
+        for col, name in enumerate(column_names):
+            action = menu.addAction(name)
+            action.setCheckable(True)
+            action.setChecked(not self.isSectionHidden(col))
+            action.triggered.connect(lambda checked, c=col: self.hideSection(c, checked))
+        
+        menu.exec_(self.mapToGlobal(pos))
+    
+    def hideSection(self, logical_index, hide):
+        """显示/隐藏列"""
+        if hide:
+            self.hideSection(logical_index)
+        else:
+            self.showSection(logical_index)
+        self.setSectionHidden(logical_index, hide)

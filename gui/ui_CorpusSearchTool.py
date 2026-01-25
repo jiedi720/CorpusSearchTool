@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolmDJtbu.ui'
+## Form generated from reading UI file 'CorpusSearchToolenCMiR.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -376,8 +376,8 @@ class Ui_CorpusSearchTool(object):
 
         self.english_lemmalist_display = QLabel(self.english_tab)
         self.english_lemmalist_display.setObjectName(u"english_lemmalist_display")
-        self.english_lemmalist_display.setMinimumSize(QSize(300, 70))
-        self.english_lemmalist_display.setMaximumSize(QSize(16777215, 70))
+        self.english_lemmalist_display.setMinimumSize(QSize(300, 90))
+        self.english_lemmalist_display.setMaximumSize(QSize(16777215, 90))
         self.english_lemmalist_display.setFont(font)
         self.english_lemmalist_display.setStyleSheet(u"/* \u9ed8\u8ba4\u6837\u5f0f (\u4f60\u7684\u57fa\u7840\u6837\u5f0f) */\n"
 "QFrame {\n"
@@ -893,7 +893,7 @@ class Ui_CorpusSearchTool(object):
 
         self.english_keyword_edit.setPlaceholderText(QCoreApplication.translate("CorpusSearchTool", u"\u8f93\u5165\u641c\u7d22\u5173\u952e\u8bcd...", None))
         self.english_lemma_label.setText(QCoreApplication.translate("CorpusSearchTool", u"\u8bcd\u5178\u578b:", None))
-        self.english_lemma_display.setText(QCoreApplication.translate("CorpusSearchTool", u"\u5173\u952e\u8bcd \u2192 \u8bcd\u5178\u578b", None))
+        self.english_lemma_display.setText(QCoreApplication.translate("CorpusSearchTool", u"[\u8bcd\u6027]\uff1a\u8bcd\u5178\u578b", None))
         self.english_lemmalist_label.setText(QCoreApplication.translate("CorpusSearchTool", u"\u53d8\u4f53\u8868:", None))
         self.english_lemmalist_display.setText(QCoreApplication.translate("CorpusSearchTool", u"\u53d8\u4f53\u578b\u5217\u8868", None))
         self.corpus_tab_widget.setTabText(self.corpus_tab_widget.indexOf(self.english_tab), QCoreApplication.translate("CorpusSearchTool", u"\u82f1\u8bed\u8bed\u6599\u5e93", None))

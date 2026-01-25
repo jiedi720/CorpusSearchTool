@@ -10,7 +10,7 @@ class FontConfig:
     """字体配置类"""
     
     # 韩语字体
-    KOREAN_FONT_FAMILY = "Noto Sans KR"
+    KOREAN_FONT_FAMILY = "Malgun Gothic"
     KOREAN_FONT_SIZE = 11
     
     # 英语字体（使用系统默认）
@@ -35,6 +35,8 @@ class FontConfig:
         font = QFont()
         font.setFamily(FontConfig.KOREAN_FONT_FAMILY)
         font.setPointSize(size if size is not None else FontConfig.KOREAN_FONT_SIZE)
+        # 启用完全提示，消除字体锯齿
+        font.setHintingPreference(QFont.HintingPreference.PreferFullHinting)
         return font
     
     @staticmethod

@@ -214,3 +214,19 @@
 - `korean_lemma_display` 显示格式从 `关键词 (词性) → 词典形` 改为 `[词性]：词典形`
 - `korean_lemmalist_display` 左右 padding 从 15px 改为 10px，更对称和谐
 - 词典形显示使用共享方法 `format_lemma_display()`，确保一致性
+
+### 搜索结果表格行高优化
+- **问题**：表格行高过大，文字与表格上下边缘间隙较大
+- **解决方案**：
+  - 将默认行高从 30 像素减小到 18 像素
+  - 同时设置最小行高和最大行高为 18 像素，强制固定行高
+  - 字体大小从 11pt 减小到 9pt
+  - `sizeHint()` 方法返回的高度设置为 18 像素
+  - 添加 `doc.setDocumentMargin(0)` 移除文档边距
+- **关键代码**：
+  ```python
+  self.result_table.verticalHeader().setDefaultSectionSize(18)
+  self.result_table.verticalHeader().setMinimumSectionSize(18)
+  self.result_table.verticalHeader().setMaximumSectionSize(18)
+  ```
+- **效果**：行高固定为 18 像素，表格更紧凑，显示更多内容

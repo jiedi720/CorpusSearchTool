@@ -376,7 +376,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.table_manager.initialize_table()
         
         # 获取HTML代理
-        self.html_delegate = self.table_manager.get_html_delegate()
+        self.html_delegate = self.table_manager.html_delegate
         
         # 连接列宽变化信号，确保所有列的宽度不小于80
         self.result_table.horizontalHeader().sectionResized.connect(self.enforce_min_column_width)
@@ -1105,6 +1105,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 border: none;
                 border-radius: 0px;
                 font-size: 11pt;
+                padding: 0px;
+                margin: 0px;
             }
             QTableWidget::item:selected {
                 background-color: #005a9e;
@@ -1116,6 +1118,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             }
             QTableWidget::item {
                 padding: 0px;
+                margin: 0px;
             }
             QHeaderView {
                 background-color: #505050;
@@ -1628,11 +1631,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
 
         # 自动调整行高以适应内容
         self.result_table.resizeRowsToContents()
-
-        # 为每行添加额外的上下边距（总共2像素，上下各1像素）
-        for row in range(self.result_table.rowCount()):
-            current_height = self.result_table.rowHeight(row)
-            self.result_table.setRowHeight(row, current_height + 2)
 
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
