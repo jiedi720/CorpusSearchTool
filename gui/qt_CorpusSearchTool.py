@@ -1985,7 +1985,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 更新状态栏
             self.status_bar.showMessage(f"✓ 成功加载 {len(data_rows)} 条搜索结果")
-            QMessageBox.information(self, "成功", f"已成功加载 {len(data_rows)} 条搜索结果")
             
         except Exception as e:
             QMessageBox.critical(self, "错误", f"加载搜索结果失败: {str(e)}")
