@@ -40,7 +40,7 @@ def test_pos_fullname():
         # 验证词性是否为全称
         pos = search_record['pos']
         if pos in ['VV', 'VA', 'NNG', 'NNP', 'MAG', 'VX']:
-            print(f"  ❌ 错误: 词性仍为缩写 '{pos}'")
+            print(f"  错误: 词性仍为缩写 '{pos}'")
         else:
             print(f"  ✅ 正确: 词性为全称 '{pos}'")
         

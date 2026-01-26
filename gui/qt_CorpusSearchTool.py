@@ -84,7 +84,7 @@ class SearchThread(QThread):
             
             total_files = len(files_to_search)
             if total_files == 0:
-                self.search_completed.emit([])
+                self.search_completed.emit([], "", [], "", [], [])
                 return
             
             # 韩语模式特殊处理
@@ -488,7 +488,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             if self.current_corpus_tab == 0:  # 英语语料库
                 keywords = self.english_keyword_edit.text().strip()
                 if not keywords:
-                    QMessageBox.warning(self, "❌ 错误", "请输入关键词")
+                    QMessageBox.warning(self, "错误", "请输入关键词")
                     return
                 
                 # 生成英语变体表（简化版）
@@ -500,7 +500,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             else:  # 韩语语料库
                 keywords = self.korean_keyword_edit.text().strip()
                 if not keywords:
-                    QMessageBox.warning(self, "❌ 错误", "请输入关键词")
+                    QMessageBox.warning(self, "错误", "请输入关键词")
                     return
                 
                 # 使用韩语搜索引擎生成变体表
@@ -1328,11 +1328,19 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             regex_enabled = False  # 韩语不支持正则表达式
         
         if not input_path:
-            QMessageBox.warning(self, "❌ 错误", "请输入输入路径")
+            QMessageBox.warning(self, "错误", "请输入输入路径")
+            return
+        
+        if not os.path.exists(input_path):
+            QMessageBox.warning(self, "错误", f"输入路径不存在: {input_path}")
+            return
+        
+        if not os.path.isfile(input_path) and not os.path.isdir(input_path):
+            QMessageBox.warning(self, "错误", f"输入路径无效: {input_path}")
             return
         
         if not keywords:
-            QMessageBox.warning(self, "❌ 错误", "请输入关键词")
+            QMessageBox.warning(self, "错误", "请输入关键词")
             return
         
         # 获取语料库类型
@@ -2318,9 +2326,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     os.system(f'open "{filepath}"')
                 self.status_bar.showMessage(f"📂 已打开文件: {os.path.basename(filepath)}")
             except Exception as e:
-                QMessageBox.critical(self, "❌ 错误", f"打开文件失败: {str(e)}")
+                QMessageBox.critical(self, "错误", f"打开文件失败: {str(e)}")
         else:
-            QMessageBox.warning(self, "❌ 错误", f"文件不存在: {filepath}")
+            QMessageBox.warning(self, "错误", f"文件不存在: {filepath}")
     
     def export_selected_row(self, row):
         """导出选中行（CSV格式）"""
@@ -2422,7 +2430,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
 
             QMessageBox.information(self, "✅ 成功", f"已导出 {self.result_table.rowCount()} 行数据到 {output_file}")
         except Exception as e:
-            QMessageBox.critical(self, "❌ 错误", f"导出失败: {str(e)}")
+            QMessageBox.critical(self, "错误", f"导出失败: {str(e)}")
     
     def reset_column_widths(self):
         """重置列宽"""
