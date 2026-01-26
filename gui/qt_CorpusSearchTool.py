@@ -1965,8 +1965,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         export_all_action = menu.addAction("📤 导出所有行")
         
         # 设置菜单项的启用状态
-        # 复制单元格：只要有数据且点击到了有效的单元格位置就启用
-        copy_cell_action.setEnabled(has_data and clicked_row >= 0 and clicked_col >= 0)
+        # 复制单元格：只要有数据就启用，不依赖点击位置
+        copy_cell_action.setEnabled(has_data)
         
         # 复制选中行：必须有选中的行
         copy_action.setEnabled(has_selection)
@@ -1982,8 +1982,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         action = menu.exec(self.result_table.mapToGlobal(pos))
         
-        if clicked_row >= 0 and clicked_col >= 0 and action == copy_cell_action:
-            self.copy_selected_cell(clicked_row, clicked_col)
+        if has_data and action == copy_cell_action:
+            # 如果点击到了有效位置，复制点击的单元格
+            if clicked_row >= 0 and clicked_col >= 0:
+                self.copy_selected_cell(clicked_row, clicked_col)
+            # 否则复制当前选中行的第一个单元格
+            elif has_selection and selected_row >= 0:
+                self.copy_selected_cell(selected_row, 0)
         elif has_selection and action == copy_action:
             self.copy_selected_row(selected_row)
         elif has_selection and action == open_action:
@@ -2012,6 +2017,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             QMenu::item:selected {
                 background-color: #0078d4;
                 color: white;
+            }
+            QMenu::item:disabled {
+                color: #888888;
+            }
+            QMenu::item:disabled:selected {
+                background-color: #004080;
+                color: #aaaaaa;
             }
             QMenu::separator {
                 height: 1px;

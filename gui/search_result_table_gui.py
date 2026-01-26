@@ -326,9 +326,9 @@ class SearchResultTableManager:
         custom_header.setCascadingSectionResizes(True)  # 允许级联调整列宽
         custom_header.setDragEnabled(True)  # 启用拖拽功能
         
-        # 启用表格的拖放功能
-        self.result_table.setDragDropMode(QTableWidget.DragDropMode.DragDrop)
-        self.result_table.setDragEnabled(True)
+        # 禁用表格的拖放功能
+        self.result_table.setDragDropMode(QTableWidget.DragDropMode.NoDragDrop)
+        self.result_table.setDragEnabled(False)
         
         # 设置列宽
         self.restore_column_settings()
