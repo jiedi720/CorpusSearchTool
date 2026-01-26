@@ -1731,11 +1731,26 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             html_content.append('</style>')
             html_content.append('</head>')
             html_content.append('<body>')
+            # 添加搜索信息
             html_content.append(f'<h1>搜索结果 - {corpus_name}语料库</h1>')
             html_content.append(f'<p>搜索时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>')
             html_content.append(f'<p>搜索关键词: {self.current_search_params["keywords"]}</p>')
             html_content.append(f'<p>搜索路径: {self.current_search_params["input_path"]}</p>')
             html_content.append(f'<p>结果数量: {len(results)}</p>')
+            
+            # 添加lemma和lemmalist信息（隐藏字段，用于恢复显示）
+            if corpus_name == "Korean":
+                # 获取韩语相关显示内容
+                lemma_text = self.korean_lemma_display.text() if hasattr(self, 'korean_lemma_display') else ""
+                lemmalist_text = self.korean_lemmalist_display.text() if hasattr(self, 'korean_lemmalist_display') else ""
+                html_content.append(f'<p style="display:none" id="lemma_text">{lemma_text}</p>')
+                html_content.append(f'<p style="display:none" id="lemmalist_text">{lemmalist_text}</p>')
+            else:
+                # 获取英语相关显示内容
+                lemma_text = self.english_lemma_display.text() if hasattr(self, 'english_lemma_display') else ""
+                lemmalist_text = self.english_lemmalist_display.text() if hasattr(self, 'english_lemmalist_display') else ""
+                html_content.append(f'<p style="display:none" id="lemma_text">{lemma_text}</p>')
+                html_content.append(f'<p style="display:none" id="lemmalist_text">{lemmalist_text}</p>')
             html_content.append('<table>')
             html_content.append('<thead>')
             html_content.append('<tr>')
@@ -1895,6 +1910,25 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 QMessageBox.warning(self, "错误", "HTML文件中未找到搜索结果表格")
                 return
             
+            # 初始化搜索信息字典
+            search_info = {}
+            
+            # 从HTML中提取搜索信息
+            import re
+            
+            # 查找搜索关键词
+            keyword_p = soup.find('p', string=re.compile(r'搜索关键词:'))
+            if keyword_p:
+                search_info['keywords'] = keyword_p.text.split('搜索关键词:')[-1].strip()
+            
+            # 查找搜索路径，判断是否为韩语语料库
+            path_p = soup.find('p', string=re.compile(r'搜索路径:'))
+            if path_p:
+                search_path = path_p.text.split('搜索路径:')[-1].strip()
+                # 检查语料库类型
+                is_korean = '韩语' in search_path or 'Korean' in search_path
+                search_info['corpus_type'] = 'korean' if is_korean else 'english'
+            
             # 获取表格行
             rows = table.find_all('tr')
             if len(rows) <= 1:  # 只有表头
@@ -1979,6 +2013,32 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 
                 # 保存文件路径
                 self.result_file_paths.append(filepath)
+            
+            # 从HTML中提取lemma和lemmalist信息，恢复显示内容
+            lemma_p = soup.find('p', id='lemma_text')
+            lemmalist_p = soup.find('p', id='lemmalist_text')
+            
+            if lemma_p and lemmalist_p:
+                lemma_text = lemma_p.get_text(strip=True)
+                lemmalist_text = lemmalist_p.get_text(strip=True)
+                
+                # 根据语料库类型更新对应显示控件
+                if search_info.get('corpus_type') == 'korean':
+                    # 切换到韩语标签页
+                    self.corpus_tab_widget.setCurrentIndex(1)
+                    # 更新韩语显示内容
+                    if hasattr(self, 'korean_lemma_display'):
+                        self.korean_lemma_display.setText(lemma_text)
+                    if hasattr(self, 'korean_lemmalist_display'):
+                        self.korean_lemmalist_display.setText(lemmalist_text)
+                else:
+                    # 切换到英语标签页
+                    self.corpus_tab_widget.setCurrentIndex(0)
+                    # 更新英语显示内容
+                    if hasattr(self, 'english_lemma_display'):
+                        self.english_lemma_display.setText(lemma_text)
+                    if hasattr(self, 'english_lemmalist_display'):
+                        self.english_lemmalist_display.setText(lemmalist_text)
             
             # 自动调整行高
             self.result_table.resizeRowsToContents()
