@@ -429,7 +429,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 根据当前标签页类型设置ReadPathInput初始值
         corpus_type = "english" if self.current_corpus_tab == 0 else "korean"
         corpus_config = config_manager.get_corpus_config(corpus_type)
-        self.ReadPathInput.setText(corpus_config['input_dir'])
+        # 将路径中的/替换为\
+        input_dir = corpus_config['input_dir'].replace('/', '\\')
+        self.ReadPathInput.setText(input_dir)
         
         # 恢复列宽和顺序设置
         self.restore_column_settings()
@@ -1259,6 +1261,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         if dir_path:
             # 设置统一的输入框
+            # 将路径中的/替换为\
+            dir_path = dir_path.replace('/', '\\')
             self.ReadPathInput.setText(dir_path)
     
     def flash_border(self, success=True, flash_count=1):
@@ -1690,11 +1694,19 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
 
             # 使用具体词典型作为关键词类型
             keyword_type_to_save = pos_full if pos_full else self.current_search_params.get('keyword_type', '')
+            
+            # 将HTML绝对路径转换为相对于主程序目录的相对路径
+            import os
+            if html_path:
+                base_dir = os.path.dirname(os.path.dirname(__file__))  # 主程序目录
+                rel_html_path = os.path.relpath(html_path, base_dir)  # 相对路径
+            else:
+                rel_html_path = ""
 
             search_history_manager.add_record(
                 keywords=self.current_search_params['keywords'],
                 input_path=self.current_search_params['input_path'],
-                html_path=html_path,  # 保存HTML文件路径
+                html_path=rel_html_path,  # 保存相对HTML文件路径
                 case_sensitive=self.current_search_params['case_sensitive'],
                 fuzzy_match=self.current_search_params['fuzzy_match'],
                 regex_enabled=self.current_search_params['regex_enabled'],
@@ -2170,14 +2182,27 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             # 添加调试信息
             print(f"双击历史记录: 关键词={keyword}, HTML路径={html_path}")
             
-            if html_path and os.path.exists(html_path):
-                # 如果有HTML路径且文件存在，直接加载HTML文件
-                print(f"正在加载HTML文件: {html_path}")
-                self.load_search_results_from_html(html_path)
-                self.status_bar.showMessage(f"✓ 已加载搜索结果: {keyword}")
+            if html_path:
+                # 将相对路径转换为绝对路径
+                base_dir = os.path.dirname(os.path.dirname(__file__))  # 主程序目录
+                full_html_path = os.path.join(base_dir, html_path) if not os.path.isabs(html_path) else html_path
+                
+                if os.path.exists(full_html_path):
+                    # 如果有HTML路径且文件存在，直接加载HTML文件
+                    print(f"正在加载HTML文件: {full_html_path}")
+                    self.load_search_results_from_html(full_html_path)
+                    self.status_bar.showMessage(f"✓ 已加载搜索结果: {keyword}")
+                else:
+                    # 否则加载关键词到搜索框
+                    print(f"未找到HTML文件或HTML路径为空，加载关键词到搜索框")
+                    if self.current_corpus_tab == 0:  # 英语语料库
+                        self.english_keyword_edit.setText(keyword)
+                    else:  # 韩语语料库
+                        self.korean_keyword_edit.setText(keyword)
+                    self.status_bar.showMessage(f"✓ 已加载关键词: {keyword}")
             else:
                 # 否则加载关键词到搜索框
-                print(f"未找到HTML文件或HTML路径为空，加载关键词到搜索框")
+                print(f"HTML路径为空，加载关键词到搜索框")
                 if self.current_corpus_tab == 0:  # 英语语料库
                     self.english_keyword_edit.setText(keyword)
                 else:  # 韩语语料库
@@ -2948,5 +2973,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         files = [u.toLocalFile() for u in event.mimeData().urls()]
         if files:
             # 使用统一的ReadPathInput输入框
-            self.ReadPathInput.setText(files[0])
+            # 将路径中的/替换为\
+            file_path = files[0].replace('/', '\\')
+            self.ReadPathInput.setText(file_path)
             self.status_bar.showMessage(f"✓ 已选择: {files[0]}")
