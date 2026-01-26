@@ -2018,23 +2018,34 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             lemma_p = soup.find('p', id='lemma_text')
             lemmalist_p = soup.find('p', id='lemmalist_text')
             
-            if lemma_p and lemmalist_p:
-                lemma_text = lemma_p.get_text(strip=True)
-                lemmalist_text = lemmalist_p.get_text(strip=True)
-                
-                # 根据语料库类型更新对应显示控件
-                if search_info.get('corpus_type') == 'korean':
-                    # 切换到韩语标签页
-                    self.corpus_tab_widget.setCurrentIndex(1)
-                    # 更新韩语显示内容
+            # 获取搜索关键词
+            keywords = search_info.get('keywords', '')
+            
+            # 根据语料库类型更新对应控件
+            if search_info.get('corpus_type') == 'korean':
+                # 切换到韩语标签页
+                self.corpus_tab_widget.setCurrentIndex(1)
+                # 更新韩语关键词输入框
+                if hasattr(self, 'korean_keyword_edit'):
+                    self.korean_keyword_edit.setText(keywords)
+                # 更新韩语显示内容
+                if lemma_p and lemmalist_p:
+                    lemma_text = lemma_p.get_text(strip=True)
+                    lemmalist_text = lemmalist_p.get_text(strip=True)
                     if hasattr(self, 'korean_lemma_display'):
                         self.korean_lemma_display.setText(lemma_text)
                     if hasattr(self, 'korean_lemmalist_display'):
                         self.korean_lemmalist_display.setText(lemmalist_text)
-                else:
-                    # 切换到英语标签页
-                    self.corpus_tab_widget.setCurrentIndex(0)
-                    # 更新英语显示内容
+            else:
+                # 切换到英语标签页
+                self.corpus_tab_widget.setCurrentIndex(0)
+                # 更新英语关键词输入框
+                if hasattr(self, 'english_keyword_edit'):
+                    self.english_keyword_edit.setText(keywords)
+                # 更新英语显示内容
+                if lemma_p and lemmalist_p:
+                    lemma_text = lemma_p.get_text(strip=True)
+                    lemmalist_text = lemmalist_p.get_text(strip=True)
                     if hasattr(self, 'english_lemma_display'):
                         self.english_lemma_display.setText(lemma_text)
                     if hasattr(self, 'english_lemmalist_display'):
