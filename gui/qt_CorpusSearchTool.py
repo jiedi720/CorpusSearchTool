@@ -1555,7 +1555,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 集数
             episode_item = QTableWidgetItem(str(episode))
-            episode_item.setForeground(QColor('#dcdcaa'))
+            episode_item.setForeground(QColor('#FFC209'))
             # 设置为不可编辑
             episode_item.setFlags(episode_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 0, episode_item)
@@ -1593,7 +1593,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 文件名
             filename_item = QTableWidgetItem(str(filename))
-            filename_item.setForeground(QColor('#569cd6'))
+            filename_item.setForeground(QColor('#0078d4'))
             # 设置为不可编辑
             filename_item.setFlags(filename_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 4, filename_item)
@@ -1711,12 +1711,12 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             html_content.append('tr:nth-child(even) { background-color: #f2f2f2; }')
             html_content.append('tr:hover { background-color: #f5f5f5; }')
             html_content.append('.highlight { background-color: yellow; font-weight: bold; }')
-            html_content.append('.episode { color: #dcdcaa; }')
+            html_content.append('.episode { color: #FFC209; }')
             html_content.append('.time-axis { color: #4ec9b0; text-align: center; }')
             # 移除白色字体颜色设定
             html_content.append('.content { }')
             html_content.append('.line-number { color: #979a98; text-align: center; }')
-            html_content.append('.filename { color: #569cd6; }')
+            html_content.append('.filename { color: #0078d4; }')
             html_content.append('</style>')
             html_content.append('</head>')
             html_content.append('<body>')
