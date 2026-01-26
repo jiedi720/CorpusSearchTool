@@ -1828,6 +1828,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 html_content.append(f'<td class="content">{processed_text}</td>')
                 html_content.append(f'<td class="line-number">{lineno}</td>')
                 html_content.append(f'<td class="filename">{filename}</td>')
+                # 添加隐藏的文件路径字段
+                html_content.append(f'<td style="display:none">{filepath}</td>')
                 html_content.append('</tr>')
 
             html_content.append('</tbody>')
@@ -1921,6 +1923,11 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 line_number = cells[3].get_text(strip=True)
                 filename = cells[4].get_text(strip=True)
                 
+                # 提取文件路径（如果有第六列）
+                filepath = ""
+                if len(cells) >= 6:
+                    filepath = cells[5].get_text(strip=True)
+                
                 # 设置集数列
                 episode_item = QTableWidgetItem(episode)
                 episode_item.setForeground(QColor('#FFC209'))
@@ -1953,8 +1960,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 filename_item.setFlags(filename_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.result_table.setItem(row_idx, 4, filename_item)
                 
-                # 保存文件路径（这里无法从HTML中获取完整路径，使用空字符串）
-                self.result_file_paths.append("")
+                # 保存文件路径
+                self.result_file_paths.append(filepath)
             
             # 自动调整行高
             self.result_table.resizeRowsToContents()
