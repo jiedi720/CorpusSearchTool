@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolJbfLHa.ui'
+## Form generated from reading UI file 'CorpusSearchToolJzvGGn.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -26,9 +26,9 @@ class Ui_CorpusSearchTool(object):
     def setupUi(self, CorpusSearchTool):
         if not CorpusSearchTool.objectName():
             CorpusSearchTool.setObjectName(u"CorpusSearchTool")
-        CorpusSearchTool.resize(1200, 800)
-        CorpusSearchTool.setMinimumSize(QSize(1100, 800))
-        CorpusSearchTool.setMaximumSize(QSize(1500, 800))
+        CorpusSearchTool.resize(1300, 800)
+        CorpusSearchTool.setMinimumSize(QSize(1300, 800))
+        CorpusSearchTool.setMaximumSize(QSize(1300, 900))
         self.actionlight = QAction(CorpusSearchTool)
         self.actionlight.setObjectName(u"actionlight")
         self.actionDark = QAction(CorpusSearchTool)
@@ -797,7 +797,7 @@ class Ui_CorpusSearchTool(object):
         CorpusSearchTool.setCentralWidget(self.centralwidget)
         self.menuBar = QMenuBar(CorpusSearchTool)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1200, 22))
+        self.menuBar.setGeometry(QRect(0, 0, 1300, 33))
         self.menuTheme = QMenu(self.menuBar)
         self.menuTheme.setObjectName(u"menuTheme")
         CorpusSearchTool.setMenuBar(self.menuBar)

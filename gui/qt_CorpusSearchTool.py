@@ -623,23 +623,17 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def setup_window(self):
         """设置窗口属性"""
         self.setWindowTitle("字幕语料库检索工具")
-        
+
         # 设置图标
         icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "CorpusSearchTool.png")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
-        
-        # 设置窗口大小
-        if self.ui_settings:
-            self.resize(self.ui_settings.get('width', 1200), self.ui_settings.get('height', 800))
-        else:
-            self.resize(1200, 800)
-        
-        # 设置窗口位置
-        if self.ui_settings and 'pos_x' in self.ui_settings and 'pos_y' in self.ui_settings:
-            self.move(self.ui_settings['pos_x'], self.ui_settings['pos_y'])
-        else:
-            self.center_window()
+
+        # 设置窗口大小为固定值，不再从配置加载
+        self.resize(1200, 800)
+
+        # 居中显示窗口
+        self.center_window()
     
     def center_window(self):
         """居中窗口"""
@@ -2346,23 +2340,18 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         """窗口关闭事件"""
         # 保存列宽和顺序
         self.save_column_settings()
-        
+
         # 保存当前标签页的配置
         self.save_current_tab_config()
-        
-        # 保存窗口设置
-        config_manager.set_ui_settings(
-            width=self.width(),
-            height=self.height(),
-            x=self.x(),
-            y=self.y()
-        )
-        
+
         # 保存当前标签页索引
         config_manager.set_current_tab(self.current_corpus_tab)
-        
+
+        # 保存UI设置（仅主题等，不包括窗口位置和大小）
+        config_manager.set_ui_settings()
+
         config_manager.save_config()
-        
+
         event.accept()
     
     def dragEnterEvent(self, event):

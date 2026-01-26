@@ -39,10 +39,6 @@ class ConfigManager:
             'regex_enabled': 'False'
         }
         self.config['UI'] = {
-            'window_width': '800',
-            'window_height': '600',
-            'window_x': '-1',  # -1表示居中
-            'window_y': '-1',
             'current_tab': '0',  # 当前选择的标签页（0=英语，1=韩语）
             'theme': 'Light'  # 主题设置（Light/Dark/System）
         }
@@ -126,22 +122,16 @@ class ConfigManager:
     def get_ui_settings(self) -> dict:
         """获取UI设置"""
         ui_settings = {
-            'width': self.config.getint('UI', 'window_width', fallback=800),
-            'height': self.config.getint('UI', 'window_height', fallback=600),
-            'x': self.config.getint('UI', 'window_x', fallback=-1),
-            'y': self.config.getint('UI', 'window_y', fallback=-1),
             'theme': self.config.get('UI', 'theme', fallback='Light')
         }
         return ui_settings
     
-    def set_ui_settings(self, width: int, height: int, x: int, y: int):
-        """设置UI设置"""
+    def set_ui_settings(self):
+        """设置UI设置 - 已移除窗口位置和大小保存功能"""
         if 'UI' not in self.config:
             self.config['UI'] = {}
-        self.config.set('UI', 'window_width', str(width))
-        self.config.set('UI', 'window_height', str(height))
-        self.config.set('UI', 'window_x', str(x))
-        self.config.set('UI', 'window_y', str(y))
+        # 仅保留主题设置，移除窗口位置和大小的保存
+        pass
     
     def get_theme(self) -> str:
         """获取主题设置"""
