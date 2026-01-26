@@ -45,6 +45,7 @@ def test_load_search_results():
     <div class="search-info">
         <p>搜索关键词: 테스트</p>
         <p>搜索路径: E:\语料库\韩语</p>
+        <p>关键词类型: 规则动词 (Regular Verb)</p>
         <p>搜索时间: 2024-01-26 22:31:00</p>
         <p id="lemma_text">[规则动词 (Regular Verb)]：테스트하다</p>
         <p id="lemmalist_text">生成变体列表: 테스트하다, 테스트하고, 테스트해, 테스트했, 테스트해요, 테스트하세요; 实际命中变体: 테스트하다, 테스트해요</p>
@@ -106,10 +107,25 @@ def test_load_search_results():
             print(f"关键词: {record.get('keywords')}")
             print(f"结果数量: {record.get('result_count')}")
             print(f"HTML路径: {record.get('html_path')}")
+            print(f"关键词类型: {record.get('keyword_type')}")
             print(f"词典形: {record.get('lemma')}")
             print(f"生成变体列表: {record.get('target_variant_set')}")
             print(f"实际命中变体: {record.get('actual_variant_set')}")
             print("---")
+        
+        # 调试：手动解析HTML文件，检查是否能找到关键词类型
+        from bs4 import BeautifulSoup
+        with open(temp_file_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        soup = BeautifulSoup(html_content, 'html.parser')
+        print("\n调试：手动解析HTML文件")
+        print(f"所有<p>标签数量: {len(soup.find_all('p'))}")
+        for i, p in enumerate(soup.find_all('p')):
+            print(f"第{i+1}个<p>标签内容: {p.text}")
+            if '关键词类型:' in p.text:
+                print(f"找到包含关键词类型的<p>标签: {p.text}")
+                keyword_type = p.text.split('关键词类型:')[-1].strip()
+                print(f"提取到的关键词类型: {keyword_type}")
         
         # 再次加载相同的HTML文件，检查是否不会重复添加
         gui.load_search_results_from_html(temp_file_path)

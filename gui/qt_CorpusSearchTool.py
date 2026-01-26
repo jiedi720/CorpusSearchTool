@@ -1979,6 +1979,15 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             if keyword_p:
                 search_info['keywords'] = keyword_p.text.split('搜索关键词:')[-1].strip()
             
+            # 查找关键词类型
+            keyword_type_p = None
+            for p in soup.find_all('p'):
+                if '关键词类型:' in p.text:
+                    keyword_type_p = p
+                    break
+            if keyword_type_p:
+                search_info['keyword_type'] = keyword_type_p.text.split('关键词类型:')[-1].strip()
+            
             # 查找搜索路径，判断是否为韩语语料库
             path_p = soup.find('p', string=re.compile(r'搜索路径:'))
             if path_p:
@@ -2163,6 +2172,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     if actual_match:
                         actual_variant_set = [v.strip() for v in actual_match.group(1).split(',') if v.strip()]
                 
+                # 从HTML中提取关键词类型
+                keyword_type = search_info.get('keyword_type', '')
+                
                 # 添加记录到搜索历史
                 search_history_manager.add_record(
                     keywords=keywords,
@@ -2172,7 +2184,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     fuzzy_match=False,
                     regex_enabled=False,
                     result_count=result_count,
-                    keyword_type='',  # 从HTML中无法获取关键词类型
+                    keyword_type=keyword_type,  # 使用从HTML中提取的关键词类型
                     lemma=lemma_text,
                     actual_variant_set=actual_variant_set,
                     target_variant_set=target_variant_set
