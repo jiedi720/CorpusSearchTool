@@ -1680,6 +1680,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 自动调整行高以适应内容
         self.result_table.resizeRowsToContents()
 
+        # 自动导出搜索结果，获取HTML文件路径
+        html_path = self.auto_export_results(results)
+
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
             corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
@@ -1691,6 +1694,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             search_history_manager.add_record(
                 keywords=self.current_search_params['keywords'],
                 input_path=self.current_search_params['input_path'],
+                html_path=html_path,  # 保存HTML文件路径
                 case_sensitive=self.current_search_params['case_sensitive'],
                 fuzzy_match=self.current_search_params['fuzzy_match'],
                 regex_enabled=self.current_search_params['regex_enabled'],
@@ -1702,9 +1706,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             )
 
         self.status_bar.showMessage(f"✓ 搜索完成，找到 {len(results)} 条结果")
-
-        # 自动导出搜索结果
-        self.auto_export_results(results)
 
     def auto_export_results(self, results):
         """自动导出搜索结果到HTML文件，保留高亮加粗特效"""
@@ -1723,10 +1724,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             # 限制长度
             clean_keywords = clean_keywords[:50] if len(clean_keywords) > 50 else clean_keywords
 
-            # 确定输出目录 - 使用输入目录作为输出目录
-            output_dir = self.ReadPathInput.text().strip()
-            if not output_dir or not os.path.exists(output_dir):
-                output_dir = os.getcwd()
+            # 确定输出目录 - 使用主程序的searchhistory文件夹
+            import os
+            base_dir = os.path.dirname(os.path.dirname(__file__))  # 获取主程序目录
+            output_dir = os.path.join(base_dir, 'searchhistory')
+            # 如果目录不存在则创建
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir, exist_ok=True)
 
             # 创建输出文件名
             corpus_name = "English" if self.current_corpus_tab == 0 else "Korean"

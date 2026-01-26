@@ -23,13 +23,23 @@ class SearchHistoryManager:
         self.history = self.load_history()
     
     def _get_history_file(self) -> str:
-        """根据语料库类型获取历史文件名"""
+        """根据语料库类型获取历史文件名，生成到searchhistory文件夹"""
+        import os
+        # 获取主程序目录
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        # 生成searchhistory文件夹路径
+        history_dir = os.path.join(base_dir, "searchhistory")
+        # 如果目录不存在则创建
+        if not os.path.exists(history_dir):
+            os.makedirs(history_dir, exist_ok=True)
+        
+        # 返回完整的历史文件路径
         if self.corpus_type == "eng":
-            return "search_history_eng.md"
+            return os.path.join(history_dir, "search_history_eng.md")
         elif self.corpus_type == "kor":
-            return "search_history_kor.md"
+            return os.path.join(history_dir, "search_history_kor.md")
         else:
-            return "search_history.md"
+            return os.path.join(history_dir, "search_history.md")
     
     def set_corpus_type(self, corpus_type: str):
         """
