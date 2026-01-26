@@ -1909,10 +1909,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         """
         从HTML文件加载搜索结果到表格中
         """
-        # 使用QFileDialog选择HTML文件，默认从输入路径文件夹开始浏览
-        default_dir = self.ReadPathInput.text().strip()
-        if not default_dir or not os.path.exists(default_dir):
-            default_dir = os.getcwd()
+        # 使用QFileDialog选择HTML文件，默认从主程序的searchhistory文件夹开始浏览
+        import os
+        base_dir = os.path.dirname(os.path.dirname(__file__))  # 获取主程序目录
+        default_dir = os.path.join(base_dir, 'searchhistory')
+        # 如果目录不存在则创建
+        if not os.path.exists(default_dir):
+            os.makedirs(default_dir, exist_ok=True)
             
         file_path, _ = QFileDialog.getOpenFileName(
             self,
