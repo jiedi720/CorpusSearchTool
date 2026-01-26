@@ -1,8 +1,9 @@
+---
+name: "meta-orchestrator"
+description: "智能开发副驾驶，优化指令、调度专业Skill、生成定制化Skill。当用户提出复杂需求或需要技能调度时调用。"
+---
+
 # Meta Orchestrator & Skill Factory
-
-**Description:** 你的智能开发副驾驶。它负责优化你的指令（通过提问澄清需求），智能调度其他专业 Skill，并能根据项目模式自动生成新的定制化 Skill。
-
-**Details:**
 
 # Meta Orchestrator 工作指南
 

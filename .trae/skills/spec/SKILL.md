@@ -1,7 +1,9 @@
 ---
-name: "spec"
-description: "根据参考 .spec 文件的配置逻辑重写项目的 .spec 文件，确保生成的 .exe 文件标题栏正常显示图标，且程序运行后能准确识别并读取同级目录下的配置文件。适用于任何需要 PyInstaller 打包的 Python 项目。"
+name: "spec-rewriter"
+description: "根据参考.spec文件配置逻辑重写项目.spec文件，确保.exe文件显示图标并能读取同级配置文件。当用户需要生成或更新PyInstaller打包配置时调用。"
 ---
+
+# Spec 文件重写工具
 
 # Spec 文件重写工具
 

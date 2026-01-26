@@ -1,8 +1,9 @@
+---
+name: "github-search-discovery"
+description: "在GitHub上搜索开源库、工具、MCP Server或最佳实践代码。当用户想查找现成解决方案或参考案例时调用。"
+---
+
 # GitHub Search & Discovery
-
-**Description:** 专用于在 GitHub 上搜索现有的开源库、工具、MCP Server 或最佳实践代码。当你想在开始开发前查找是否有“现成的轮子”或参考案例时使用。
-
-**Details:**
 
 # GitHub Search & Discovery 指南
 
@@ -18,9 +19,9 @@
 
 当用户提出需求（如“想做一个 PDF 处理功能”或“有没有操作 Notion 的 Skill”）时：
 
-1.21→1.  **意图分析**: 确定用户是想找*代码库* (Library)、*独立应用* (Application) 还是 *MCP Server*。
-22→    *   **Feedback**: 如果用户需求模糊（如“找个好用的 PDF 库”），使用 `mcp-feedback-enhanced` (e.g., `ask_followup_question`) 询问具体场景（如“是用于生成还是解析？”、“基于什么语言？”）。
-23→2.  **构建搜索查询**:
+1.  **意图分析**: 确定用户是想找*代码库* (Library)、*独立应用* (Application) 还是 *MCP Server*。
+    *   **Feedback**: 如果用户需求模糊（如“找个好用的 PDF 库”），使用 `mcp-feedback-enhanced` (e.g., `ask_followup_question`) 询问具体场景（如“是用于生成还是解析？”、“基于什么语言？”）。
+2.  **构建搜索查询**：
     *   使用 `WebSearch` 工具。
     *   关键词组合技巧：
         *   找库: `site:github.com [技术栈] [功能] library` (e.g., `site:github.com nodejs pdf library`)

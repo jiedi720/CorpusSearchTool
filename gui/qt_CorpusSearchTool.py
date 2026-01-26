@@ -1982,6 +1982,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 # 检查语料库类型
                 is_korean = '韩语' in search_path or 'Korean' in search_path
                 search_info['corpus_type'] = 'korean' if is_korean else 'english'
+                # 将搜索路径添加到search_info字典中
+                search_info['search_path'] = search_path
             
             # 获取表格行
             rows = table.find_all('tr')
@@ -2076,6 +2078,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             keywords = search_info.get('keywords', '')
             corpus_type = search_info.get('corpus_type', 'english')
             
+            # 从HTML中提取更多搜索信息
+            search_path = search_info.get('search_path', '')
+            result_count = len(data_rows)  # 结果数量
+            
             # 根据语料库类型更新对应控件
             if corpus_type == 'korean':
                 # 切换到韩语标签页
@@ -2105,6 +2111,71 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                         self.english_lemma_display.setText(lemma_text)
                     if hasattr(self, 'english_lemmalist_display'):
                         self.english_lemmalist_display.setText(lemmalist_text)
+            
+            # 添加搜索记录到搜索历史（如果不存在）
+            import os
+            search_history_manager.set_corpus_type('kor' if corpus_type == 'korean' else 'eng')
+            
+            # 检查该记录是否已存在于搜索历史中
+            history = search_history_manager.get_recent_records(100)
+            record_exists = False
+            
+            for record in history:
+                # 检查关键词和结果数量是否匹配
+                if record.get('keywords') == keywords and record.get('result_count') == result_count:
+                    record_exists = True
+                    break
+            
+            if not record_exists:
+                # 提取HTML文件的相对路径
+                base_dir = os.path.dirname(os.path.dirname(__file__))
+                
+                try:
+                    # 尝试计算相对路径
+                    rel_html_path = os.path.relpath(file_path, base_dir)
+                except ValueError:
+                    # 当路径在不同驱动器上时，直接使用绝对路径
+                    rel_html_path = file_path
+                
+                # 从HTML中提取lemma和lemmalist信息，用于保存到搜索历史
+                lemma_text = ''
+                lemmalist_text = ''
+                if lemma_p and lemmalist_p:
+                    lemma_text = lemma_p.get_text(strip=True)
+                    lemmalist_text = lemmalist_p.get_text(strip=True)
+                
+                # 将lemmalist_text拆分为target_variant_set和actual_variant_set
+                target_variant_set = []
+                actual_variant_set = []
+                if lemmalist_text:
+                    # 假设lemmalist_text格式为"生成变体列表: 变体1, 变体2; 实际命中变体: 变体1"
+                    import re
+                    # 提取生成变体列表
+                    target_match = re.search(r'生成变体列表:\s*(.*?)(?:;|$)', lemmalist_text)
+                    if target_match:
+                        target_variant_set = [v.strip() for v in target_match.group(1).split(',') if v.strip()]
+                    # 提取实际命中变体
+                    actual_match = re.search(r'实际命中变体:\s*(.*?)(?:;|$)', lemmalist_text)
+                    if actual_match:
+                        actual_variant_set = [v.strip() for v in actual_match.group(1).split(',') if v.strip()]
+                
+                # 添加记录到搜索历史
+                search_history_manager.add_record(
+                    keywords=keywords,
+                    input_path=search_path,
+                    html_path=rel_html_path,
+                    case_sensitive=False,
+                    fuzzy_match=False,
+                    regex_enabled=False,
+                    result_count=result_count,
+                    keyword_type='',  # 从HTML中无法获取关键词类型
+                    lemma=lemma_text,
+                    actual_variant_set=actual_variant_set,
+                    target_variant_set=target_variant_set
+                )
+                self.status_bar.showMessage(f"✓ 成功加载 {len(data_rows)} 条搜索结果，并添加到搜索历史")
+            else:
+                self.status_bar.showMessage(f"✓ 成功加载 {len(data_rows)} 条搜索结果")
             
             # 设置HTMLDelegate的搜索参数，确保正确应用韩语字体
             if hasattr(self, 'table_manager') and hasattr(self.table_manager, 'html_delegate'):

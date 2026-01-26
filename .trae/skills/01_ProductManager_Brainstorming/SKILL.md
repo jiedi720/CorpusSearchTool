@@ -1,7 +1,9 @@
 ---
-name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+name: "product-manager-brainstorming"
+description: "将创意转化为完整设计和规格，通过协作对话探索用户意图、需求和设计。当用户需要将想法转化为具体设计时调用。"
 ---
+
+# Brainstorming Ideas Into Designs
 
 # Brainstorming Ideas Into Designs
 
