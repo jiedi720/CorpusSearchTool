@@ -1593,7 +1593,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 文件名
             filename_item = QTableWidgetItem(str(filename))
-            filename_item.setForeground(QColor('#0078d4'))
+            filename_item.setForeground(QColor('#149acd'))
             # 设置为不可编辑
             filename_item.setFlags(filename_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.result_table.setItem(row, 4, filename_item)
@@ -1716,7 +1716,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             # 移除白色字体颜色设定
             html_content.append('.content { }')
             html_content.append('.line-number { color: #979a98; text-align: center; }')
-            html_content.append('.filename { color: #0078d4; }')
+            html_content.append('.filename { color: #149acd; }')
             html_content.append('</style>')
             html_content.append('</head>')
             html_content.append('<body>')
@@ -1909,25 +1909,27 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 将全局坐标转换为表格内部坐标
         table_pos = self.result_table.mapFromGlobal(pos)
         
-        # 获取点击位置的单元格
-        item = self.result_table.itemAt(table_pos)
+        # 获取点击位置的单元格（用于复制单元格）
+        clicked_item = self.result_table.itemAt(table_pos)
         
-        # 如果没有点击到单元格，尝试获取当前选中的行
-        if item:
-            row = item.row()
-            col = item.column()
-            has_selection = True
-        else:
-            # 获取当前选中的行
-            selected_items = self.result_table.selectedItems()
-            if selected_items:
-                row = selected_items[0].row()
-                col = selected_items[0].column()
-                has_selection = True
-            else:
-                has_selection = False
-                row = -1
-                col = -1
+        # 获取当前选中的行（用于其他操作）
+        selected_items = self.result_table.selectedItems()
+        has_selection = len(selected_items) > 0
+        
+        # 保存点击位置用于复制单元格
+        clicked_row = -1
+        clicked_col = -1
+        if clicked_item:
+            clicked_row = clicked_item.row()
+            clicked_col = clicked_item.column()
+        
+        # 保存选中的行号（用于其他操作）
+        selected_row = -1
+        if selected_items:
+            selected_row = selected_items[0].row()
+        
+        # 检查表格是否有数据
+        has_data = self.result_table.rowCount() > 0
         
         menu = QMenu(self)
         menu.setStyleSheet("""
@@ -1959,24 +1961,36 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         copy_action = menu.addAction("📋 复制选中行")
         open_action = menu.addAction("📂 打开文件")
         export_action = menu.addAction("📤 导出选中行")
+        export_all_action = menu.addAction("📤 导出所有行")
         
-        # 如果没有选中任何内容，禁用某些菜单项
-        if not has_selection:
-            copy_cell_action.setEnabled(False)
-            copy_action.setEnabled(False)
-            open_action.setEnabled(False)
-            export_action.setEnabled(False)
+        # 设置菜单项的启用状态
+        # 复制单元格：只要有数据且点击到了某个单元格位置就启用
+        copy_cell_action.setEnabled(has_data and clicked_row >= 0 and clicked_col >= 0)
+        
+        # 复制选中行：必须有选中的行
+        copy_action.setEnabled(has_selection)
+        
+        # 打开文件：必须有选中的行
+        open_action.setEnabled(has_selection)
+        
+        # 导出选中行：必须有选中的行
+        export_action.setEnabled(has_selection)
+        
+        # 导出所有行：只要有数据就启用
+        export_all_action.setEnabled(has_data)
         
         action = menu.exec(self.result_table.mapToGlobal(pos))
         
-        if has_selection and action == copy_cell_action:
-            self.copy_selected_cell(row, col)
+        if clicked_row >= 0 and clicked_col >= 0 and action == copy_cell_action:
+            self.copy_selected_cell(clicked_row, clicked_col)
         elif has_selection and action == copy_action:
-            self.copy_selected_row(row)
+            self.copy_selected_row(selected_row)
         elif has_selection and action == open_action:
-            self.open_file(row)
+            self.open_file(selected_row)
         elif has_selection and action == export_action:
-            self.export_selected_row(row)
+            self.export_selected_row(selected_row)
+        elif action == export_all_action:
+            self.export_all_rows()
     
     def show_header_context_menu(self, pos):
         """显示表头右键菜单"""
@@ -2311,23 +2325,90 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             QMessageBox.warning(self, "❌ 错误", f"文件不存在: {filepath}")
     
     def export_selected_row(self, row):
-        """导出选中行"""
-        text = ""
-        for col in range(self.result_table.columnCount()):
-            item = self.result_table.item(row, col)
-            if item:
-                text += item.text() + "\t"
+        """导出选中行（CSV格式）"""
+        import csv
         
-        # 保存文件
+        # 获取输出目录
         output_dir = self.ReadPathInput.text().strip()
         if not output_dir or not os.path.exists(output_dir):
             output_dir = os.getcwd()
         
-        output_file = os.path.join(output_dir, "selected_result.txt")
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(text.strip())
+        # 生成文件名
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = os.path.join(output_dir, f"selected_row_{timestamp}.csv")
+        
+        # 写入 CSV 文件
+        with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.writer(f)
+            
+            # 写入表头
+            headers = []
+            for col in range(self.result_table.columnCount()):
+                headers.append(self.result_table.horizontalHeaderItem(col).text())
+            writer.writerow(headers)
+            
+            # 写入数据行
+            row_data = []
+            for col in range(self.result_table.columnCount()):
+                item = self.result_table.item(row, col)
+                if item:
+                    # 去除HTML标签
+                    raw_text = item.text()
+                    clean_text = self._remove_html_tags(raw_text)
+                    row_data.append(clean_text)
+                else:
+                    row_data.append("")
+            writer.writerow(row_data)
         
         QMessageBox.information(self, "✅ 成功", f"结果已导出到 {output_file}")
+    
+    def export_all_rows(self):
+        """导出所有行（CSV格式）"""
+        import csv
+        
+        if self.result_table.rowCount() == 0:
+            QMessageBox.warning(self, "❌ 警告", "表格中没有数据可导出")
+            return
+        
+        # 获取输出目录
+        output_dir = self.ReadPathInput.text().strip()
+        if not output_dir or not os.path.exists(output_dir):
+            output_dir = os.getcwd()
+        
+        # 生成文件名
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = os.path.join(output_dir, f"all_rows_{timestamp}.csv")
+        
+        try:
+            # 写入 CSV 文件
+            with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
+                writer = csv.writer(f)
+                
+                # 写入表头
+                headers = []
+                for col in range(self.result_table.columnCount()):
+                    headers.append(self.result_table.horizontalHeaderItem(col).text())
+                writer.writerow(headers)
+                
+                # 写入所有数据行
+                for row in range(self.result_table.rowCount()):
+                    row_data = []
+                    for col in range(self.result_table.columnCount()):
+                        item = self.result_table.item(row, col)
+                        if item:
+                            # 去除HTML标签
+                            raw_text = item.text()
+                            clean_text = self._remove_html_tags(raw_text)
+                            row_data.append(clean_text)
+                        else:
+                            row_data.append("")
+                    writer.writerow(row_data)
+            
+            QMessageBox.information(self, "✅ 成功", f"已导出 {self.result_table.rowCount()} 行数据到 {output_file}")
+        except Exception as e:
+            QMessageBox.critical(self, "❌ 错误", f"导出失败: {str(e)}")
     
     def reset_column_widths(self):
         """重置列宽"""
