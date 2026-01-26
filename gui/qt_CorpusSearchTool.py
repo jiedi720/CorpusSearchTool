@@ -601,6 +601,33 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         else:
             QMessageBox.information(self, "提示", "当前没有正在运行的搜索")
     
+    def clear_all_content(self):
+        """
+        清除所有内容：result_table、lemma、lemmalist和输入框
+        """
+        # 清除搜索结果表格
+        self.result_table.setRowCount(0)
+        self.result_file_paths = []
+        
+        # 清除英语相关控件
+        if hasattr(self, 'english_keyword_edit'):
+            self.english_keyword_edit.clear()
+        if hasattr(self, 'english_lemma_display'):
+            self.english_lemma_display.setText("N/A")
+        if hasattr(self, 'english_lemmalist_display'):
+            self.english_lemmalist_display.clear()
+        
+        # 清除韩语相关控件
+        if hasattr(self, 'korean_keyword_edit'):
+            self.korean_keyword_edit.clear()
+        if hasattr(self, 'korean_lemma_display'):
+            self.korean_lemma_display.setText("N/A")
+        if hasattr(self, 'korean_lemmalist_display'):
+            self.korean_lemmalist_display.clear()
+        
+        # 更新状态栏
+        self.status_bar.showMessage("✓ 已清除所有内容")
+    
     def set_icon_paths(self):
         """
         重新设置图标路径，确保图标正确加载
@@ -2161,12 +2188,24 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             }
         """)
         
-        copy_cell_action = menu.addAction("📋 复制单元格")
-        menu.addSeparator()
-        copy_action = menu.addAction("📋 复制选中行")
+        # 按照用户要求的顺序排列菜单项
         open_action = menu.addAction("📂 打开文件")
+        menu.addSeparator()
+        copy_cell_action = menu.addAction("📋 复制单元格")
+        copy_action = menu.addAction("📋 复制选中行")
+        menu.addSeparator()
         export_action = menu.addAction("📤 导出选中行")
         export_all_action = menu.addAction("📤 导出所有行")
+        menu.addSeparator()
+        clear_action = menu.addAction("🗑️ 清除")
+        # 清除选项：只要有数据或控件有内容就启用
+        clear_action.setEnabled(has_data or \
+                              (hasattr(self, 'english_keyword_edit') and self.english_keyword_edit.text().strip()) or \
+                              (hasattr(self, 'korean_keyword_edit') and self.korean_keyword_edit.text().strip()) or \
+                              (hasattr(self, 'english_lemma_display') and self.english_lemma_display.text().strip() != 'N/A') or \
+                              (hasattr(self, 'korean_lemma_display') and self.korean_lemma_display.text().strip() != 'N/A') or \
+                              (hasattr(self, 'english_lemmalist_display') and self.english_lemmalist_display.text().strip()) or \
+                              (hasattr(self, 'korean_lemmalist_display') and self.korean_lemmalist_display.text().strip()))
         
         # 设置菜单项的启用状态
         # 复制单元格：必须有选中的单元格
@@ -2198,6 +2237,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             self.export_selected_row(selected_row)
         elif action == export_all_action:
             self.export_all_rows()
+        elif action == clear_action:
+            # 清除所有内容
+            self.clear_all_content()
     
     def show_header_context_menu(self, pos):
         """显示表头右键菜单"""
