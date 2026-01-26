@@ -2047,9 +2047,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             
             # 获取搜索关键词
             keywords = search_info.get('keywords', '')
+            corpus_type = search_info.get('corpus_type', 'english')
             
             # 根据语料库类型更新对应控件
-            if search_info.get('corpus_type') == 'korean':
+            if corpus_type == 'korean':
                 # 切换到韩语标签页
                 self.corpus_tab_widget.setCurrentIndex(1)
                 # 更新韩语关键词输入框
@@ -2077,6 +2078,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                         self.english_lemma_display.setText(lemma_text)
                     if hasattr(self, 'english_lemmalist_display'):
                         self.english_lemmalist_display.setText(lemmalist_text)
+            
+            # 设置HTMLDelegate的搜索参数，确保正确应用韩语字体
+            if hasattr(self, 'table_manager') and hasattr(self.table_manager, 'html_delegate'):
+                search_params = {
+                    'keywords': keywords,
+                    'corpus_type': corpus_type
+                }
+                self.table_manager.html_delegate.set_search_params(search_params)
             
             # 自动调整行高
             self.result_table.resizeRowsToContents()

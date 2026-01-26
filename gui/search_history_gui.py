@@ -278,7 +278,7 @@ class SearchHistoryWindow(QMainWindow):
         copy_action = menu.addAction("📋 复制关键词")
         copy_path_action = menu.addAction("📋 复制路径")
         menu.addSeparator()
-        delete_action = menu.addAction(f"🗑️ 删除选中记录 ({selected_count}条)")
+        delete_action = menu.addAction(f"🗑️ 删除选中记录")
         menu.addSeparator()
         clear_all_action = menu.addAction("🗑️ 清除全部历史")
         
