@@ -44,7 +44,7 @@ from gui.search_history_gui import SearchHistoryWindow
 class SearchThread(QThread):
     """搜索线程"""
     progress_updated = Signal(int)
-    search_completed = Signal(list, str, list, str, list)  # results, lemma, actual_variant_set, pos_full, target_variant_set
+    search_completed = Signal(list, str, list, str, list, list)  # results, lemma, actual_variant_set, pos_full, target_variant_set, matched_terms_set
     search_failed = Signal(str)
     
     def __init__(self, input_path, keywords, case_sensitive, fuzzy_match, regex_enabled, 
@@ -60,6 +60,7 @@ class SearchThread(QThread):
         self.exact_match = exact_match  # 是否完全匹配（引号内）
         self.lemma = ""  # 系统判定的词典形
         self.actual_variant_set = []  # 基于词典形实际命中的所有变体形式列表
+        self.matched_terms_set = []  # 所有实际匹配到的词（包括词干和变体）
         self._stop_flag = False  # 停止标志
     
     def stop(self):
@@ -128,7 +129,13 @@ class SearchThread(QThread):
                         # 获取生成的变体列表（使用第一个搜索记录的变体列表）
                         if not self.target_variant_set and 'target_variant_set' in search_record:
                             self.target_variant_set = search_record['target_variant_set']
-                        
+
+                        # 收集所有实际匹配到的词
+                        if 'matched_terms_set' in search_record:
+                            if not hasattr(self, 'matched_terms_set_all'):
+                                self.matched_terms_set_all = set()
+                            self.matched_terms_set_all.update(search_record['matched_terms_set'])
+
                         # 更新进度
                         progress = int((i + 1) / total_files * 100)
                         self.progress_updated.emit(progress)
@@ -143,15 +150,21 @@ class SearchThread(QThread):
                 if all_search_records:
                     # 使用第一个搜索记录的词典形
                     self.lemma = all_search_records[0]['lemma']
-                    
+
                     # 提取具体词典型
                     pos_full = all_search_records[0].get('pos', '')
-                    
+
                     # 合并所有搜索记录的实际变体形式，去重
                     all_variants = set()
                     for record in all_search_records:
                         all_variants.update(record['actual_variant_set'])
                     self.actual_variant_set = list(all_variants)
+
+                    # 合并所有搜索记录的匹配词集合，去重
+                    if hasattr(self, 'matched_terms_set_all'):
+                        self.matched_terms_set = list(self.matched_terms_set_all)
+                    else:
+                        self.matched_terms_set = []
                 
                 # 保存完整的搜索记录
                 import json
@@ -227,8 +240,8 @@ class SearchThread(QThread):
             else:
                 formatted_results = []
             
-            # 发送搜索完成信号，包含lemma、actual_variant_set、pos_full和生成的变体列表
-            self.search_completed.emit(formatted_results, self.lemma, self.actual_variant_set, pos_full, self.target_variant_set if hasattr(self, 'target_variant_set') else [])
+            # 发送搜索完成信号，包含lemma、actual_variant_set、pos_full、生成的变体列表和matched_terms_set
+            self.search_completed.emit(formatted_results, self.lemma, self.actual_variant_set, pos_full, self.target_variant_set if hasattr(self, 'target_variant_set') else [], self.matched_terms_set if hasattr(self, 'matched_terms_set') else [])
             
         except Exception as e:
             self.search_failed.emit(str(e))
@@ -1490,7 +1503,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.ProgressBar.setValue(value)
         self.status_bar.showMessage(f"⏳ 正在搜索... {value}%")
     
-    def search_completed(self, results, lemma="", actual_variant_set=[], pos_full="", target_variant_set=[]):
+    def search_completed(self, results, lemma="", actual_variant_set=[], pos_full="", target_variant_set=[], matched_terms_set=[]):
         """搜索完成"""
         # 隐藏进度条
         self.ProgressBar.setVisible(False)
@@ -1508,8 +1521,13 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             return
         
         # 将搜索参数和变体传递给HTML代理
+        # 合并 target_variant_set 和 matched_terms_set，确保所有匹配的词都能高亮
+        highlight_set = set(target_variant_set)
+        if matched_terms_set:
+            highlight_set.update(matched_terms_set)
+
         if hasattr(self, 'html_delegate') and hasattr(self, 'current_search_params'):
-            self.html_delegate.set_search_params(self.current_search_params, target_variant_set)
+            self.html_delegate.set_search_params(self.current_search_params, list(highlight_set))
         
         # 填充表格
         self.result_table.setRowCount(len(results))

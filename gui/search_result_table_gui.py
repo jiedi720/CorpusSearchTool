@@ -17,13 +17,24 @@ class HTMLDelegate(QStyledItemDelegate):
     """自定义代理类，支持 HTML 渲染和关键词高亮"""
     
     def __init__(self, parent=None, search_params=None, variants=None):
-        """初始化代理类"""
+        """初始化代理类
+
+        Args:
+            parent: 父对象
+            search_params: 搜索参数字典
+            variants: 需要高亮的词列表（包括变体和实际匹配的词）
+        """
         super().__init__(parent)
         self.current_search_params = search_params if search_params else {}
         self.variants = variants if variants else []
-    
+
     def set_search_params(self, search_params, variants=None):
-        """设置搜索参数，用于关键词高亮"""
+        """设置搜索参数，用于关键词高亮
+
+        Args:
+            search_params: 搜索参数字典
+            variants: 需要高亮的词列表（包括变体和实际匹配的词）
+        """
         self.current_search_params = search_params if search_params else {}
         self.variants = variants if variants else []
     

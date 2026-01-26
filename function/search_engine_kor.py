@@ -175,21 +175,26 @@ class KoreanSearchEngine(SearchEngineBase):
         # 4. 在语料库中检索
         results = []
         actual_variants = set()  # 实际命中的变体
-        
+
+        # 用于收集所有实际匹配到的词（包括词干形式和变体形式）
+        matched_terms_set = set()  # 所有匹配到的词的集合（用于高亮）
+
         for item in parsed_data:
             content = item.get('content', '')
             if not content.strip():
                 continue
-            
+
             matched = False
             matched_variant = None
-            
+            item_matched_terms = []  # 该条记录匹配到的所有词
+
             if is_noun_adv:
                 # 名词/副词：严格匹配
                 if raw_keyword in content:
                     matched = True
                     matched_variant = raw_keyword
                     actual_variants.add(matched_variant)
+                    item_matched_terms.append(raw_keyword)
             else:
                 # 动词/形容词：结合多种检索策略
                 try:
@@ -200,13 +205,14 @@ class KoreanSearchEngine(SearchEngineBase):
                             matched = True
                             matched_variant = variant
                             actual_variants.add(matched_variant)
+                            item_matched_terms.append(variant)
                             found = True
                             break
-                    
+
                     if not found:
                         # 策略2：形态分析（备用，确保覆盖所有可能的变形）
                         sentence_analyzed = self.kiwi.analyze(content)
-                        
+
                         # 检查是否包含目标词典形的任意变形
                         for analysis_result in sentence_analyzed:
                             for token in analysis_result[0]:
@@ -214,6 +220,16 @@ class KoreanSearchEngine(SearchEngineBase):
                                     matched = True
                                     matched_variant = token.form
                                     actual_variants.add(matched_variant)
+                                    item_matched_terms.append(token.form)
+
+                                    # 也要添加词干形式（如果不同）
+                                    if token.form != lemma and lemma not in item_matched_terms:
+                                        item_matched_terms.append(lemma)
+
+                                    # 添加原词（如果不同）
+                                    if raw_keyword not in item_matched_terms:
+                                        item_matched_terms.append(raw_keyword)
+
                                     break
                             if matched:
                                 break
@@ -221,11 +237,14 @@ class KoreanSearchEngine(SearchEngineBase):
                     continue
 
             if matched:
+                # 将该条记录的所有匹配词添加到全局集合
+                matched_terms_set.update(item_matched_terms)
+
                 # 兼容不同的行号字段名
                 line_number = item.get('lineno', '')
                 if line_number == '':
                     line_number = item.get('line_number', '')
-                    
+
                 result = {
                     'file_path': file_path,
                     'lineno': line_number,
@@ -275,6 +294,7 @@ class KoreanSearchEngine(SearchEngineBase):
             'is_noun_adv': is_noun_adv,
             'target_variant_set': variant_set,
             'actual_variant_set': list(actual_variants),
+            'matched_terms_set': list(matched_terms_set),  # 所有实际匹配到的词（包括词干和变体）
             'search_results': results,
             'result_count': len(results)
         }
