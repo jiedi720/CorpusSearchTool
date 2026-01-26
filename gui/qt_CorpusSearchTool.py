@@ -722,8 +722,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         if tab_bar:
             tab_bar.setProperty("theme", theme_mode)
         
-        # 使用表格管理器设置表格主题
-        self.table_manager.set_table_theme(theme_mode)
+        # 注释掉：不重新设置表格主题，保持表格背景颜色不变
+        # self.table_manager.set_table_theme(theme_mode)
         
         # 特别处理四个显示控件
         display_widgets = [

@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QHeaderView, QTabWidget, QComboBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QHeaderView, QTabWidget, QComboBox, QTableWidget
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtCore import Qt
 import sys
@@ -159,6 +159,14 @@ def apply_theme(mode):
     widget_count = 0
     for widget in QApplication.allWidgets():
         widget_count += 1
+        
+        # 特殊处理：跳过 result_table 表格的样式设置，保持其背景颜色不变
+        if isinstance(widget, QTableWidget):
+            widget_name = widget.objectName() if hasattr(widget, 'objectName') else ''
+            if widget_name == 'result_table':
+                # 跳过 result_table 的样式设置，保持其原有的样式
+                continue
+        
         # 特殊处理菜单栏
         if hasattr(widget, 'objectName') and widget.objectName() == 'menuBar':
             widget.setPalette(palette)
