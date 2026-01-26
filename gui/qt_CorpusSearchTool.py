@@ -454,6 +454,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.actionlight.triggered.connect(lambda: self.change_theme("Light"))
         self.actionDark.triggered.connect(lambda: self.change_theme("Dark"))
         
+        # 连接加载历史记录菜单项的信号
+        self.actionLoad.triggered.connect(self.load_search_results_from_html)
+        
         # 重新设置图标路径，确保图标正确加载
         self.set_icon_paths()
 
@@ -1854,8 +1857,119 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.status_bar.showMessage("❌ 搜索失败")
         QMessageBox.critical(self, "❌ 搜索失败", error_message)
     
+    def load_search_results_from_html(self):
+        """
+        从HTML文件加载搜索结果到表格中
+        """
+        # 使用QFileDialog选择HTML文件，默认从输入路径文件夹开始浏览
+        default_dir = self.ReadPathInput.text().strip()
+        if not default_dir or not os.path.exists(default_dir):
+            default_dir = os.getcwd()
+            
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择搜索结果HTML文件",
+            default_dir,
+            "HTML Files (*.html);;All Files (*.*)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            # 读取HTML文件内容
+            with open(file_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            # 解析HTML内容，提取表格数据
+            from bs4 import BeautifulSoup
+            
+            # 使用BeautifulSoup解析HTML
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # 查找表格
+            table = soup.find('table')
+            if not table:
+                QMessageBox.warning(self, "错误", "HTML文件中未找到搜索结果表格")
+                return
+            
+            # 获取表格行
+            rows = table.find_all('tr')
+            if len(rows) <= 1:  # 只有表头
+                QMessageBox.warning(self, "错误", "HTML文件中未找到搜索结果数据")
+                return
+            
+            # 清空当前表格
+            self.result_table.setRowCount(0)
+            self.result_file_paths = []
+            
+            # 提取数据行（跳过表头）
+            data_rows = rows[1:]
+            
+            # 设置表格行数
+            self.result_table.setRowCount(len(data_rows))
+            
+            for row_idx, row in enumerate(data_rows):
+                cells = row.find_all('td')
+                if len(cells) < 5:
+                    continue
+                
+                # 提取各列数据
+                episode = cells[0].get_text(strip=True)
+                time_axis = cells[1].get_text(strip=True)
+                content = cells[2].get_text(strip=True)
+                line_number = cells[3].get_text(strip=True)
+                filename = cells[4].get_text(strip=True)
+                
+                # 设置集数列
+                episode_item = QTableWidgetItem(episode)
+                episode_item.setForeground(QColor('#FFC209'))
+                episode_item.setFlags(episode_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.result_table.setItem(row_idx, 0, episode_item)
+                
+                # 设置时间轴列
+                time_item = QTableWidgetItem(time_axis)
+                time_item.setForeground(QColor('#4ec9b0'))
+                time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.result_table.setItem(row_idx, 1, time_item)
+                
+                # 设置对应台词列
+                content_item = QTableWidgetItem(content)
+                content_item.setForeground(QColor('#ffffff'))
+                content_item.setFlags(content_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.result_table.setItem(row_idx, 2, content_item)
+                
+                # 设置行号列
+                line_item = QTableWidgetItem(line_number)
+                line_item.setForeground(QColor('#979a98'))
+                line_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                line_item.setFlags(line_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.result_table.setItem(row_idx, 3, line_item)
+                
+                # 设置文件名
+                filename_item = QTableWidgetItem(filename)
+                filename_item.setForeground(QColor('#149acd'))
+                filename_item.setFlags(filename_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.result_table.setItem(row_idx, 4, filename_item)
+                
+                # 保存文件路径（这里无法从HTML中获取完整路径，使用空字符串）
+                self.result_file_paths.append("")
+            
+            # 自动调整行高
+            self.result_table.resizeRowsToContents()
+            
+            # 更新状态栏
+            self.status_bar.showMessage(f"✓ 成功加载 {len(data_rows)} 条搜索结果")
+            QMessageBox.information(self, "成功", f"已成功加载 {len(data_rows)} 条搜索结果")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"加载搜索结果失败: {str(e)}")
+    
     def show_search_history(self):
-        """显示搜索历史"""
+        """
+        显示搜索历史
+        """
         # 根据当前标签页设置语料库类型
         corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
         search_history_manager.set_corpus_type(corpus_type)

@@ -178,7 +178,7 @@ class HTMLDelegate(QStyledItemDelegate):
         if text is None:
             text = ''
         
-        # 保留HTML标签，正确计算带有HTML的文本大小
+        # 创建 QTextDocument 对象
         doc = QTextDocument()
         
         # 设置字体大小
@@ -193,52 +193,67 @@ class HTMLDelegate(QStyledItemDelegate):
         # 设置文档布局，控制行高
         doc.setDocumentMargin(0)
         
-        # 获取当前搜索的关键词，用于高亮
-        current_keywords = []
-        if self.current_search_params:
-            # 从当前搜索参数获取关键词
-            keywords = self.current_search_params.get('keywords', '')
-            if keywords:
-                # 处理关键词：可能是字符串或列表
-                if isinstance(keywords, str):
-                    # 字符串：按空格分割
-                    current_keywords = keywords.split()
-                elif isinstance(keywords, list):
-                    # 列表：直接使用
-                    current_keywords = keywords
-                # 同时添加生成的变体作为关键词
-                if self.variants:
-                    current_keywords.extend(self.variants)
-                # 去重并过滤空字符串
-                current_keywords = [k for k in list(set(current_keywords)) if k]
+        # 检查是否有从HTML文件加载的原始HTML内容
+        html_content = model.data(index, Qt.UserRole)
         
-        # 处理文本，添加关键词高亮，用于计算尺寸
-        plain_text = str(text)
-        html_text = plain_text
-        
-        # 如果有关键词，添加高亮
-        if current_keywords:
+        if html_content and index.column() == 2:  # 只有对应台词列使用HTML内容
+            # 使用原始HTML内容计算尺寸
+            # 提取<td>标签内的内容
             import re
-            # 确保关键词按长度降序排列，避免短关键词匹配长关键词的一部分
-            current_keywords.sort(key=lambda x: len(x), reverse=True)
+            inner_html = re.search(r'<td[^>]*>(.*?)</td>', html_content, re.DOTALL)
+            if inner_html:
+                # 用前景色包裹文本
+                final_html = f'<span style="color: #ffffff; margin: 0px; padding: 0px; line-height: 1.3;">{inner_html.group(1)}</span>'
+            else:
+                final_html = f'<span style="color: #ffffff; margin: 0px; padding: 0px; line-height: 1.3;">{text}</span>'
+        else:
+            # 正常处理：从搜索参数生成高亮
+            # 获取当前搜索的关键词，用于高亮
+            current_keywords = []
+            if self.current_search_params:
+                # 从当前搜索参数获取关键词
+                keywords = self.current_search_params.get('keywords', '')
+                if keywords:
+                    # 处理关键词：可能是字符串或列表
+                    if isinstance(keywords, str):
+                        # 字符串：按空格分割
+                        current_keywords = keywords.split()
+                    elif isinstance(keywords, list):
+                        # 列表：直接使用
+                        current_keywords = keywords
+                    # 同时添加生成的变体作为关键词
+                    if self.variants:
+                        current_keywords.extend(self.variants)
+                    # 去重并过滤空字符串
+                    current_keywords = [k for k in list(set(current_keywords)) if k]
             
-            # 创建高亮后的HTML文本
-            highlighted_text = plain_text
-            for keyword in current_keywords:
-                if keyword:
-                    # 使用正则表达式替换，不使用单词边界（适用于韩语）
-                    regex_pattern = re.escape(keyword)
-                    highlighted_text = re.sub(
-                        rf'({regex_pattern})',
-                        r'<b><span style="color: #ffff00;">\1</span></b>',
-                        highlighted_text,
-                        flags=re.IGNORECASE
-                    )
+            # 处理文本，添加关键词高亮，用于计算尺寸
+            plain_text = str(text)
+            html_text = plain_text
             
-            html_text = highlighted_text
-        
-        # 用前景色包裹文本
-        final_html = f'<span style="color: #ffffff; margin: 0px; padding: 0px; line-height: 1.3;">{html_text}</span>'
+            # 如果有关键词，添加高亮
+            if current_keywords:
+                import re
+                # 确保关键词按长度降序排列，避免短关键词匹配长关键词的一部分
+                current_keywords.sort(key=lambda x: len(x), reverse=True)
+                
+                # 创建高亮后的HTML文本
+                highlighted_text = plain_text
+                for keyword in current_keywords:
+                    if keyword:
+                        # 使用正则表达式替换，不使用单词边界（适用于韩语）
+                        regex_pattern = re.escape(keyword)
+                        highlighted_text = re.sub(
+                            rf'({regex_pattern})',
+                            r'<b><span style="color: #ffff00;">\1</span></b>',
+                            highlighted_text,
+                            flags=re.IGNORECASE
+                        )
+                
+                html_text = highlighted_text
+            
+            # 用前景色包裹文本
+            final_html = f'<span style="color: #ffffff; margin: 0px; padding: 0px; line-height: 1.3;">{html_text}</span>'
         
         doc.setHtml(final_html)
         

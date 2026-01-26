@@ -1393,7 +1393,14 @@ QProgressBar::chunk {
     <addaction name="actionlight"/>
     <addaction name="actionDark"/>
    </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>载入</string>
+    </property>
+    <addaction name="actionLoad"/>
+   </widget>
    <addaction name="menuTheme"/>
+   <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="status_bar"/>
   <action name="actionlight">
@@ -1404,6 +1411,11 @@ QProgressBar::chunk {
   <action name="actionDark">
    <property name="text">
     <string>Dark</string>
+   </property>
+  </action>
+  <action name="actionLoad">
+   <property name="text">
+    <string>载入历史记录</string>
    </property>
   </action>
  </widget>

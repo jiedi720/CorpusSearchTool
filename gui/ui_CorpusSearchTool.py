@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolJzvGGn.ui'
+## Form generated from reading UI file 'CorpusSearchToolxGgDlq.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -26,13 +26,15 @@ class Ui_CorpusSearchTool(object):
     def setupUi(self, CorpusSearchTool):
         if not CorpusSearchTool.objectName():
             CorpusSearchTool.setObjectName(u"CorpusSearchTool")
-        CorpusSearchTool.resize(1300, 800)
-        CorpusSearchTool.setMinimumSize(QSize(1300, 800))
-        CorpusSearchTool.setMaximumSize(QSize(1300, 900))
+        CorpusSearchTool.resize(1200, 800)
+        CorpusSearchTool.setMinimumSize(QSize(1100, 800))
+        CorpusSearchTool.setMaximumSize(QSize(1500, 800))
         self.actionlight = QAction(CorpusSearchTool)
         self.actionlight.setObjectName(u"actionlight")
         self.actionDark = QAction(CorpusSearchTool)
         self.actionDark.setObjectName(u"actionDark")
+        self.actionLoad = QAction(CorpusSearchTool)
+        self.actionLoad.setObjectName(u"actionLoad")
         self.centralwidget = QWidget(CorpusSearchTool)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout_6 = QVBoxLayout(self.centralwidget)
@@ -797,17 +799,21 @@ class Ui_CorpusSearchTool(object):
         CorpusSearchTool.setCentralWidget(self.centralwidget)
         self.menuBar = QMenuBar(CorpusSearchTool)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1300, 33))
+        self.menuBar.setGeometry(QRect(0, 0, 1200, 22))
         self.menuTheme = QMenu(self.menuBar)
         self.menuTheme.setObjectName(u"menuTheme")
+        self.menu = QMenu(self.menuBar)
+        self.menu.setObjectName(u"menu")
         CorpusSearchTool.setMenuBar(self.menuBar)
         self.status_bar = QStatusBar(CorpusSearchTool)
         self.status_bar.setObjectName(u"status_bar")
         CorpusSearchTool.setStatusBar(self.status_bar)
 
         self.menuBar.addAction(self.menuTheme.menuAction())
+        self.menuBar.addAction(self.menu.menuAction())
         self.menuTheme.addAction(self.actionlight)
         self.menuTheme.addAction(self.actionDark)
+        self.menu.addAction(self.actionLoad)
 
         self.retranslateUi(CorpusSearchTool)
 
@@ -821,6 +827,7 @@ class Ui_CorpusSearchTool(object):
         CorpusSearchTool.setWindowTitle(QCoreApplication.translate("CorpusSearchTool", u"\u5b57\u5e55\u8bed\u6599\u5e93\u68c0\u7d22\u5de5\u5177", None))
         self.actionlight.setText(QCoreApplication.translate("CorpusSearchTool", u"Light", None))
         self.actionDark.setText(QCoreApplication.translate("CorpusSearchTool", u"Dark", None))
+        self.actionLoad.setText(QCoreApplication.translate("CorpusSearchTool", u"\u8f7d\u5165\u5386\u53f2\u8bb0\u5f55", None))
         self.ReadPathLabel.setText(QCoreApplication.translate("CorpusSearchTool", u"\u8f93\u5165\u8def\u5f84:", None))
         self.ReadPathInput.setPlaceholderText(QCoreApplication.translate("CorpusSearchTool", u"\u9009\u62e9\u6587\u4ef6\u6216\u76ee\u5f55...", None))
 #if QT_CONFIG(tooltip)
@@ -886,5 +893,6 @@ class Ui_CorpusSearchTool(object):
         ___qtablewidgetitem4 = self.result_table.horizontalHeaderItem(4)
         ___qtablewidgetitem4.setText(QCoreApplication.translate("CorpusSearchTool", u"\u6587\u4ef6\u540d", None));
         self.menuTheme.setTitle(QCoreApplication.translate("CorpusSearchTool", u"\u4e3b\u9898", None))
+        self.menu.setTitle(QCoreApplication.translate("CorpusSearchTool", u"\u8f7d\u5165", None))
     # retranslateUi
 
