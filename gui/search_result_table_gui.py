@@ -92,8 +92,8 @@ class HTMLDelegate(QStyledItemDelegate):
                     # 提取内部HTML内容
                     content = inner_html.group(1)
                     # 应用自定义样式到highlight类
-                    # 将<span class="highlight">替换为带有样式的<span>
-                    content = re.sub(r'<span class="highlight">(.*?)</span>', r'<b><span style="color: #ffff00; background-color: rgba(255, 255, 0, 0.2); font-weight: bold;">\1</span></b>', content)
+                    # 将<span class="highlight">替换为带有样式的<span>，只保留黄字，去掉背景色
+                    content = re.sub(r'<span class="highlight">(.*?)</span>', r'<b><span style="color: #ffff00; font-weight: bold;">\1</span></b>', content)
                     # 用前景色包裹文本
                     final_html = f'<span style="color: {color.name()}; margin: 0px; padding: 0px; line-height: 1;">{content}</span>'
                 else:
