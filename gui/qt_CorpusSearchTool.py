@@ -1909,19 +1909,20 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 将全局坐标转换为表格内部坐标
         table_pos = self.result_table.mapFromGlobal(pos)
         
-        # 获取点击位置的单元格（用于复制单元格）
-        clicked_item = self.result_table.itemAt(table_pos)
+        # 使用 indexAt 方法获取点击位置的索引
+        index = self.result_table.indexAt(table_pos)
+        
+        # 获取点击位置的行列
+        if index.isValid():
+            clicked_row = index.row()
+            clicked_col = index.column()
+        else:
+            clicked_row = -1
+            clicked_col = -1
         
         # 获取当前选中的行（用于其他操作）
         selected_items = self.result_table.selectedItems()
         has_selection = len(selected_items) > 0
-        
-        # 保存点击位置用于复制单元格
-        clicked_row = -1
-        clicked_col = -1
-        if clicked_item:
-            clicked_row = clicked_item.row()
-            clicked_col = clicked_item.column()
         
         # 保存选中的行号（用于其他操作）
         selected_row = -1
@@ -1964,7 +1965,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         export_all_action = menu.addAction("📤 导出所有行")
         
         # 设置菜单项的启用状态
-        # 复制单元格：只要有数据且点击到了某个单元格位置就启用
+        # 复制单元格：只要有数据且点击到了有效的单元格位置就启用
         copy_cell_action.setEnabled(has_data and clicked_row >= 0 and clicked_col >= 0)
         
         # 复制选中行：必须有选中的行
@@ -2327,27 +2328,35 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     def export_selected_row(self, row):
         """导出选中行（CSV格式）"""
         import csv
-        
+        import re
+        import datetime
+
         # 获取输出目录
         output_dir = self.ReadPathInput.text().strip()
         if not output_dir or not os.path.exists(output_dir):
             output_dir = os.getcwd()
-        
+
+        # 获取关键词用于文件名（只保留字母数字和下划线，避免文件名问题）
+        keywords = self.current_search_params["keywords"] if hasattr(self, 'current_search_params') and 'keywords' in self.current_search_params else "unknown"
+        # 清理关键词，只保留字母数字和下划线
+        clean_keywords = re.sub(r'[^\w\u4e00-\u9fff\uac00-\ud7af]', '_', keywords)
+        # 限制长度
+        clean_keywords = clean_keywords[:50] if len(clean_keywords) > 50 else clean_keywords
+
         # 生成文件名
-        import datetime
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = os.path.join(output_dir, f"selected_row_{timestamp}.csv")
-        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")  # 精确到分钟
+        output_file = os.path.join(output_dir, f"selected_row_{timestamp}_{clean_keywords}.csv")
+
         # 写入 CSV 文件
         with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
             writer = csv.writer(f)
-            
+
             # 写入表头
             headers = []
             for col in range(self.result_table.columnCount()):
                 headers.append(self.result_table.horizontalHeaderItem(col).text())
             writer.writerow(headers)
-            
+
             # 写入数据行
             row_data = []
             for col in range(self.result_table.columnCount()):
@@ -2360,38 +2369,46 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 else:
                     row_data.append("")
             writer.writerow(row_data)
-        
+
         QMessageBox.information(self, "✅ 成功", f"结果已导出到 {output_file}")
     
     def export_all_rows(self):
         """导出所有行（CSV格式）"""
         import csv
-        
+        import re
+        import datetime
+
         if self.result_table.rowCount() == 0:
             QMessageBox.warning(self, "❌ 警告", "表格中没有数据可导出")
             return
-        
+
         # 获取输出目录
         output_dir = self.ReadPathInput.text().strip()
         if not output_dir or not os.path.exists(output_dir):
             output_dir = os.getcwd()
-        
+
+        # 获取关键词用于文件名（只保留字母数字和下划线，避免文件名问题）
+        keywords = self.current_search_params["keywords"] if hasattr(self, 'current_search_params') and 'keywords' in self.current_search_params else "unknown"
+        # 清理关键词，只保留字母数字和下划线
+        clean_keywords = re.sub(r'[^\w\u4e00-\u9fff\uac00-\ud7af]', '_', keywords)
+        # 限制长度
+        clean_keywords = clean_keywords[:50] if len(clean_keywords) > 50 else clean_keywords
+
         # 生成文件名
-        import datetime
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = os.path.join(output_dir, f"all_rows_{timestamp}.csv")
-        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")  # 精确到分钟
+        output_file = os.path.join(output_dir, f"all_rows_{timestamp}_{clean_keywords}.csv")
+
         try:
             # 写入 CSV 文件
             with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
                 writer = csv.writer(f)
-                
+
                 # 写入表头
                 headers = []
                 for col in range(self.result_table.columnCount()):
                     headers.append(self.result_table.horizontalHeaderItem(col).text())
                 writer.writerow(headers)
-                
+
                 # 写入所有数据行
                 for row in range(self.result_table.rowCount()):
                     row_data = []
@@ -2405,7 +2422,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                         else:
                             row_data.append("")
                     writer.writerow(row_data)
-            
+
             QMessageBox.information(self, "✅ 成功", f"已导出 {self.result_table.rowCount()} 行数据到 {output_file}")
         except Exception as e:
             QMessageBox.critical(self, "❌ 错误", f"导出失败: {str(e)}")
