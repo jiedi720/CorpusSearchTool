@@ -1601,6 +1601,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             # 保存文件路径
             self.result_file_paths.append(filepath)
         
+        # 保存变体集和匹配词集到实例变量，以便在导出时使用
+        self.target_variant_set = target_variant_set
+        self.matched_terms_set = matched_terms_set
+
         # 更新变体型列表显示
         if target_variant_set:
             # 将生成的变体列表转换为字符串，用逗号分隔（横着显示）
@@ -1621,10 +1625,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             else:  # 韩语语料库
                 if hasattr(self, 'korean_lemmalist_display'):
                     self.korean_lemmalist_display.setText(default_text)
-        
+
         # 确保表格不可编辑，在填充完成后再次设置
         self.result_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        
+
         # 重新设置列宽，确保固定列保持固定宽度
         self.restore_column_settings()
 
@@ -1642,10 +1646,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         if hasattr(self, 'current_search_params'):
             corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
             search_history_manager.set_corpus_type(corpus_type)
-            
+
             # 使用具体词典型作为关键词类型
             keyword_type_to_save = pos_full if pos_full else self.current_search_params.get('keyword_type', '')
-            
+
             search_history_manager.add_record(
                 keywords=self.current_search_params['keywords'],
                 input_path=self.current_search_params['input_path'],
@@ -1658,9 +1662,179 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 actual_variant_set=actual_variant_set,
                 target_variant_set=target_variant_set
             )
-        
+
         self.status_bar.showMessage(f"✓ 搜索完成，找到 {len(results)} 条结果")
-    
+
+        # 自动导出搜索结果
+        self.auto_export_results(results)
+
+    def auto_export_results(self, results):
+        """自动导出搜索结果到HTML文件，保留高亮加粗特效"""
+        try:
+            import os
+            import re
+            from datetime import datetime
+
+            # 获取当前时间戳用于文件命名（精确到分钟）
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+
+            # 获取关键词用于文件名（只保留字母数字和下划线，避免文件名问题）
+            keywords = self.current_search_params["keywords"]
+            # 清理关键词，只保留字母数字和下划线
+            clean_keywords = re.sub(r'[^\w\u4e00-\u9fff\uac00-\ud7af]', '_', keywords)
+            # 限制长度
+            clean_keywords = clean_keywords[:50] if len(clean_keywords) > 50 else clean_keywords
+
+            # 确定输出目录 - 使用输入目录作为输出目录
+            output_dir = self.ReadPathInput.text().strip()
+            if not output_dir or not os.path.exists(output_dir):
+                output_dir = os.getcwd()
+
+            # 创建输出文件名
+            corpus_name = "English" if self.current_corpus_tab == 0 else "Korean"
+            output_filename = f"search_results_{corpus_name}_{timestamp}_{clean_keywords}.html"
+            output_path = os.path.join(output_dir, output_filename)
+
+            # 准备HTML内容
+            html_content = []
+            html_content.append('<!DOCTYPE html>')
+            html_content.append('<html lang="zh-CN">')
+            html_content.append('<head>')
+            html_content.append('<meta charset="UTF-8">')
+            html_content.append('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
+            html_content.append(f'<title>搜索结果 - {corpus_name} - {timestamp}</title>')
+            html_content.append('<style>')
+            html_content.append('body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }')
+            html_content.append('table { border-collapse: collapse; width: 100%; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }')
+            html_content.append('th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }')
+            html_content.append('th { background-color: #4CAF50; color: white; }')
+            html_content.append('tr:nth-child(even) { background-color: #f2f2f2; }')
+            html_content.append('tr:hover { background-color: #f5f5f5; }')
+            html_content.append('.highlight { background-color: yellow; font-weight: bold; }')
+            html_content.append('.episode { color: #dcdcaa; }')
+            html_content.append('.time-axis { color: #4ec9b0; text-align: center; }')
+            # 移除白色字体颜色设定
+            html_content.append('.content { }')
+            html_content.append('.line-number { color: #979a98; text-align: center; }')
+            html_content.append('.filename { color: #569cd6; }')
+            html_content.append('</style>')
+            html_content.append('</head>')
+            html_content.append('<body>')
+            html_content.append(f'<h1>搜索结果 - {corpus_name}语料库</h1>')
+            html_content.append(f'<p>搜索时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>')
+            html_content.append(f'<p>搜索关键词: {self.current_search_params["keywords"]}</p>')
+            html_content.append(f'<p>搜索路径: {self.current_search_params["input_path"]}</p>')
+            html_content.append(f'<p>结果数量: {len(results)}</p>')
+            html_content.append('<table>')
+            html_content.append('<thead>')
+            html_content.append('<tr>')
+            html_content.append('<th>集数</th>')
+            html_content.append('<th>时间轴</th>')
+            html_content.append('<th>对应台词</th>')
+            html_content.append('<th>行号</th>')
+            html_content.append('<th>文件名</th>')
+            html_content.append('</tr>')
+            html_content.append('</thead>')
+            html_content.append('<tbody>')
+
+            # 添加搜索结果行
+            for row, result in enumerate(results):
+                if isinstance(result, dict):
+                    # 字典类型
+                    filename = result.get('filename', '')
+                    lineno = result.get('lineno', '')
+                    episode = result.get('episode', '')
+                    time_axis = result.get('time_axis', '')
+                    text = result.get('text', '')
+                    filepath = result.get('filepath', '')
+                elif isinstance(result, list) and len(result) >= 5:
+                    # 列表类型 [filename, lineno, episode, time_axis, text, filepath]
+                    filename = result[0] if len(result) > 0 else ''
+                    lineno = result[1] if len(result) > 1 else ''
+                    episode = result[2] if len(result) > 2 else ''
+                    time_axis = result[3] if len(result) > 3 else ''
+                    text = result[4] if len(result) > 4 else ''
+                    filepath = result[5] if len(result) > 5 else ''
+                else:
+                    # 未知类型，跳过
+                    continue
+
+                # 获取当前搜索的关键词和变体，用于高亮
+                current_keywords = []
+                if self.current_search_params:
+                    # 从当前搜索参数获取关键词
+                    keywords = self.current_search_params.get('keywords', '')
+                    if keywords:
+                        # 处理关键词：可能是字符串或列表
+                        if isinstance(keywords, str):
+                            # 字符串：按空格分割
+                            current_keywords = keywords.split()
+                        elif isinstance(keywords, list):
+                            # 列表：直接使用
+                            current_keywords = keywords
+                        # 同时添加生成的变体作为关键词
+                        if hasattr(self, 'korean_variant_set') and self.korean_variant_set:
+                            current_keywords.extend(self.korean_variant_set)
+
+                        # 添加目标变体集和匹配词集
+                        if hasattr(self, 'target_variant_set') and self.target_variant_set:
+                            current_keywords.extend(self.target_variant_set)
+                        if hasattr(self, 'matched_terms_set') and self.matched_terms_set:
+                            current_keywords.extend(self.matched_terms_set)
+
+                        # 去重并过滤空字符串
+                        current_keywords = [k for k in list(set(current_keywords)) if k]
+
+                # 处理文本，添加关键词高亮
+                processed_text = str(text)
+
+                # 移除所有现有的颜色样式（包括前景色和HTML标签中的颜色样式）
+                import re
+                # 移除所有包含颜色定义的span标签
+                processed_text = re.sub(r'<span[^>]*style[^>]*color[^>]*>', '', processed_text)
+                # 移除所有剩余的span闭合标签
+                processed_text = processed_text.replace('</span>', '')
+
+                # 如果有关键词，添加高亮
+                if current_keywords:
+                    # 确保关键词按长度降序排列，避免短关键词匹配长关键词的一部分
+                    current_keywords.sort(key=lambda x: len(x), reverse=True)
+
+                    for keyword in current_keywords:
+                        if keyword:
+                            # 使用正则表达式替换，不使用单词边界（适用于韩语）
+                            regex_pattern = re.escape(keyword)
+                            processed_text = re.sub(
+                                rf'({regex_pattern})',
+                                r'<span class="highlight">\1</span>',
+                                processed_text,
+                                flags=re.IGNORECASE
+                            )
+
+                html_content.append('<tr>')
+                html_content.append(f'<td class="episode">{episode}</td>')
+                html_content.append(f'<td class="time-axis">{time_axis}</td>')
+                html_content.append(f'<td class="content">{processed_text}</td>')
+                html_content.append(f'<td class="line-number">{lineno}</td>')
+                html_content.append(f'<td class="filename">{filename}</td>')
+                html_content.append('</tr>')
+
+            html_content.append('</tbody>')
+            html_content.append('</table>')
+            html_content.append('</body>')
+            html_content.append('</html>')
+
+            # 写入HTML文件
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(html_content))
+
+            self.status_bar.showMessage(f"✓ 搜索结果已自动导出到: {output_filename}")
+
+        except Exception as e:
+            print(f"自动导出搜索结果时出错: {e}")
+            import traceback
+            traceback.print_exc()
+
     def search_failed(self, error_message):
         """搜索失败"""
         # 隐藏进度条
