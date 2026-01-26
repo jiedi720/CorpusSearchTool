@@ -147,8 +147,7 @@ class KoreanSearchEngine(SearchEngineBase):
             }
             
             pos_full = pos_map.get(pos, pos)  # 默认为原标签
-            print(f"[DEBUG] 关键词 '{raw_keyword}' 分析结果: 词性={pos_full}, 词典形={lemma}")
-        
+
         # 2. 判定词性并构建搜索策略
         # 检查是否为动词或形容词（包括复合标签）
         verb_adj_tags = ['VV', 'VV-I', 'VA', 'VA-I', 'VX', 'VCP', 'VCN', 'XSV', 'XSA',
@@ -219,9 +218,8 @@ class KoreanSearchEngine(SearchEngineBase):
                             if matched:
                                 break
                 except Exception as e:
-                    print(f"[DEBUG] 分析句子时出错: {e}")
                     continue
-            
+
             if matched:
                 # 兼容不同的行号字段名
                 line_number = item.get('lineno', '')
