@@ -1916,12 +1916,19 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 if len(cells) < 5:
                     continue
                 
-                # 提取各列数据
-                episode = cells[0].get_text(strip=True)
-                time_axis = cells[1].get_text(strip=True)
-                content = cells[2].get_text(strip=True)
-                line_number = cells[3].get_text(strip=True)
-                filename = cells[4].get_text(strip=True)
+                # 提取各列数据（同时保留原始HTML内容）
+                episode_text = cells[0].get_text(strip=True)
+                time_axis_text = cells[1].get_text(strip=True)
+                content_text = cells[2].get_text(strip=True)
+                line_number_text = cells[3].get_text(strip=True)
+                filename_text = cells[4].get_text(strip=True)
+                
+                # 提取原始HTML内容
+                episode_html = str(cells[0])
+                time_axis_html = str(cells[1])
+                content_html = str(cells[2])
+                line_number_html = str(cells[3])
+                filename_html = str(cells[4])
                 
                 # 提取文件路径（如果有第六列）
                 filepath = ""
@@ -1929,35 +1936,45 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     filepath = cells[5].get_text(strip=True)
                 
                 # 设置集数列
-                episode_item = QTableWidgetItem(episode)
+                episode_item = QTableWidgetItem(episode_text)
                 episode_item.setForeground(QColor('#FFC209'))
                 episode_item.setFlags(episode_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                # 保存原始HTML内容到UserRole
+                episode_item.setData(Qt.ItemDataRole.UserRole, episode_html)
                 self.result_table.setItem(row_idx, 0, episode_item)
                 
                 # 设置时间轴列
-                time_item = QTableWidgetItem(time_axis)
+                time_item = QTableWidgetItem(time_axis_text)
                 time_item.setForeground(QColor('#4ec9b0'))
                 time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                # 保存原始HTML内容到UserRole
+                time_item.setData(Qt.ItemDataRole.UserRole, time_axis_html)
                 self.result_table.setItem(row_idx, 1, time_item)
                 
                 # 设置对应台词列
-                content_item = QTableWidgetItem(content)
+                content_item = QTableWidgetItem(content_text)
                 content_item.setForeground(QColor('#ffffff'))
                 content_item.setFlags(content_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                # 保存原始HTML内容到UserRole
+                content_item.setData(Qt.ItemDataRole.UserRole, content_html)
                 self.result_table.setItem(row_idx, 2, content_item)
                 
                 # 设置行号列
-                line_item = QTableWidgetItem(line_number)
+                line_item = QTableWidgetItem(line_number_text)
                 line_item.setForeground(QColor('#979a98'))
                 line_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 line_item.setFlags(line_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                # 保存原始HTML内容到UserRole
+                line_item.setData(Qt.ItemDataRole.UserRole, line_number_html)
                 self.result_table.setItem(row_idx, 3, line_item)
                 
                 # 设置文件名
-                filename_item = QTableWidgetItem(filename)
+                filename_item = QTableWidgetItem(filename_text)
                 filename_item.setForeground(QColor('#149acd'))
                 filename_item.setFlags(filename_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                # 保存原始HTML内容到UserRole
+                filename_item.setData(Qt.ItemDataRole.UserRole, filename_html)
                 self.result_table.setItem(row_idx, 4, filename_item)
                 
                 # 保存文件路径
