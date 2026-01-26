@@ -1684,9 +1684,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 自动调整行高以适应内容
         self.result_table.resizeRowsToContents()
 
-        # 自动导出搜索结果，获取HTML文件路径
-        html_path = self.auto_export_results(results)
-
         # 保存搜索历史到对应的文件
         if hasattr(self, 'current_search_params'):
             corpus_type = "eng" if self.current_corpus_tab == 0 else "kor"
@@ -1694,6 +1691,9 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
 
             # 使用具体词典型作为关键词类型
             keyword_type_to_save = pos_full if pos_full else self.current_search_params.get('keyword_type', '')
+            
+            # 自动导出搜索结果，获取HTML文件路径
+            html_path = self.auto_export_results(results, keyword_type_to_save)
             
             # 将HTML绝对路径转换为相对于主程序目录的相对路径
             import os
@@ -1719,7 +1719,7 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
 
         self.status_bar.showMessage(f"✓ 搜索完成，找到 {len(results)} 条结果")
 
-    def auto_export_results(self, results):
+    def auto_export_results(self, results, keyword_type=""):
         """自动导出搜索结果到HTML文件，保留高亮加粗特效"""
         try:
             import os
@@ -1779,6 +1779,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             html_content.append(f'<p>搜索时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>')
             html_content.append(f'<p>搜索关键词: {self.current_search_params["keywords"]}</p>')
             html_content.append(f'<p>搜索路径: {self.current_search_params["input_path"]}</p>')
+            # 如果keyword_type为空字符串，使用self.current_search_params.get('keyword_type', '')作为默认值
+            if not keyword_type and hasattr(self, 'current_search_params'):
+                keyword_type = self.current_search_params.get('keyword_type', '')
+            html_content.append(f'<p>关键词类型: {keyword_type}</p>')
             html_content.append(f'<p>结果数量: {len(results)}</p>')
             
             # 添加lemma和lemmalist信息（隐藏字段，用于恢复显示）
