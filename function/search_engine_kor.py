@@ -548,18 +548,24 @@ class KoreanSearchEngine(SearchEngineBase):
             try:
                 # 构建形态素列表：词干 + 词尾
                 morphs = [(base, pos)] + endings
-                # 使用kiwipiepy的join方法组合
+                # 使用kiwipiepy的join方法组合（会自动应用缩约规则）
                 variant = self.kiwi.join(morphs)
                 if variant and variant not in variants:
                     variants.append(variant)
+
+                # 生成非缩约形：直接拼接词干和词尾，不使用join
+                # 这样可以保留完整的展开形式
+                expanded_variant = base + ''.join([e[0] for e in endings])
+                if expanded_variant and expanded_variant not in variants:
+                    variants.append(expanded_variant)
             except Exception as e:
                 # 如果join失败，跳过
                 continue
-        
+
         # 添加原词
         if word not in variants:
             variants.append(word)
-        
+
         return variants
 
 
