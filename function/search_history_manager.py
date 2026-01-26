@@ -33,13 +33,13 @@ class SearchHistoryManager:
         if not os.path.exists(history_dir):
             os.makedirs(history_dir, exist_ok=True)
         
-        # 返回完整的历史文件路径
+        # 返回完整的历史文件路径，使用txt格式
         if self.corpus_type == "eng":
-            return os.path.join(history_dir, "search_history_eng.md")
+            return os.path.join(history_dir, "search_history_eng.txt")
         elif self.corpus_type == "kor":
-            return os.path.join(history_dir, "search_history_kor.md")
+            return os.path.join(history_dir, "search_history_kor.txt")
         else:
-            return os.path.join(history_dir, "search_history.md")
+            return os.path.join(history_dir, "search_history.txt")
     
     def set_corpus_type(self, corpus_type: str):
         """
@@ -63,7 +63,7 @@ class SearchHistoryManager:
                 if not content:
                     return []
                 
-                # 解析Markdown格式的历史记录
+                # 解析历史记录
                 history = []
                 # 跳过标题部分，从第一条记录开始
                 records = content.split('\n---\n')
@@ -120,17 +120,17 @@ class SearchHistoryManager:
         return []
     
     def save_history(self):
-        """保存历史记录为Markdown格式"""
+        """保存历史记录，使用兼容Markdown的文本格式"""
         # 限制历史记录数量，最多保存100条
         if len(self.history) > 100:
             self.history = self.history[-100:]
         
-        with open(self.history_file, 'w', encoding='utf-8') as mdfile:
-            mdfile.write("# 搜索历史记录\n\n")
-            mdfile.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        with open(self.history_file, 'w', encoding='utf-8') as f:
+            f.write("# 搜索历史记录\n\n")
+            f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             
             if not self.history:
-                mdfile.write("暂无搜索历史记录。\n")
+                f.write("暂无搜索历史记录。\n")
                 return
             
             # 按时间倒序排列
@@ -141,40 +141,40 @@ class SearchHistoryManager:
                 timestamp = datetime.fromisoformat(record['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
                 
                 # 写入记录
-                mdfile.write("---\n\n")
-                mdfile.write(f"**关键词**: {record['keywords']}\n")
-                mdfile.write(f"**关键词类型**: {record.get('keyword_type', '')}\n")
+                f.write("---\n\n")
+                f.write(f"**关键词**: {record['keywords']}\n")
+                f.write(f"**关键词类型**: {record.get('keyword_type', '')}\n")
                 
                 # 添加词典形和变体信息
                 lemma = record.get('lemma', '')
                 if lemma:
-                    mdfile.write(f"**词典形**: {lemma}\n")
+                    f.write(f"**词典形**: {lemma}\n")
                 
                 # 显示生成的所有变体列表
                 target_variant_set = record.get('target_variant_set', [])
                 if target_variant_set:
-                    mdfile.write(f"**生成变体列表**: {', '.join(target_variant_set)}\n")
+                    f.write(f"**生成变体列表**: {', '.join(target_variant_set)}\n")
                 
                 # 显示实际命中的变体
                 actual_variant_set = record.get('actual_variant_set', [])
                 if actual_variant_set:
-                    mdfile.write(f"**实际命中变体**: {', '.join(actual_variant_set)}\n")
+                    f.write(f"**实际命中变体**: {', '.join(actual_variant_set)}\n")
                 
                 # 只有当正则表达式为True时，才显示正则表达式信息
                 settings = record.get('settings', {})
                 regex_enabled = settings.get('regex_enabled', False)
                 if regex_enabled:
-                    mdfile.write(f"**正则表达式**: {regex_enabled}\n")
+                    f.write(f"**正则表达式**: {regex_enabled}\n")
                 
-                mdfile.write(f"**时间**: {timestamp}\n")
-                mdfile.write(f"**输入路径**: {record['input_path']}\n")
+                f.write(f"**时间**: {timestamp}\n")
+                f.write(f"**输入路径**: {record['input_path']}\n")
                 
                 # 只有当输出路径存在且不为空时，才显示输出路径
                 output_path = record.get('output_path', '')
                 if output_path and output_path != 'N/A':
-                    mdfile.write(f"**输出路径**: {output_path}\n")
+                    f.write(f"**输出路径**: {output_path}\n")
                 
-                mdfile.write(f"**结果数量**: {record.get('result_count', 0)}\n")
+                f.write(f"**结果数量**: {record.get('result_count', 0)}\n")
     
     def add_record(self, keywords: str, input_path: str, output_path: str = "", 
                    case_sensitive: bool = False, fuzzy_match: bool = False, 
