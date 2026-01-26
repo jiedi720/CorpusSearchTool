@@ -296,22 +296,25 @@ class SearchHistoryWindow(QMainWindow):
         elif action == clear_all_action:
             self.clear_all_history()
     
-    def load_to_search(self, row: int) -> str:
+    def load_to_search(self, row: int) -> dict:
         """
         加载历史记录到搜索框
         
         Returns:
-            关键词字符串
+            包含完整搜索记录的字典
         """
         try:
-            keyword_item = self.history_table.item(row, 1)
-            if keyword_item:
-                keyword = keyword_item.text()
+            # 获取历史记录列表
+            search_history_manager.set_corpus_type(self.corpus_type)
+            history = search_history_manager.get_recent_records(100)
+            
+            if row < len(history):
+                record = history[row]
                 self.close()
-                return keyword
+                return record
         except Exception as e:
             print(f"加载历史记录失败: {e}")
-        return ""
+        return {"keywords": ""}
     
     def copy_keywords(self, rows: set):
         """复制关键词到剪贴板"""

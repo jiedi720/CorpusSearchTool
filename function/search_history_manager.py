@@ -91,6 +91,8 @@ class SearchHistoryManager:
                             record_dict['input_path'] = line.split('**输入路径**:', 1)[1].strip()
                         elif line.startswith('**输出路径**:'):
                             record_dict['output_path'] = line.split('**输出路径**:', 1)[1].strip()
+                        elif line.startswith('**HTML路径**:'):
+                            record_dict['html_path'] = line.split('**HTML路径**:', 1)[1].strip()
                         elif line.startswith('**结果数量**:'):
                             record_dict['result_count'] = int(line.split('**结果数量**:', 1)[1].strip())
                         elif line.startswith('**关键词类型**:'):
@@ -174,12 +176,18 @@ class SearchHistoryManager:
                 if output_path and output_path != 'N/A':
                     f.write(f"**输出路径**: {output_path}\n")
                 
+                # 只有当HTML路径存在且不为空时，才显示HTML路径
+                html_path = record.get('html_path', '')
+                if html_path:
+                    f.write(f"**HTML路径**: {html_path}\n")
+                
                 f.write(f"**结果数量**: {record.get('result_count', 0)}\n")
     
     def add_record(self, keywords: str, input_path: str, output_path: str = "", 
                    case_sensitive: bool = False, fuzzy_match: bool = False, 
                    regex_enabled: bool = False, result_count: int = 0, keyword_type: str = "",
-                   lemma: str = "", actual_variant_set: list = [], target_variant_set: list = []):
+                   lemma: str = "", actual_variant_set: list = [], target_variant_set: list = [],
+                   html_path: str = ""):
         """
         添加搜索记录
         
@@ -195,12 +203,14 @@ class SearchHistoryManager:
             lemma: 系统判定的词典形
             actual_variant_set: 基于词典形实际命中的所有变体形式列表
             target_variant_set: 基于词典形生成的所有可能变体形式列表
+            html_path: HTML文件路径
         """
         record = {
             "timestamp": datetime.now().isoformat(),
             "keywords": keywords,
             "input_path": input_path,
             "output_path": output_path,
+            "html_path": html_path,
             "result_count": result_count,
             "keyword_type": keyword_type,
             "lemma": lemma,

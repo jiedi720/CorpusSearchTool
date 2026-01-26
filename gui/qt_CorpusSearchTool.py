@@ -1888,11 +1888,14 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 f.write('\n'.join(html_content))
 
             self.status_bar.showMessage(f"✓ 搜索结果已自动导出到: {output_filename}")
+            
+            return output_path
 
         except Exception as e:
             print(f"自动导出搜索结果时出错: {e}")
             import traceback
             traceback.print_exc()
+            return ""
 
     def search_failed(self, error_message):
         """搜索失败"""
@@ -1905,27 +1908,32 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         self.status_bar.showMessage("❌ 搜索失败")
         QMessageBox.critical(self, "❌ 搜索失败", error_message)
     
-    def load_search_results_from_html(self):
+    def load_search_results_from_html(self, file_path=None):
         """
         从HTML文件加载搜索结果到表格中
+        
+        Args:
+            file_path: 可选参数，HTML文件路径。如果提供，直接加载该文件；否则弹出文件选择对话框
         """
-        # 使用QFileDialog选择HTML文件，默认从主程序的searchhistory文件夹开始浏览
         import os
-        base_dir = os.path.dirname(os.path.dirname(__file__))  # 获取主程序目录
-        default_dir = os.path.join(base_dir, 'searchhistory')
-        # 如果目录不存在则创建
-        if not os.path.exists(default_dir):
-            os.makedirs(default_dir, exist_ok=True)
-            
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "选择搜索结果HTML文件",
-            default_dir,
-            "HTML Files (*.html);;All Files (*.*)"
-        )
         
         if not file_path:
-            return
+            # 使用QFileDialog选择HTML文件，默认从主程序的searchhistory文件夹开始浏览
+            base_dir = os.path.dirname(os.path.dirname(__file__))  # 获取主程序目录
+            default_dir = os.path.join(base_dir, 'searchhistory')
+            # 如果目录不存在则创建
+            if not os.path.exists(default_dir):
+                os.makedirs(default_dir, exist_ok=True)
+                
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "选择搜索结果HTML文件",
+                default_dir,
+                "HTML Files (*.html);;All Files (*.*)"
+            )
+            
+            if not file_path:
+                return
         
         try:
             # 读取HTML文件内容
@@ -2147,21 +2155,36 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def _load_history_keyword(self, row: int):
         """
-        从历史记录加载关键词到搜索框
+        从历史记录加载关键词到搜索框或加载对应的HTML文件
         
         Args:
             row: 表格行号
         """
-        keyword = self.history_window.load_to_search(row)
-        if keyword:
-            # 加载关键词到当前标签页的输入框
-            if self.current_corpus_tab == 0:  # 英语语料库
-                self.english_keyword_edit.setText(keyword)
-            else:  # 韩语语料库
-                self.korean_keyword_edit.setText(keyword)
+        import os
+        # 获取完整的搜索记录
+        record = self.history_window.load_to_search(row)
+        if record:
+            keyword = record.get('keywords', '')
+            html_path = record.get('html_path', '')
+            
+            # 添加调试信息
+            print(f"双击历史记录: 关键词={keyword}, HTML路径={html_path}")
+            
+            if html_path and os.path.exists(html_path):
+                # 如果有HTML路径且文件存在，直接加载HTML文件
+                print(f"正在加载HTML文件: {html_path}")
+                self.load_search_results_from_html(html_path)
+                self.status_bar.showMessage(f"✓ 已加载搜索结果: {keyword}")
+            else:
+                # 否则加载关键词到搜索框
+                print(f"未找到HTML文件或HTML路径为空，加载关键词到搜索框")
+                if self.current_corpus_tab == 0:  # 英语语料库
+                    self.english_keyword_edit.setText(keyword)
+                else:  # 韩语语料库
+                    self.korean_keyword_edit.setText(keyword)
+                self.status_bar.showMessage(f"✓ 已加载关键词: {keyword}")
             
             self.history_window = None
-            self.status_bar.showMessage(f"✓ 已加载关键词: {keyword}")
     
     def show_context_menu(self, pos):
         """显示右键菜单"""
