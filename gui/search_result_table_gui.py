@@ -295,7 +295,7 @@ class SearchResultTableManager:
         """初始化表格设置"""
         # 设置表格属性
         self.result_table.setAlternatingRowColors(True)
-        self.result_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.result_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectItems)  # 改为选择单元格
         self.result_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.result_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.result_table.setWordWrap(False)  # 禁止文字换行

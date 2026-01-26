@@ -1906,28 +1906,16 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
     
     def show_context_menu(self, pos):
         """显示右键菜单"""
-        # 将全局坐标转换为表格内部坐标
-        table_pos = self.result_table.mapFromGlobal(pos)
-        
-        # 使用 indexAt 方法获取点击位置的索引
-        index = self.result_table.indexAt(table_pos)
-        
-        # 获取点击位置的行列
-        if index.isValid():
-            clicked_row = index.row()
-            clicked_col = index.column()
-        else:
-            clicked_row = -1
-            clicked_col = -1
-        
-        # 获取当前选中的行（用于其他操作）
+        # 获取当前选中的单元格
         selected_items = self.result_table.selectedItems()
         has_selection = len(selected_items) > 0
         
-        # 保存选中的行号（用于其他操作）
+        # 保存选中的行列号
         selected_row = -1
+        selected_col = -1
         if selected_items:
             selected_row = selected_items[0].row()
+            selected_col = selected_items[0].column()
         
         # 检查表格是否有数据
         has_data = self.result_table.rowCount() > 0
@@ -1965,8 +1953,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         export_all_action = menu.addAction("📤 导出所有行")
         
         # 设置菜单项的启用状态
-        # 复制单元格：只要有数据就启用，不依赖点击位置
-        copy_cell_action.setEnabled(has_data)
+        # 复制单元格：必须有选中的单元格
+        copy_cell_action.setEnabled(has_selection and selected_row >= 0 and selected_col >= 0)
         
         # 复制选中行：必须有选中的行
         copy_action.setEnabled(has_selection)
@@ -1982,13 +1970,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         action = menu.exec(self.result_table.mapToGlobal(pos))
         
-        if has_data and action == copy_cell_action:
-            # 如果点击到了有效位置，复制点击的单元格
-            if clicked_row >= 0 and clicked_col >= 0:
-                self.copy_selected_cell(clicked_row, clicked_col)
-            # 否则复制当前选中行的第一个单元格
-            elif has_selection and selected_row >= 0:
-                self.copy_selected_cell(selected_row, 0)
+        if has_selection and action == copy_cell_action:
+            # 复制当前选中的单元格
+            if selected_row >= 0 and selected_col >= 0:
+                self.copy_selected_cell(selected_row, selected_col)
         elif has_selection and action == copy_action:
             self.copy_selected_row(selected_row)
         elif has_selection and action == open_action:
