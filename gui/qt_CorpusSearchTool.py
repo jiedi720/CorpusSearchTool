@@ -2250,7 +2250,26 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             lambda row, col: self._load_history_keyword(row)
         )
         
+        # 连接load_keyword信号，处理右键菜单的"加载到搜索框"选项
+        self.history_window.load_keyword.connect(self._load_keyword_from_signal)
+        
         self.history_window.show()
+    
+    def _load_keyword_from_signal(self, keyword: str):
+        """
+        处理从搜索历史窗口发出的load_keyword信号，将关键词加载到搜索框中
+        
+        Args:
+            keyword: 搜索关键词
+        """
+        if keyword:
+            print(f"从信号加载关键词: {keyword}")
+            if self.current_corpus_tab == 0:  # 英语语料库
+                self.english_keyword_edit.setText(keyword)
+            else:  # 韩语语料库
+                self.korean_keyword_edit.setText(keyword)
+            self.status_bar.showMessage(f"✓ 已加载关键词: {keyword}")
+            self.history_window = None
     
     def _load_history_keyword(self, row: int):
         """

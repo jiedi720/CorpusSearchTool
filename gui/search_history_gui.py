@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QTableWidget, QTableWidgetItem, 
     QHeaderView, QMenu, QMessageBox, QApplication
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from function.search_history_manager import search_history_manager
 from function.config_manager import config_manager
@@ -64,6 +64,9 @@ class CustomHeaderView(QHeaderView):
 
 class SearchHistoryWindow(QMainWindow):
     """搜索历史窗口"""
+    
+    # 定义信号，当用户选择"加载到搜索框"时发出
+    load_keyword = Signal(str)
     
     def __init__(self, corpus_type: str, parent=None):
         """
@@ -286,7 +289,13 @@ class SearchHistoryWindow(QMainWindow):
         
         if action == load_action:
             first_row = sorted(selected_rows)[0]
-            self.load_to_search(first_row)
+            # 获取关键词
+            keyword_item = self.history_table.item(first_row, 1)
+            if keyword_item:
+                keyword = keyword_item.text()
+                # 发出信号，传递关键词
+                self.load_keyword.emit(keyword)
+                self.close()
         elif action == copy_action:
             self.copy_keywords(selected_rows)
         elif action == copy_path_action:
@@ -311,6 +320,7 @@ class SearchHistoryWindow(QMainWindow):
             if row < len(history):
                 record = history[row]
                 self.close()
+                # 返回完整的搜索记录字典
                 return record
         except Exception as e:
             print(f"加载历史记录失败: {e}")
