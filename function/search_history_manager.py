@@ -419,7 +419,10 @@ class SearchHistoryManager:
         Returns:
             最近的搜索记录列表
         """
-        return self.history[-count:] if len(self.history) >= count else self.history[:]
+        # 按时间倒序排序历史记录
+        sorted_history = sorted(self.history, key=lambda x: x['timestamp'], reverse=True)
+        # 返回前count条记录
+        return sorted_history[:count] if len(sorted_history) >= count else sorted_history[:]
 
     def export_to_markdown(self, output_path: str, filename: str = "search_history.md"):
         """
