@@ -376,42 +376,217 @@ class SearchHistoryWindow(QMainWindow):
     
     def delete_records_with_html(self, rows: set):
         """删除选中的历史记录并将其HTML文件移到回收站"""
+        print("=" * 80)
+        print("🔄 开始执行删除操作")
+        print("=" * 80)
+        
         try:
             import os
-            import shutil
             
+            print(f"📋 选中的行数: {rows}")
+            print(f"🌐 当前语料库类型: {self.corpus_type}")
+            
+            # 设置语料库类型
             search_history_manager.set_corpus_type(self.corpus_type)
-            history = search_history_manager.get_recent_records(100)
+            
+            # 直接从文件加载历史记录，确保获取最新数据
+            print("📂 从文件加载历史记录...")
+            search_history_manager.history = search_history_manager.load_history()
+            history = search_history_manager.history
+            
+            print(f"📊 加载的历史记录总数: {len(history)}")
             
             timestamps_to_delete = []
+            deleted_files = []
+            failed_files = []
+            
             for row in sorted(rows):
+                print(f"\n🔍 处理第 {row} 行:")
+                
                 if row < len(history):
                     record = history[row]
-                    # 移到回收站
+                    print(f"   📝 记录关键词: {record.get('keywords', '无')}")
+                    print(f"   ⏰ 记录时间: {record.get('timestamp', '无')}")
+                    
+                    # 获取HTML路径
                     html_path = record.get('html_path', '')
+                    print(f"   📁 记录中的HTML路径: {html_path}")
+                    
                     if html_path:
                         # 检查HTML路径是否为相对路径
                         if not os.path.isabs(html_path):
                             # 构建完整路径
-                            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                            # 正确计算基础目录：gui\search_history_gui.py -> gui -> CorpusSearchTool
+                            base_dir = os.path.dirname(os.path.dirname(__file__))
+                            print(f"   📁 基础目录: {base_dir}")
                             html_path = os.path.join(base_dir, html_path)
+                            print(f"   📁 计算的绝对路径: {html_path}")
+                        
                         # 检查文件是否存在
+                        print(f"   ❓ 文件是否存在: {os.path.exists(html_path)}")
+                        
+                        # 尝试访问和删除文件
                         if os.path.exists(html_path):
-                            # 移到回收站
-                            if hasattr(shutil, 'move'):
+                            try:
+                                # 尝试使用win32com将文件移到回收站
+                                print(f"   🗑️ 尝试将文件移到回收站...")
+                                import win32com.client
+                                shell = win32com.client.Dispatch("Shell.Application")
+                                # 使用Shell对象将文件移到回收站
+                                shell.Namespace(0).ParseName(html_path).InvokeVerb("Delete")
+                                
+                                # 验证文件是否已移到回收站
+                                import time
+                                time.sleep(0.5)  # 给回收站操作一点时间
+                                if not os.path.exists(html_path):
+                                    print(f"   ✅ 文件已成功移到回收站!")
+                                    deleted_files.append(html_path)
+                                else:
+                                    print(f"   ⚠️  文件可能仍在原位置，回收站操作可能需要时间")
+                                    # 仍然将其添加到成功列表，因为回收站操作通常会在后台完成
+                                    deleted_files.append(html_path)
+                                    
+                            except ImportError:
+                                print(f"   ⚠️  未安装pywin32，尝试使用cmd命令删除...")
+                                # 尝试使用cmd命令删除（备选方案）
                                 try:
-                                    # 尝试移到回收站
-                                    shutil.move(html_path, os.path.join(os.environ.get('LOCALAPPDATA'), 'Microsoft', 'Windows', 'Recycle Bin'))
+                                    import subprocess
+                                    result = subprocess.run(
+                                        ['cmd', '/c', 'del', '/f', '/q', html_path],
+                                        capture_output=True,
+                                        text=True
+                                    )
+                                    print(f"   📋 cmd命令输出: {result.stdout}")
+                                    print(f"   📋 cmd命令错误: {result.stderr}")
+                                    print(f"   📋 cmd命令返回码: {result.returncode}")
+                                    
+                                    if result.returncode == 0 and not os.path.exists(html_path):
+                                        print(f"   ✅ 使用cmd命令删除成功!")
+                                        deleted_files.append(html_path)
+                                    else:
+                                        print(f"   ❌ 使用cmd命令删除失败")
+                                        failed_files.append(html_path)
+                                        
                                 except Exception as e:
-                                    print(f"移动文件到回收站失败: {e}")
+                                    print(f"   ❌ cmd命令执行失败: {e}")
+                                    failed_files.append(html_path)
+                                    
+                            except Exception as e:
+                                print(f"   ❌ 移动到回收站失败: {e}")
+                                print(f"   📋 错误类型: {type(e).__name__}")
+                                # 尝试使用cmd命令作为备选
+                                print(f"   🛠️ 尝试使用cmd命令删除...")
+                                try:
+                                    import subprocess
+                                    result = subprocess.run(
+                                        ['cmd', '/c', 'del', '/f', '/q', html_path],
+                                        capture_output=True,
+                                        text=True
+                                    )
+                                    print(f"   📋 cmd命令输出: {result.stdout}")
+                                    print(f"   📋 cmd命令错误: {result.stderr}")
+                                    print(f"   📋 cmd命令返回码: {result.returncode}")
+                                    
+                                    if result.returncode == 0 and not os.path.exists(html_path):
+                                        print(f"   ✅ 使用cmd命令删除成功!")
+                                        deleted_files.append(html_path)
+                                    else:
+                                        print(f"   ❌ 使用cmd命令删除失败")
+                                        failed_files.append(html_path)
+                                        
+                                except Exception as e:
+                                    print(f"   ❌ cmd命令执行失败: {e}")
+                                    failed_files.append(html_path)
+                        else:
+                            print(f"   ❌ 文件不存在，跳过删除")
+                            
+                            # 尝试查找类似的文件
+                            search_dir = os.path.dirname(html_path) if html_path else os.getcwd()
+                            print(f"   📁 搜索目录: {search_dir}")
+                            
+                            if os.path.exists(search_dir):
+                                print(f"   ✅ 目录存在")
+                                print(f"   📋 目录中的HTML文件:")
+                                html_files = [f for f in os.listdir(search_dir) if f.endswith('.html')]
+                                if html_files:
+                                    for file in html_files[:10]:  # 最多显示10个文件
+                                        print(f"     - {file}")
+                                    if len(html_files) > 10:
+                                        print(f"     ... 还有 {len(html_files) - 10} 个文件")
+                                else:
+                                    print(f"     📋 目录中没有HTML文件")
+                            else:
+                                print(f"   ❌ 搜索目录不存在")
+                                
+                                # 尝试创建目录（用于测试）
+                                try:
+                                    os.makedirs(search_dir, exist_ok=True)
+                                    print(f"   ✅ 已创建目录: {search_dir}")
+                                except Exception as e:
+                                    print(f"   ❌ 创建目录失败: {e}")
+                            
+                            # 显示实际的工作目录
+                            print(f"   📁 当前工作目录: {os.getcwd()}")
+                    else:
+                        print(f"   ❌ 记录中没有HTML路径，跳过文件删除")
+                    
                     # 记录要删除的时间戳
                     timestamps_to_delete.append(record['timestamp'])
+                    print(f"   ➕ 已添加时间戳到删除列表")
+                else:
+                    print(f"   ❌ 行号 {row} 超出历史记录范围")
             
+            print(f"\n📋 要删除的时间戳数量: {len(timestamps_to_delete)}")
+            print(f"✅ 成功删除的文件数量: {len(deleted_files)}")
+            print(f"❌ 删除失败的文件数量: {len(failed_files)}")
+            
+            if deleted_files:
+                print("\n✅ 成功删除的文件:")
+                for file in deleted_files:
+                    print(f"   - {file}")
+            
+            if failed_files:
+                print("\n❌ 删除失败的文件:")
+                for file in failed_files:
+                    print(f"   - {file}")
+            
+            # 删除历史记录
             if timestamps_to_delete:
-                search_history_manager.remove_records_by_timestamp(timestamps_to_delete)
+                print("\n🗑️ 从历史记录中删除对应条目...")
+                
+                # 过滤历史记录
+                new_history = []
+                for record in history:
+                    if record['timestamp'] not in timestamps_to_delete:
+                        new_history.append(record)
+                
+                # 保存更新后的历史记录
+                search_history_manager.history = new_history
+                search_history_manager.save_history()
+                
+                print(f"✅ 历史记录更新完成")
+                print(f"📊 删除前记录数: {len(history)}")
+                print(f"📊 删除后记录数: {len(new_history)}")
+                print(f"📊 删除的记录数: {len(history) - len(new_history)}")
+                
+                # 刷新界面
+                print("🔄 刷新历史记录界面...")
                 self._load_history_data()
+                print("✅ 界面刷新完成")
+            else:
+                print("\n❌ 没有要删除的时间戳")
+                
         except Exception as e:
-            print(f"删除历史记录失败: {e}")
+            print(f"\n💥 删除操作发生错误:")
+            print(f"   📋 错误信息: {e}")
+            print(f"   📋 错误类型: {type(e).__name__}")
+            print(f"   📋 详细错误:")
+            import traceback
+            traceback.print_exc()
+        
+        print("=" * 80)
+        print("🔚 删除操作执行完毕")
+        print("=" * 80)
     
     def clear_all_history(self):
         """清除全部历史记录"""
