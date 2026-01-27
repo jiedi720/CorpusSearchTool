@@ -194,19 +194,12 @@ class SearchHistoryManager:
                     record_exists = False
                     # 加载最新的搜索历史
                     self.history = self.load_history()
-                    # 检查HTML路径（最可靠的重复检测）
+                    # 只检查HTML路径（最可靠的重复检测）
+                    # 每个HTML文件都有唯一的文件名（包含时间戳），所以HTML路径是唯一的
                     for record in self.history:
                         if record.get('html_path') == rel_html_path:
                             record_exists = True
                             break
-                    # 如果没有找到，检查关键词、结果数量和关键词类型
-                    if not record_exists:
-                        for record in self.history:
-                            if (record.get('keywords') == search_info['keywords'] and 
-                                record.get('result_count') == result_count and 
-                                record.get('keyword_type') == search_info.get('keyword_type', '')):
-                                record_exists = True
-                                break
                     
                     if not record_exists:
                         # 添加记录到搜索历史

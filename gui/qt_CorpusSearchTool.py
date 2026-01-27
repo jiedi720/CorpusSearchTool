@@ -705,7 +705,10 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 为韩语变体列表显示设置韩语字体
         if hasattr(self, 'korean_lemmalist_display'):
-            self.korean_lemmalist_display.setFont(FontConfig.get_korean_font())
+            # 韩语变体列表显示的字体大小比默认小0.5号
+            current_size = FontConfig.KOREAN_FONT_SIZE
+            new_size = current_size - 0.5
+            self.korean_lemmalist_display.setFont(FontConfig.get_korean_font(new_size))
         
     def change_theme(self, mode):
         """
@@ -2165,22 +2168,23 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             history = search_history_manager.get_recent_records(100)
             record_exists = False
             
+            # 提取HTML文件的相对路径
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            
+            try:
+                # 尝试计算相对路径
+                rel_html_path = os.path.relpath(file_path, base_dir)
+            except ValueError:
+                # 当路径在不同驱动器上时，直接使用绝对路径
+                rel_html_path = file_path
+            
             for record in history:
-                # 检查关键词和结果数量是否匹配
-                if record.get('keywords') == keywords and record.get('result_count') == result_count:
+                # 检查HTML路径是否匹配（每个HTML文件都有唯一的文件名，包含时间戳）
+                if record.get('html_path') == rel_html_path:
                     record_exists = True
                     break
             
             if not record_exists:
-                # 提取HTML文件的相对路径
-                base_dir = os.path.dirname(os.path.dirname(__file__))
-                
-                try:
-                    # 尝试计算相对路径
-                    rel_html_path = os.path.relpath(file_path, base_dir)
-                except ValueError:
-                    # 当路径在不同驱动器上时，直接使用绝对路径
-                    rel_html_path = file_path
                 
                 # 从HTML中提取lemma和lemmalist信息，用于保存到搜索历史
                 lemma_text = ''

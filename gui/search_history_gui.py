@@ -281,9 +281,11 @@ class SearchHistoryWindow(QMainWindow):
         copy_action = menu.addAction("📋 复制关键词")
         copy_path_action = menu.addAction("📋 复制路径")
         menu.addSeparator()
-        delete_action = menu.addAction(f"🗑️ 删除选中记录")
+        delete_action = menu.addAction(f"🗑️ 清除选中记录")
         menu.addSeparator()
         clear_all_action = menu.addAction("🗑️ 清除全部历史")
+        menu.addSeparator()
+        delete_with_html_action = menu.addAction("❌ 删除选中记录")
         
         action = menu.exec(self.history_table.mapToGlobal(pos))
         
@@ -304,6 +306,8 @@ class SearchHistoryWindow(QMainWindow):
             self.delete_records(selected_rows)
         elif action == clear_all_action:
             self.clear_all_history()
+        elif action == delete_with_html_action:
+            self.delete_records_with_html(selected_rows)
     
     def load_to_search(self, row: int) -> dict:
         """
@@ -362,6 +366,45 @@ class SearchHistoryWindow(QMainWindow):
             for row in sorted(rows):
                 if row < len(history):
                     record = history[row]
+                    timestamps_to_delete.append(record['timestamp'])
+            
+            if timestamps_to_delete:
+                search_history_manager.remove_records_by_timestamp(timestamps_to_delete)
+                self._load_history_data()
+        except Exception as e:
+            print(f"删除历史记录失败: {e}")
+    
+    def delete_records_with_html(self, rows: set):
+        """删除选中的历史记录并将其HTML文件移到回收站"""
+        try:
+            import os
+            import shutil
+            
+            search_history_manager.set_corpus_type(self.corpus_type)
+            history = search_history_manager.get_recent_records(100)
+            
+            timestamps_to_delete = []
+            for row in sorted(rows):
+                if row < len(history):
+                    record = history[row]
+                    # 移到回收站
+                    html_path = record.get('html_path', '')
+                    if html_path:
+                        # 检查HTML路径是否为相对路径
+                        if not os.path.isabs(html_path):
+                            # 构建完整路径
+                            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                            html_path = os.path.join(base_dir, html_path)
+                        # 检查文件是否存在
+                        if os.path.exists(html_path):
+                            # 移到回收站
+                            if hasattr(shutil, 'move'):
+                                try:
+                                    # 尝试移到回收站
+                                    shutil.move(html_path, os.path.join(os.environ.get('LOCALAPPDATA'), 'Microsoft', 'Windows', 'Recycle Bin'))
+                                except Exception as e:
+                                    print(f"移动文件到回收站失败: {e}")
+                    # 记录要删除的时间戳
                     timestamps_to_delete.append(record['timestamp'])
             
             if timestamps_to_delete:
