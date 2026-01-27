@@ -412,7 +412,8 @@ class SearchHistoryManager:
             }
         }
         
-        self.history.append(record)
+        # 将新记录添加到历史列表的开头，这样新的记录会显示在最上面
+        self.history.insert(0, record)
         self.save_history()
     
     def get_recent_records(self, count: int = 10) -> List[Dict]:
