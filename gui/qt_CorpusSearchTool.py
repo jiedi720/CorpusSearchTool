@@ -2285,7 +2285,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
             else:  # 韩语语料库
                 self.korean_keyword_edit.setText(keyword)
             self.status_bar.showMessage(f"✓ 已加载关键词: {keyword}")
-            self.history_window = None
     
     def _load_history_keyword(self, row: int):
         """
@@ -2385,13 +2384,23 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         menu.addSeparator()
         clear_action = menu.addAction("🗑️ 清除")
         # 清除选项：只要有数据或控件有内容就启用
-        clear_action.setEnabled(has_data or \
-                              (hasattr(self, 'english_keyword_edit') and self.english_keyword_edit.text().strip()) or \
-                              (hasattr(self, 'korean_keyword_edit') and self.korean_keyword_edit.text().strip()) or \
-                              (hasattr(self, 'english_lemma_display') and self.english_lemma_display.text().strip() != 'N/A') or \
-                              (hasattr(self, 'korean_lemma_display') and self.korean_lemma_display.text().strip() != 'N/A') or \
-                              (hasattr(self, 'english_lemmalist_display') and self.english_lemmalist_display.text().strip()) or \
-                              (hasattr(self, 'korean_lemmalist_display') and self.korean_lemmalist_display.text().strip()))
+        try:
+            # 确保每个条件都返回布尔值
+            has_english_keyword = hasattr(self, 'english_keyword_edit') and bool(self.english_keyword_edit.text().strip())
+            has_korean_keyword = hasattr(self, 'korean_keyword_edit') and bool(self.korean_keyword_edit.text().strip())
+            has_english_lemma = hasattr(self, 'english_lemma_display') and bool(self.english_lemma_display.text().strip() != 'N/A')
+            has_korean_lemma = hasattr(self, 'korean_lemma_display') and bool(self.korean_lemma_display.text().strip() != 'N/A')
+            has_english_lemmalist = hasattr(self, 'english_lemmalist_display') and bool(self.english_lemmalist_display.text().strip())
+            has_korean_lemmalist = hasattr(self, 'korean_lemmalist_display') and bool(self.korean_lemmalist_display.text().strip())
+            
+            clear_enabled = bool(has_data or has_english_keyword or has_korean_keyword or 
+                               has_english_lemma or has_korean_lemma or 
+                               has_english_lemmalist or has_korean_lemmalist)
+        except Exception as e:
+            print(f"检查clear_action启用状态时出错: {e}")
+            clear_enabled = bool(has_data)
+        
+        clear_action.setEnabled(clear_enabled)
         
         # 设置菜单项的启用状态
         # 复制单元格：必须有选中的单元格
