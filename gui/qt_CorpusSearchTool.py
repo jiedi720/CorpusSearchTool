@@ -343,20 +343,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         # 设置接受拖拽
         self.setAcceptDrops(True)
         
-        # 定义配色方案
-        self.colors = {
-            'bg': '#353535',  # 深灰色背景
-            'secondary_bg': '#404040',  # 次要背景色
-            'dark_bg': '#1f1f1f',
-            'dark_secondary_bg': '#2d2d2d',
-            'text_primary': '#ffffff',
-            'text_secondary': '#cccccc',
-            'dark_text_primary': '#ffffff',
-            'accent': '#0078d4',
-            'accent_hover': '#006cbd',
-            'highlight': '#ff6b35',
-        }
-        
         # 初始化变量
         self.history_window = None
         self.result_file_paths = []
@@ -381,9 +367,6 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
         
         # 获取HTML代理
         self.html_delegate = self.table_manager.html_delegate
-        
-        # 移除旧的列宽限制信号连接，改用表格管理器的实现
-        # self.result_table.horizontalHeader().sectionResized.connect(self.enforce_min_column_width)
         
         # 连接列宽变化信号，重新计算行高
         self.result_table.horizontalHeader().sectionResized.connect(self.on_column_resized)
