@@ -1861,28 +1861,60 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 # 处理文本，添加关键词高亮
                 processed_text = str(text)
 
-                # 移除所有现有的颜色样式（包括前景色和HTML标签中的颜色样式）
+                # 移除所有现有的HTML标签，只保留纯文本
                 import re
-                # 移除所有包含颜色定义的span标签
-                processed_text = re.sub(r'<span[^>]*style[^>]*color[^>]*>', '', processed_text)
-                # 移除所有剩余的span闭合标签
-                processed_text = processed_text.replace('</span>', '')
+                # 移除所有HTML标签
+                processed_text = re.sub(r'<[^>]*>', '', processed_text)
 
                 # 如果有关键词，添加高亮
                 if current_keywords:
                     # 确保关键词按长度降序排列，避免短关键词匹配长关键词的一部分
                     current_keywords.sort(key=lambda x: len(x), reverse=True)
 
-                    for keyword in current_keywords:
-                        if keyword:
-                            # 使用正则表达式替换，不使用单词边界（适用于韩语）
-                            regex_pattern = re.escape(keyword)
-                            processed_text = re.sub(
-                                rf'({regex_pattern})',
-                                r'<span class="highlight">\1</span>',
-                                processed_text,
-                                flags=re.IGNORECASE
-                            )
+                    # 创建一个标记数组，用于记录每个字符的状态
+                    # 0: 未处理，1: 已处理
+                    marked = [0] * len(processed_text)
+
+                    # 创建结果字符串
+                    result = []
+                    i = 0
+                    while i < len(processed_text):
+                        # 检查当前位置是否已处理
+                        if marked[i]:
+                            i += 1
+                            continue
+
+                        # 尝试匹配关键词
+                        matched = False
+                        for keyword in current_keywords:
+                            if keyword:
+                                # 检查从当前位置开始是否匹配关键词
+                                if i + len(keyword) <= len(processed_text):
+                                    candidate = processed_text[i:i+len(keyword)]
+                                    if candidate.lower() == keyword.lower():
+                                        # 检查这个匹配是否与已处理的位置重叠
+                                        overlap = False
+                                        for j in range(i, i+len(keyword)):
+                                            if marked[j]:
+                                                overlap = True
+                                                break
+                                        if not overlap:
+                                            # 标记为已处理
+                                            for j in range(i, i+len(keyword)):
+                                                marked[j] = 1
+                                            # 添加高亮标签
+                                            result.append(f'<span class="highlight">{candidate}</span>')
+                                            i += len(keyword)
+                                            matched = True
+                                            break
+                        
+                        if not matched:
+                            # 如果没有匹配到关键词，添加普通字符
+                            result.append(processed_text[i])
+                            i += 1
+
+                    # 构建最终文本
+                    processed_text = ''.join(result)
 
                 html_content.append('<tr>')
                 html_content.append(f'<td class="episode">{episode}</td>')
