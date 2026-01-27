@@ -31,7 +31,7 @@ def main():
         if added_count > 0:
             print(f"已添加 {added_count} 个HTML文件到搜索历史中")
         else:
-            print("未找到需要添加的HTML文件")
+            print("所有HTML文件都已添加到搜索历史中，无需重复添加")
         
         window.show()
         

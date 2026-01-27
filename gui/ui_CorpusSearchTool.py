@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CorpusSearchToolxGgDlq.ui'
+## Form generated from reading UI file 'CorpusSearchToolQQQdmx.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -26,9 +26,9 @@ class Ui_CorpusSearchTool(object):
     def setupUi(self, CorpusSearchTool):
         if not CorpusSearchTool.objectName():
             CorpusSearchTool.setObjectName(u"CorpusSearchTool")
-        CorpusSearchTool.resize(1200, 800)
-        CorpusSearchTool.setMinimumSize(QSize(1100, 800))
-        CorpusSearchTool.setMaximumSize(QSize(1500, 800))
+        CorpusSearchTool.resize(1200, 850)
+        CorpusSearchTool.setMinimumSize(QSize(1200, 850))
+        CorpusSearchTool.setMaximumSize(QSize(1500, 1000))
         self.actionlight = QAction(CorpusSearchTool)
         self.actionlight.setObjectName(u"actionlight")
         self.actionDark = QAction(CorpusSearchTool)
