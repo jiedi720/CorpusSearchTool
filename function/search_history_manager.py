@@ -117,6 +117,7 @@ class SearchHistoryManager:
                     if korean_pattern.search(search_info['keywords']):
                         is_korean = True
                     
+                    corpus_type = 'kor' if is_korean else 'eng'
                     search_info['corpus_type'] = 'korean' if is_korean else 'english'
                     search_info['search_path'] = search_path
                     
@@ -128,6 +129,21 @@ class SearchHistoryManager:
                             break
                     if keyword_type_p:
                         search_info['keyword_type'] = keyword_type_p.text.split('关键词类型:')[-1].strip()
+                    
+                    # 查找搜索时间
+                    search_time = None
+                    for p in soup.find_all('p'):
+                        if '搜索时间:' in p.text:
+                            search_time_str = p.text.split('搜索时间:')[-1].strip()
+                            try:
+                                # 解析搜索时间
+                                from datetime import datetime
+                                search_time = datetime.strptime(search_time_str, '%Y-%m-%d %H:%M:%S')
+                            except ValueError:
+                                # 如果解析失败，使用当前时间
+                                import datetime
+                                search_time = datetime.datetime.now()
+                            break
                     
                     # 查找结果数量
                     result_count = 0
@@ -165,24 +181,34 @@ class SearchHistoryManager:
                         if actual_match:
                             actual_variant_set = [v.strip() for v in actual_match.group(1).split(',') if v.strip()]
                     
+                    # 提取HTML文件的相对路径
+                    rel_html_path = os.path.relpath(file_path, base_dir)
+                    
+                    # 保存当前语料库类型
+                    old_corpus_type = self.corpus_type
+                    
+                    # 切换到当前HTML文件对应的语料库类型
+                    self.set_corpus_type(corpus_type)
+                    
                     # 检查该记录是否已存在于搜索历史中
                     record_exists = False
+                    # 加载最新的搜索历史
+                    self.history = self.load_history()
+                    # 检查HTML路径（最可靠的重复检测）
                     for record in self.history:
-                        if record.get('keywords') == search_info['keywords'] and record.get('result_count') == result_count:
+                        if record.get('html_path') == rel_html_path:
                             record_exists = True
                             break
+                    # 如果没有找到，检查关键词、结果数量和关键词类型
+                    if not record_exists:
+                        for record in self.history:
+                            if (record.get('keywords') == search_info['keywords'] and 
+                                record.get('result_count') == result_count and 
+                                record.get('keyword_type') == search_info.get('keyword_type', '')):
+                                record_exists = True
+                                break
                     
                     if not record_exists:
-                        # 提取HTML文件的相对路径
-                        rel_html_path = os.path.relpath(file_path, base_dir)
-                        
-                        # 根据语料库类型切换search_history_manager的语料库类型
-                        old_corpus_type = self.corpus_type
-                        if search_info['corpus_type'] == 'korean':
-                            self.set_corpus_type('kor')
-                        else:
-                            self.set_corpus_type('eng')
-                        
                         # 添加记录到搜索历史
                         self.add_record(
                             keywords=search_info['keywords'],
@@ -195,13 +221,14 @@ class SearchHistoryManager:
                             keyword_type=search_info.get('keyword_type', ''),
                             lemma=lemma_text,
                             actual_variant_set=actual_variant_set,
-                            target_variant_set=target_variant_set
+                            target_variant_set=target_variant_set,
+                            search_time=search_time
                         )
                         added_count += 1
                         print(f"已添加HTML文件到搜索历史: {file_name} (语料库类型: {self.corpus_type})")
-                        
-                        # 恢复原来的语料库类型
-                        self.set_corpus_type(old_corpus_type)
+                    
+                    # 恢复原来的语料库类型
+                    self.set_corpus_type(old_corpus_type)
                         
                 except Exception as e:
                     print(f"处理HTML文件 {file_name} 时出错: {str(e)}")
@@ -343,7 +370,7 @@ class SearchHistoryManager:
                    case_sensitive: bool = False, fuzzy_match: bool = False, 
                    regex_enabled: bool = False, result_count: int = 0, keyword_type: str = "",
                    lemma: str = "", actual_variant_set: list = [], target_variant_set: list = [],
-                   html_path: str = ""):
+                   html_path: str = "", search_time=None):
         """
         添加搜索记录
         
@@ -361,8 +388,14 @@ class SearchHistoryManager:
             target_variant_set: 基于词典形生成的所有可能变体形式列表
             html_path: HTML文件路径
         """
+        # 使用提供的搜索时间或当前时间
+        if search_time:
+            timestamp = search_time.isoformat()
+        else:
+            timestamp = datetime.now().isoformat()
+        
         record = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": timestamp,
             "keywords": keywords,
             "input_path": input_path,
             "output_path": output_path,

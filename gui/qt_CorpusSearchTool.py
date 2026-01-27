@@ -2175,6 +2175,21 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                 # 从HTML中提取关键词类型
                 keyword_type = search_info.get('keyword_type', '')
                 
+                # 从HTML中提取搜索时间
+                search_time = None
+                for p in soup.find_all('p'):
+                    if '搜索时间:' in p.text:
+                        search_time_str = p.text.split('搜索时间:')[-1].strip()
+                        try:
+                            # 解析搜索时间
+                            from datetime import datetime
+                            search_time = datetime.strptime(search_time_str, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            # 如果解析失败，使用当前时间
+                            import datetime
+                            search_time = datetime.datetime.now()
+                        break
+                
                 # 添加记录到搜索历史
                 search_history_manager.add_record(
                     keywords=keywords,
@@ -2187,7 +2202,8 @@ class CorpusSearchToolGUI(QMainWindow, Ui_CorpusSearchTool):
                     keyword_type=keyword_type,  # 使用从HTML中提取的关键词类型
                     lemma=lemma_text,
                     actual_variant_set=actual_variant_set,
-                    target_variant_set=target_variant_set
+                    target_variant_set=target_variant_set,
+                    search_time=search_time
                 )
                 self.status_bar.showMessage(f"✓ 成功加载 {len(data_rows)} 条搜索结果，并添加到搜索历史")
             else:
