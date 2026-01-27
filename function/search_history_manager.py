@@ -53,6 +53,162 @@ class SearchHistoryManager:
             self.history_file = self._get_history_file()
             self.history = self.load_history()
     
+    def scan_html_files(self):
+        """
+        扫描searchhistory目录中的所有HTML文件，将其添加到搜索历史中
+        
+        Returns:
+            添加的记录数量
+        """
+        import os
+        from bs4 import BeautifulSoup
+        import re
+        
+        # 获取searchhistory目录路径
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        history_dir = os.path.join(base_dir, "searchhistory")
+        
+        # 如果目录不存在则创建
+        if not os.path.exists(history_dir):
+            os.makedirs(history_dir, exist_ok=True)
+            return 0
+        
+        added_count = 0
+        
+        # 遍历目录中的所有HTML文件
+        for file_name in os.listdir(history_dir):
+            if file_name.endswith('.html'):
+                file_path = os.path.join(history_dir, file_name)
+                
+                try:
+                    # 读取HTML文件内容
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        html_content = f.read()
+                    
+                    # 解析HTML内容
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    
+                    # 提取搜索信息
+                    search_info = {}
+                    
+                    # 查找搜索关键词
+                    keyword_p = soup.find('p', string=re.compile(r'搜索关键词:'))
+                    if not keyword_p:
+                        continue
+                    search_info['keywords'] = keyword_p.text.split('搜索关键词:')[-1].strip()
+                    
+                    # 查找搜索路径，判断是否为韩语语料库
+                    path_p = soup.find('p', string=re.compile(r'搜索路径:'))
+                    if not path_p:
+                        continue
+                    search_path = path_p.text.split('搜索路径:')[-1].strip()
+                    
+                    # 从搜索路径、文件名和关键词判断是否为韩语语料库
+                    is_korean = False
+                    # 检查搜索路径
+                    if '韩语' in search_path or 'Korean' in search_path:
+                        is_korean = True
+                    # 检查文件名
+                    if 'Korean' in file_name:
+                        is_korean = True
+                    # 检查关键词是否包含韩字
+                    import re
+                    korean_pattern = re.compile(r'[\uac00-\ud7af]')
+                    if korean_pattern.search(search_info['keywords']):
+                        is_korean = True
+                    
+                    search_info['corpus_type'] = 'korean' if is_korean else 'english'
+                    search_info['search_path'] = search_path
+                    
+                    # 查找关键词类型
+                    keyword_type_p = None
+                    for p in soup.find_all('p'):
+                        if '关键词类型:' in p.text:
+                            keyword_type_p = p
+                            break
+                    if keyword_type_p:
+                        search_info['keyword_type'] = keyword_type_p.text.split('关键词类型:')[-1].strip()
+                    
+                    # 查找结果数量
+                    result_count = 0
+                    result_p = soup.find('p', string=re.compile(r'结果数量:'))
+                    if result_p:
+                        try:
+                            result_count = int(result_p.text.split('结果数量:')[-1].strip())
+                        except ValueError:
+                            # 从表格中计算结果数量
+                            table = soup.find('table')
+                            if table:
+                                rows = table.find_all('tr')
+                                result_count = len(rows) - 1  # 减去表头行
+                    
+                    # 查找lemma和lemmalist信息
+                    lemma_text = ''
+                    lemmalist_text = ''
+                    lemma_p = soup.find('p', id='lemma_text')
+                    lemmalist_p = soup.find('p', id='lemmalist_text')
+                    if lemma_p:
+                        lemma_text = lemma_p.get_text(strip=True)
+                    if lemmalist_p:
+                        lemmalist_text = lemmalist_p.get_text(strip=True)
+                    
+                    # 将lemmalist_text拆分为target_variant_set和actual_variant_set
+                    target_variant_set = []
+                    actual_variant_set = []
+                    if lemmalist_text:
+                        # 提取生成变体列表
+                        target_match = re.search(r'生成变体列表:\s*(.*?)(?:;|$)', lemmalist_text)
+                        if target_match:
+                            target_variant_set = [v.strip() for v in target_match.group(1).split(',') if v.strip()]
+                        # 提取实际命中变体
+                        actual_match = re.search(r'实际命中变体:\s*(.*?)(?:;|$)', lemmalist_text)
+                        if actual_match:
+                            actual_variant_set = [v.strip() for v in actual_match.group(1).split(',') if v.strip()]
+                    
+                    # 检查该记录是否已存在于搜索历史中
+                    record_exists = False
+                    for record in self.history:
+                        if record.get('keywords') == search_info['keywords'] and record.get('result_count') == result_count:
+                            record_exists = True
+                            break
+                    
+                    if not record_exists:
+                        # 提取HTML文件的相对路径
+                        rel_html_path = os.path.relpath(file_path, base_dir)
+                        
+                        # 根据语料库类型切换search_history_manager的语料库类型
+                        old_corpus_type = self.corpus_type
+                        if search_info['corpus_type'] == 'korean':
+                            self.set_corpus_type('kor')
+                        else:
+                            self.set_corpus_type('eng')
+                        
+                        # 添加记录到搜索历史
+                        self.add_record(
+                            keywords=search_info['keywords'],
+                            input_path=search_info['search_path'],
+                            html_path=rel_html_path,
+                            case_sensitive=False,
+                            fuzzy_match=False,
+                            regex_enabled=False,
+                            result_count=result_count,
+                            keyword_type=search_info.get('keyword_type', ''),
+                            lemma=lemma_text,
+                            actual_variant_set=actual_variant_set,
+                            target_variant_set=target_variant_set
+                        )
+                        added_count += 1
+                        print(f"已添加HTML文件到搜索历史: {file_name} (语料库类型: {self.corpus_type})")
+                        
+                        # 恢复原来的语料库类型
+                        self.set_corpus_type(old_corpus_type)
+                        
+                except Exception as e:
+                    print(f"处理HTML文件 {file_name} 时出错: {str(e)}")
+                    continue
+        
+        return added_count
+    
     def load_history(self) -> List[Dict]:
         """加载历史记录"""
         if os.path.exists(self.history_file):

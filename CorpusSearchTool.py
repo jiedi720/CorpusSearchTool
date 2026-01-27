@@ -23,6 +23,16 @@ def main():
         
         # 创建主窗口
         window = CorpusSearchToolGUI()
+        
+        # 扫描HTML文件并添加到搜索历史中
+        from function.search_history_manager import search_history_manager
+        print("正在扫描HTML文件...")
+        added_count = search_history_manager.scan_html_files()
+        if added_count > 0:
+            print(f"已添加 {added_count} 个HTML文件到搜索历史中")
+        else:
+            print("未找到需要添加的HTML文件")
+        
         window.show()
         
         # 运行应用程序
