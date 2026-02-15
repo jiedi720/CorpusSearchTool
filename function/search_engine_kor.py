@@ -158,6 +158,11 @@ class KoreanSearchEngine(SearchEngineBase):
         noun_adv_tags = ['NNG', 'NNP', 'NNB', 'NR', 'NP', 'MAG', 'MAJ']
         is_noun_adv = pos in noun_adv_tags
 
+        # 获取词干形式（用于形态分析匹配）
+        stem = lemma
+        if lemma.endswith('다'):
+            stem = lemma[:-1]
+
         # 3. 构建搜索用的目标形式集合
         if is_noun_adv:
             # 名词/副词：仅包含原始关键词
@@ -216,7 +221,8 @@ class KoreanSearchEngine(SearchEngineBase):
                         # 检查是否包含目标词典形的任意变形
                         for analysis_result in sentence_analyzed:
                             for token in analysis_result[0]:
-                                if token.lemma == lemma:
+                                # 使用词干形式进行匹配，这样可以匹配到不规则变形
+                                if token.lemma == lemma or token.lemma == stem:
                                     matched = True
                                     matched_variant = token.form
                                     actual_variants.add(matched_variant)
@@ -495,23 +501,31 @@ class KoreanSearchEngine(SearchEngineBase):
             variants.append(word)
             return variants
 
-        # 去掉다得到词干
-        base = word[:-1]  # 去掉다
-        
-        # 使用kiwipiepy分析原词，判断是动词(VV)还是形容词(VA)
+        # 使用kiwipiepy分析原词，获取词干和词性
         analysis_result = self.kiwi.analyze(word)
-        if analysis_result and len(analysis_result) > 0:
-            tokens = analysis_result[0][0]
-            # 查找词干的词性
-            pos = 'VV'  # 默认为动词
-            for token in tokens:
-                if token.form == base:
-                    if token.tag in ('VV', 'VA'):
-                        pos = token.tag
-                    break
-        else:
-            pos = 'VV'  # 默认为动词
-        
+        if not analysis_result or len(analysis_result) == 0:
+            variants.append(word)
+            return variants
+
+        tokens = analysis_result[0][0]
+        # 提取词干和词性
+        stem = None
+        pos = None
+        for token in tokens:
+            if token.tag in ('VV', 'VA', 'VA-I', 'VV-I'):
+                stem = token.form
+                pos = token.tag
+                break
+            elif token.form == word[:-1] and token.tag not in ('EF', 'EP'):
+                stem = token.form
+                pos = token.tag
+                break
+
+        # 如果无法提取词干和词性，直接返回原词
+        if not stem or not pos:
+            variants.append(word)
+            return variants
+
         # 常见的动词/形容词词尾组合列表
         # 使用kiwipiepy的join方法生成变体
         # 每个元素是(词尾1, 词尾2, ...)的列表，会被join组合
@@ -545,6 +559,8 @@ class KoreanSearchEngine(SearchEngineBase):
             [('는', 'ETM')],
             [('은', 'ETM')],
             [('을', 'ETM')],
+            [('ㄴ', 'ETM')],  # 对于形容词的冠词形
+            [('ㄹ', 'ETM')],  # 对于将来时冠词形
             
             # 将来时
             [('겠', 'EP'), ('다', 'EF')],
@@ -565,17 +581,11 @@ class KoreanSearchEngine(SearchEngineBase):
         for endings in endings_list:
             try:
                 # 构建形态素列表：词干 + 词尾
-                morphs = [(base, pos)] + endings
-                # 使用kiwipiepy的join方法组合（会自动应用缩约规则）
+                morphs = [(stem, pos)] + endings
+                # 使用kiwipiepy的join方法组合（会自动应用缩约规则和变音规则）
                 variant = self.kiwi.join(morphs)
                 if variant and variant not in variants:
                     variants.append(variant)
-
-                # 生成非缩约形：直接拼接词干和词尾，不使用join
-                # 这样可以保留完整的展开形式
-                expanded_variant = base + ''.join([e[0] for e in endings])
-                if expanded_variant and expanded_variant not in variants:
-                    variants.append(expanded_variant)
             except Exception as e:
                 # 如果join失败，跳过
                 continue

@@ -113,11 +113,13 @@ class HTMLDelegate(QStyledItemDelegate):
                         elif isinstance(keywords, list):
                             # 列表：直接使用
                             current_keywords = keywords
-                        # 同时添加生成的变体作为关键词
-                        if self.variants:
-                            current_keywords.extend(self.variants)
-                        # 去重并过滤空字符串
-                        current_keywords = [k for k in list(set(current_keywords)) if k]
+                    
+                    # 同时添加生成的变体作为关键词
+                    if self.variants:
+                        current_keywords.extend(self.variants)
+                    
+                    # 去重并过滤空字符串
+                    current_keywords = [k for k in list(set(current_keywords)) if k]
                 
                 # 处理文本，添加关键词高亮
                 plain_text = str(text)
@@ -245,11 +247,13 @@ class HTMLDelegate(QStyledItemDelegate):
                     elif isinstance(keywords, list):
                         # 列表：直接使用
                         current_keywords = keywords
-                    # 同时添加生成的变体作为关键词
-                    if self.variants:
-                        current_keywords.extend(self.variants)
-                    # 去重并过滤空字符串
-                    current_keywords = [k for k in list(set(current_keywords)) if k]
+                
+                # 同时添加生成的变体作为关键词
+                if self.variants:
+                    current_keywords.extend(self.variants)
+                
+                # 去重并过滤空字符串
+                current_keywords = [k for k in list(set(current_keywords)) if k]
             
             # 处理文本，添加关键词高亮，用于计算尺寸
             plain_text = str(text)
